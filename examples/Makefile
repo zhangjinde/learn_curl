@@ -10,10 +10,17 @@ COBJS = $(CSRCS:%.c=%.o)
 CPPSRCS = $(wildcard *.cpp)
 CPPOBJS = $(CPPSRCS:%.cpp=%.o)
 CURL = -L/usr/lib/x86_64-linux-gnu -lcurl
+SSL = -lssl -lcrypto
+PTHREAD = -lpthread
 LDFLAGS = $(CURL)
 OBJS = $(COBJS) $(CPPOBJS)
 SRCS = $(CSRCS) $(CPPSRCS)
 ALL = $(basename $(SRCS))
+
+cacertinmem: LDFLAGS = $(CURL) $(SSL)
+usercertinmem: LDFLAGS = $(CURL) $(SSL)
+curlx: LDFLAGS = $(CURL) $(SSL)
+multithread: LDFLAGS = $(CURL) $(PTHREAD)
 
 .PHONY: all clean $(DIRSALL) $(DIRSCLEAN)
 all: $(DIRSALL) $(ALL)

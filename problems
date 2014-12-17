@@ -1,0 +1,7 @@
+一，openssl
+提示找不到<openssl/ssl.h>头文件，是没有安装ssl库，使用如下方式解决：
+安装openssl
+sudo apt-get install openssl
+再安装以下：
+sudo apt-get install libssl-dev build-essential zlibc zlib-bin libidn11-dev libidn11
+链接时加上-lssl -lcrypto选项，貌似顺序不能变。
