@@ -9,16 +9,18 @@ CSRCS = $(wildcard *.c)
 COBJS = $(CSRCS:%.c=%.o)
 CPPSRCS = $(wildcard *.cpp)
 CPPOBJS = $(CPPSRCS:%.cpp=%.o)
+CURL = -L/usr/lib/x86_64-linux-gnu -lcurl
+LDFLAGS = $(CURL)
 OBJS = $(COBJS) $(CPPOBJS)
 SRCS = $(CSRCS) $(CPPSRCS)
 ALL = $(basename $(SRCS))
 
-$(ALL): LDFLAGS = -L/usr/lib/x86_64-linux-gnu -lcurl
-
 .PHONY: all clean $(DIRSALL) $(DIRSCLEAN)
 all: $(DIRSALL) $(ALL)
-$(ALL): %.o: %.c
-	$(CC) $(CFLAGS) -o $@ $@.c $(LDFLAGS)
+$(ALL): %: %.o
+	$(CC) $(CFLAGS) -o $@ $@.o $(LDFLAGS)
+$(OBJS): %.o: %.c
+	$(CC) $(CFLAGS) -c $<
 $(DIRSALL): %:
 	@cd $(subst all,,$@); make all;
 $(DIRSCLEAN): %:
