@@ -19,9 +19,9 @@
  * nmenb，数据片数量
  * user_p，用户自定义指针
  */
-size_t process_data(void *buffer, size_t size, size_t nmenb, void *user_p)
+size_t process_data(void *buffer, size_t size, size_t nmenb, void *userp)
 {
-	FILE *fp = (FILE *)user_p;
+	FILE *fp = (FILE *)userp;
 	size_t ret = fwrite(buffer, size, nmenb, fp);
 	printf("%s\n", (char *)buffer);
 	return ret;
@@ -52,11 +52,11 @@ int main(int argc, char *argv[])
 	curl_easy_setopt(easy_handle, CURLOPT_WRITEFUNCTION, process_data);
 	// 回调函数参数
 	curl_easy_setopt(easy_handle, CURLOPT_WRITEDATA, fp);
-	// 输出通信过程中的一些细节
+	// 输出通信过程中的一些细节，这可以用来调试
 	// 如果使用的是http协议，请求头/响应头也会被输出
 	//curl_easy_setopt(easy_handle, CURLOPT_VERBOSE, 1);
 	// 将消息头设置为出现在内容中
-	curl_easy_setopt(easy_handle, CURLOPT_HEADER, 1);
+	//curl_easy_setopt(easy_handle, CURLOPT_HEADER, 1);
 
 	// 执行数据请求
 	curl_easy_perform(easy_handle);
