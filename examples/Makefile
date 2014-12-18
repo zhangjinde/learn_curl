@@ -15,7 +15,9 @@ PTHREAD = -lpthread
 LDFLAGS = $(CURL)
 OBJS = $(COBJS) $(CPPOBJS)
 SRCS = $(CSRCS) $(CPPSRCS)
-ALL = $(basename $(SRCS))
+CALL = $(basename $(CSRCS))
+CPPALL = $(basename $(CPPSRCS))
+ALL = $(CALL) $(CPPALL)
 
 cacertinmem: LDFLAGS = $(CURL) $(SSL)
 usercertinmem: LDFLAGS = $(CURL) $(SSL)
@@ -24,8 +26,10 @@ multithread: LDFLAGS = $(CURL) $(PTHREAD)
 
 .PHONY: all clean $(DIRSALL) $(DIRSCLEAN)
 all: $(DIRSALL) $(ALL)
-$(ALL): %: %.o
+$(CALL): %: %.o
 	$(CC) $(CFLAGS) -o $@ $@.o $(LDFLAGS)
+$(CPPALL): %: %.o
+	$(CXX) $(CFLAGS) -o $@ $@.o $(LDFLAGS)
 $(COBJS): %.o: %.c
 	$(CC) $(CFLAGS) -c $<
 $(CPPOBJS): %.o: %.cpp

@@ -13,16 +13,20 @@ CURL = -L/usr/lib/x86_64-linux-gnu -lcurl
 LDFLAGS = $(CURL)
 OBJS = $(COBJS) $(CPPOBJS)
 SRCS = $(CSRCS) $(CPPSRCS)
-ALL = $(basename $(SRCS))
+CALL = $(basename $(CSRCS))
+CPPALL = $(basename $(CPPSRCS))
+ALL = $(CALL) $(CPPALL)
 
 .PHONY: all clean $(DIRSALL) $(DIRSCLEAN)
 all: $(DIRSALL) $(ALL)
-$(ALL): %: %.o
+$(CALL): %: %.o
 	$(CC) $(CFLAGS) -o $@ $@.o $(LDFLAGS)
+$(CPPALL): %: %.o
+	$(CXX) $(CFLAGS) -o $@ $@.o $(LDFLAGS)
 $(COBJS): %.o: %.c
 	$(CC) $(CFLAGS) -c $<
 $(CPPOBJS): %.o: %.cpp
-	$(CC) $(CFLAGS) -c $<
+	$(CXX) $(CFLAGS) -c $<
 $(DIRSALL): %:
 	@cd $(subst all,,$@); make all;
 $(DIRSCLEAN): %:
