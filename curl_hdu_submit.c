@@ -48,7 +48,9 @@ int main(int argc, char *argv[])
 	// 设置提交地址
 	curl_easy_setopt(curl, CURLOPT_URL, "http://acm.hdu.edu.cn/userloginex.php?action=login");
 	// 设置参数
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "username=gwq5210&userpass=Guoweqiang8&login=Sign+In");
+	// 不需要这个login参数
+	//curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "username=gwq5210&userpass=Guoweqiang8&login=Sign+In");
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "username=gwq5210&userpass=Guoweqiang8");
 
 	// 登陆
 	ret = curl_easy_perform(curl);
