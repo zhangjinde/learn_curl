@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 	// 设置提交地址
 	curl_easy_setopt(curl, CURLOPT_URL, "http://acm.hdu.edu.cn/submit.php?action=submit");
 	// 设置参数
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "check=0&problemid=1000&language=2&usercode=#include<iostream>");
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "check=0&problemid=1000&language=2&usercode=#include<iostream>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 	sleep(5);
 
 	fclose(fp);
