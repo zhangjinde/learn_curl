@@ -5,3 +5,6 @@ sudo apt-get install openssl
 再安装以下：
 sudo apt-get install libssl-dev build-essential zlibc zlib-bin libidn11-dev libidn11
 链接时加上-lssl -lcrypto选项，貌似顺序不能变。
+
+一个通用的方法是使用apt-file search 头文件名，来查找对应的库名，然后使用
+pkg-config --libs 库名来查看对应的链接参数。加上--cflags查看编译链接的参数。
