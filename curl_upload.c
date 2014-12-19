@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
 	FILE *fp = fopen(filename, "r");
 	if (fp == NULL) {
 		fprintf(stderr, "打开文件%s失败！\n", filename);
+		curl_global_cleanup();
 		exit(EXIT_FAILURE);
 	}
 
@@ -56,7 +57,7 @@ int main(int argc, char *argv[])
 	curl_easy_setopt(easy_handle, CURLOPT_READFUNCTION, readfile);
 	curl_easy_setopt(easy_handle, CURLOPT_READDATA, fp);
 	// 设置文件大小，确保协议知道文件已经传输成功
-	curl_easy_setopt(easy_handle, CURLOPT_INFILESIZE, filesize);
+	curl_easy_setopt(easy_handle, CURLOPT_INFILESIZE_LARGE, filesize);
 	// 设置ftp的密码，不设置也可以使用匿名用户登陆，匿名用户要求有写权限
 	curl_easy_setopt(easy_handle, CURLOPT_USERPWD, "gwq5210:pwd");
 	// 访问代理服务器的账号密码

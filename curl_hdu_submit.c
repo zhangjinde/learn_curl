@@ -21,11 +21,11 @@ int main(int argc, char *argv[])
 {
 	CURLcode ret = curl_global_init(CURL_GLOBAL_ALL);
 	if (ret != CURLE_OK) {
-		curl_global_cleanup();
 		error(EXIT_FAILURE, 0, "初始化curl失败！\n");
 	}
 	CURL *curl = curl_easy_init();
 	if (curl == NULL) {
+		curl_global_cleanup();
 		error(EXIT_FAILURE, 0, "获取curl失败！\n");
 	}
 
@@ -49,8 +49,8 @@ int main(int argc, char *argv[])
 	curl_easy_setopt(curl, CURLOPT_URL, "http://acm.hdu.edu.cn/userloginex.php?action=login");
 	// 设置参数
 	// 不需要这个login参数
-	//curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "username=gwq5210&userpass=Guoweqiang8&login=Sign+In");
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "username=gwq5210&userpass=Guoweqiang8");
+	//curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "username=username&userpass=password8&login=Sign+In");
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "username=username&userpass=password");
 
 	// 登陆
 	ret = curl_easy_perform(curl);
