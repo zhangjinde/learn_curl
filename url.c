@@ -10,11 +10,33 @@
 
 #define BURSIZE 1024
 
+int hex2dec(char c)
+{
+	if ('0' <= c && c <= '9') {
+		return c - '0';
+	} else if ('a' <= c && c <= 'f') {
+		return c - 'a' + 10;
+	} else if ('A' <= c && c <= 'F') {
+		return c - 'A' + 10;
+	} else {
+		return -1;
+	}
+}
+
+char dec2hex(short int c)
+{
+	if (0 <= c && c <= 9) {
+		return c + '0';
+	} else if (10 <= c && c <= 15) {
+		return c + 'A' - 10;
+	} else {
+		return -1;
+	}
+}
+
+
 /*
  * 编码一个url
- * 字符'a'-'z','A'-'Z','0'-'9','.','-','*'和'_' 都不被编码，维持原值
- * 空格' '被转换为加号'+'
- * 其他每个字节都被表示成"%XY"的格式，X和Y分别代表一个十六进制位。编码为UTF-8。
  */
 void urlencode(char url[])
 {
@@ -22,7 +44,7 @@ void urlencode(char url[])
 	int len = strlen(url);
 	int res_len = 0;
 	char res[BURSIZE];
-	for (i = 0; i < len; ++) {
+	for (i = 0; i < len; ++i) {
 		char c = url[i];
 		if (('0' <= c && c <= '9') ||
 				('a' <= c && c <= 'z') ||
@@ -36,37 +58,44 @@ void urlencode(char url[])
 			i1 = j / 16;
 			i0 = j - i1 * 16;
 			res[res_len++] = '%';
-			res[res_len++] = char2hex(i1);
-			res[res_len++] = char2hex(i0);
-			result += dec2hexChar(i1);
-			result += dec2hexChar(i0);
+			res[res_len++] = dec2hex(i1);
+			res[res_len++] = dec2hex(i0);
 		}
 	}
-	return result;
+	res[res_len] = '\0';
+	strcpy(url, res);
 }
 
 /*
  * 解码url
  */
-void urldecode(const string & URL)
+void urldecode(char url[])
 {
-	string result = "";
-	for (unsigned int i = 0; i < URL.size(); i++) {
-		char c = URL[i];
+	int i = 0;
+	int len = strlen(url);
+	int res_len = 0;
+	char res[BURSIZE];
+	for (i = 0; i < len; ++i) {
+		char c = url[i];
 		if (c != '%') {
-			result += c;
+			res[res_len++] = c;
 		} else {
-			char c1 = URL[++i];
-			char c0 = URL[++i];
+			char c1 = url[++i];
+			char c0 = url[++i];
 			int num = 0;
-			num += hexChar2dec(c1) * 16 + hexChar2dec(c0);
-			result += char (num);
+			num = hex2dec(c1) * 16 + hex2dec(c0);
+			res[res_len++] = num;
 		}
 	}
-	return result;
+	res[res_len] = '\0';
+	strcpy(url, res);
 }
 
 int main(int argc, char *argv[])
 {
+	char url[BURSIZE] = "http://'www.baidu.com/a b";
+	urlencode(url);
+	printf("%s\n", url);
+
 	return 0;
 }
