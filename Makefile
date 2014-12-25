@@ -10,6 +10,7 @@ COBJS = $(CSRCS:%.c=%.o)
 CPPSRCS = $(wildcard *.cpp)
 CPPOBJS = $(CPPSRCS:%.cpp=%.o)
 CURL = -L/usr/lib/x86_64-linux-gnu -lcurl
+EKHTML = /usr/local/lib/libekhtml.a
 LDFLAGS = $(CURL)
 OBJS = $(COBJS) $(CPPOBJS)
 SRCS = $(CSRCS) $(CPPSRCS)
@@ -19,6 +20,7 @@ ALL = $(CALL) $(CPPALL)
 
 .PHONY: all clean $(DIRSALL) $(DIRSCLEAN)
 all: $(DIRSALL) $(ALL)
+ekhtml_tester: LDFLAGS = $(CURL) $(EKHTML)
 $(CALL): %: %.o
 	$(CC) $(CFLAGS) -o $@ $@.o $(LDFLAGS)
 $(CPPALL): %: %.o
