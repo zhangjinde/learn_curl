@@ -20,7 +20,7 @@ ALL = $(CALL) $(CPPALL)
 
 .PHONY: all clean $(DIRSALL) $(DIRSCLEAN)
 all: $(DIRSALL) $(ALL)
-ekhtml_tester: LDFLAGS = $(CURL) $(EKHTML)
+ekhtml_tester ekhtml_parse_hdu: LDFLAGS = $(CURL) $(EKHTML)
 $(CALL): %: %.o
 	$(CC) $(CFLAGS) -o $@ $@.o $(LDFLAGS)
 $(CPPALL): %: %.o

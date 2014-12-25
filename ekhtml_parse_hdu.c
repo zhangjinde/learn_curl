@@ -25,6 +25,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <assert.h>
 
@@ -39,6 +40,8 @@ typedef struct {
 	unsigned int n_data;
 	unsigned int magic_doodie;
 	unsigned int only_parse;
+	unsigned int ish1;
+	unsigned int isdescription;
 } tester_cbdata;
 
 static void handle_starttag_way(void *cbdata, ekhtml_string_t * tag,
@@ -47,6 +50,7 @@ static void handle_starttag_way(void *cbdata, ekhtml_string_t * tag,
 	printf("GOT WAY START!\n");
 }
 
+// 标签开始
 static void handle_starttag(void *cbdata, ekhtml_string_t * tag,
 			    ekhtml_attr_t * attrs)
 {
@@ -58,18 +62,27 @@ static void handle_starttag(void *cbdata, ekhtml_string_t * tag,
 	if (tdata->only_parse)
 		return;
 
-	printf("START: \"%.*s\"\n", (int)tag->len, tag->str);
-	for (attr = attrs; attr; attr = attr->next) {
-		printf("ATTRIBUTE: \"%.*s\" = ", (int)attr->name.len,
-		       attr->name.str);
-		if (!attr->isBoolean)
-			printf("\"%.*s\"\n", (int)attr->val.len, attr->val.str);
-		else
-			printf("\"%.*s\"\n", (int)attr->name.len,
-			       attr->name.str);
+	if (strncmp("DIV", tag->str, 3) == 0) {
+		if (!tdata->isdescription) {
+			return;
+		}
+		printf("START: \"%.*s\"\n", (int)tag->len, tag->str);
+		for (attr = attrs; attr; attr = attr->next) {
+			if (strncmp("style", attr->name.str, 5) == 0) {
+				printf("ATTRIBUTE: \"%.*s\" = ", (int)attr->name.len,
+				       attr->name.str);
+				if (!attr->isBoolean) {
+					printf("\"%.*s\"\n", (int)attr->val.len, attr->val.str);
+				} else {
+					printf("\"%.*s\"\n", (int)attr->name.len,
+					       attr->name.str);
+				}
+			}
+		}
 	}
 }
 
+// 标签结束
 static void handle_endtag(void *cbdata, ekhtml_string_t * str)
 {
 	tester_cbdata *tdata = cbdata;
@@ -79,9 +92,15 @@ static void handle_endtag(void *cbdata, ekhtml_string_t * str)
 	if (tdata->only_parse)
 		return;
 
-	printf("END: \"%.*s\"\n", (int)str->len, str->str);
+	if (strncmp("DIV", str->str, 3) == 0) {
+		if (tdata->isdescription) {
+			tdata->isdescription--;
+		}
+		printf("END: \"%.*s\"\n", (int)str->len, str->str);
+	}
 }
 
+// 处理html中的注释
 static void handle_comment(void *cbdata, ekhtml_string_t * str)
 {
 	tester_cbdata *tdata = cbdata;
@@ -91,9 +110,10 @@ static void handle_comment(void *cbdata, ekhtml_string_t * str)
 	if (tdata->only_parse)
 		return;
 
-	printf("COMMENT: \"%.*s\"\n", (int)str->len, str->str);
+	//printf("COMMENT: \"%.*s\"\n", (int)str->len, str->str);
 }
 
+// 处理标签中的数据
 static void handle_data(void *cbdata, ekhtml_string_t * str)
 {
 	tester_cbdata *tdata = cbdata;
@@ -103,7 +123,12 @@ static void handle_data(void *cbdata, ekhtml_string_t * str)
 	if (tdata->only_parse)
 		return;
 
-	fwrite(str->str, str->len, 1, stdout);
+	if (tdata->isdescription) {
+		fwrite(str->str, str->len, 1, stdout);
+	}
+	if (strncmp("Problem Description", str->str, 19) == 0) {
+		tdata->isdescription = 2;
+	}
 }
 
 int main(int argc, char *argv[])
