@@ -134,8 +134,10 @@ int main(int argc, char *argv[])
 
 	ekhtml_parser_datacb_set(ekparser, handle_data);
 	ekhtml_parser_commentcb_set(ekparser, handle_comment);
-	ekhtml_parser_startcb_add(ekparser, "WAY", handle_starttag_way);
+	ekhtml_parser_startcb_add(ekparser, "h1", handle_starttag_way);
+	ekhtml_parser_startcb_add(ekparser, "title", handle_starttag_way);
 	ekhtml_parser_startcb_add(ekparser, NULL, handle_starttag);
+	//ekhtml_parser_endcb_add(ekparser, "H1", handle_starttag_way);
 	ekhtml_parser_endcb_add(ekparser, NULL, handle_endtag);
 	ekhtml_parser_cbdata_set(ekparser, &cbdata);
 	buf = malloc(feedsize);
