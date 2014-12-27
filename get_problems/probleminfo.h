@@ -1,7 +1,14 @@
+/*************************************************************************
+	> File Name: probleminfo.h
+	> Author: gwq
+	> Mail: gwq5210@qq.com 
+	> Created Time: 2014年12月27日 星期六 14时15分48秒
+ ************************************************************************/
+
 #ifndef _PROBLEMINFO_H
 #define _PROBLEMINFO_H
 
-#define BUFSIZ 1024
+#include "main.h"
 
 /*
  * 题目信息结构体
