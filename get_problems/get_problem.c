@@ -60,14 +60,20 @@ int main(int argc, char *argv[])
 
 	int pid = from;
 	for (pid = from; pid <= to; ++pid) {
+		printf("获取%s题目%d。。。\n", ojname, pid);
 		switch (type) {
 			case 0:
 				get_problem_hdu(curl, problem_info, type, pid);
 				break;
 		}
 
-		add_problem(problem_info);
-		sleep(5);
+		int ret = add_problem(problem_info);
+		if (ret < 0) {
+			printf("添加%s题目%d失败。。。两秒钟后获取下一道题目。。。\n", ojname, pid);
+		} else {
+			printf("添加%s题目%d成功。。。两秒钟后获取下一道题目。。。\n", ojname, pid);
+		}
+		sleep(2);
 	}
 
 

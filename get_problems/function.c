@@ -134,6 +134,7 @@ FILE *get_file(CURL *curl, int type, int pid)
 	return fp;
 }
 
-void add_problem(struct problem_info_t *problem_info)
+int add_problem(struct problem_info_t *problem_info)
 {
+	return 0;
 }
