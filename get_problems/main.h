@@ -9,10 +9,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <curl/curl.h>
-
-#include "function.h"
 
 #define DEBUG 1
 #define BUFSIZE 1024
@@ -36,9 +36,5 @@ struct problem_info_t {
 	int memory_limit;		// 内存限制（兆）
 	char ojtype;			// oj的类型
 };
-
-static int ojcnt;
-static char ojstr[OJMAX][BUFSIZE];
-static char ojurl[OJMAX][BUFSIZE];
 
 #endif	// _MAIN_H

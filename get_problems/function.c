@@ -7,6 +7,10 @@
 
 #include "main.h"
 
+extern int ojcnt;
+extern char ojstr[OJMAX][BUFSIZE];
+extern char ojurl[OJMAX][BUFSIZE];
+
 /*
  * 回调函数
  * buffer，接收到的数据所在缓冲区
@@ -25,7 +29,7 @@ size_t save_data(void *buffer, size_t size, size_t nmenb, void *userp)
 }
 
 int execute_cmd(const char * fmt, ...) {
-	char cmd[BUFFER_SIZE];
+	char cmd[BUFSIZE];
 
 	int ret = 0;
 	va_list ap;
@@ -53,12 +57,12 @@ int preform_curl(CURL *curl)
 	return 0;
 }
 
-FILE *get_file(CURL *curl, const char url[], int pid);
+FILE *get_file(CURL *curl, const char url[], int pid)
 {
 	char tmp_url[BUFSIZE];
 	char tmp_filename[BUFSIZE];
-	fprintf(tmp_url, "%s%d", url, pid);
-	fprintf(tmp_filename, "%d", pid);
+	sprintf(tmp_url, "%s%d", url, pid);
+	sprintf(tmp_filename, "%d", pid);
 	FILE *fp = fopen(tmp_filename, "w+");
 
 	// 设置网址
@@ -71,7 +75,7 @@ FILE *get_file(CURL *curl, const char url[], int pid);
 	if (DEBUG) {
 		// 输出通信过程中的一些细节，这可以用来调试
 		// 如果使用的是http协议，请求头/响应头也会被输出
-		curl_easy_setopt(easy_handle, CURLOPT_HEADER, 1);
+		curl_easy_setopt(curl, CURLOPT_HEADER, 1);
 	}
 
 	// 执行数据请求
@@ -82,4 +86,8 @@ FILE *get_file(CURL *curl, const char url[], int pid);
 	}
 
 	return fp;
+}
+
+void add_problem(struct problem_info_t *problem_info)
+{
 }

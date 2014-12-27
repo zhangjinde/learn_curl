@@ -11,7 +11,7 @@
 void init(void);
 CURL *prepare_curl(void);
 void cleanup_curl(CURL *curl);
-void preform_curl(CURL *curl);
+int preform_curl(CURL *curl);
 int execute_cmd(const char * fmt, ...);
 void add_problem(struct problem_info_t *problem_info);
 FILE *get_file(CURL *curl, const char url[], int pid);

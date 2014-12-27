@@ -10,6 +10,6 @@
  */
 #include "main.h"
 
-void get_problem_hdu(CURL *curl, struct problem_info_t *problem_info, int pid);
+void get_problem_hdu(CURL *curl, struct problem_info_t *problem_info, int pid)
 {
 }

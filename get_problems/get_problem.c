@@ -6,10 +6,15 @@
  ************************************************************************/
 
 #include "main.h"
+#include "function.h"
+
+static int ojcnt;
+static char ojstr[OJMAX][BUFSIZE];
+static char ojurl[OJMAX][BUFSIZE];
 
 int main(int argc, char *argv[])
 {
-	if (argc ! = 4) {
+	if (argc != 4) {
 		printf("用法：./get_problem ojname 起始题号 结束题号\n");
 		return 0;
 	}
@@ -42,12 +47,12 @@ int main(int argc, char *argv[])
 
 	struct problem_info_t *problem_info = (struct problem_info_t *)malloc(sizeof(struct problem_info_t));
 	if (problem_info == NULL) {
-		fprintf(strerr, "分配内存失败！\n");
+		fprintf(stderr, "分配内存失败！\n");
 		exit(EXIT_FAILURE);
 	}
 
 	int pid = from;
-	for (pid = from, pid <= to; ++pid) {
+	for (pid = from; pid <= to; ++pid) {
 		switch (type) {
 			case 0:
 				get_problem_hdu(curl, problem_info, pid);

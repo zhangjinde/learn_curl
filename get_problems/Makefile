@@ -13,7 +13,7 @@ ALL = get_problem
 all: $(ALL)
 
 get_problem: $(OBJS)
-	$(CC) $(CFLAGS) -o get_problem $(OBJS)
+	$(CC) $(CFLAGS) -o get_problem $(OBJS) $(LDFLAGS)
 $(OBJS): %.o: %.c
 	$(CC) $(CFLAGS) -c $<
 clean:
