@@ -28,6 +28,32 @@ size_t save_data(void *buffer, size_t size, size_t nmenb, void *userp)
 	return ret;
 }
 
+void init(void)
+{
+	FILE *fp = fopen("ojstr.conf", "r");
+	if (fp == NULL) {
+		fprintf(stderr, "打开文件ojstr.conf失败！\n");
+		exit(EXIT_FAILURE);
+	}
+	int type;
+	int cnt = 0;
+	while (fscanf(fp, "%d%s", &type, ojstr[cnt]) != EOF) {
+		++cnt;
+	}
+	fclose(fp);
+	fp = fopen("ojurl.conf", "r");
+	if (fp == NULL) {
+		fprintf(stderr, "打开文件ojurl.conf失败！\n");
+		exit(EXIT_FAILURE);
+	}
+	cnt = 0;
+	while (fscanf(fp, "%d%s", &type, ojurl[cnt]) != EOF) {
+		++cnt;
+	}
+	ojcnt = cnt;
+	fclose(fp);
+}
+
 int execute_cmd(const char * fmt, ...) {
 	char cmd[BUFSIZE];
 
@@ -39,6 +65,19 @@ int execute_cmd(const char * fmt, ...) {
 	ret = system(cmd);
 	va_end(ap);
 	return ret;
+}
+
+CURL *prepare_curl(void)
+{
+	CURLcode ret = curl_global_init(CURL_GLOBAL_ALL);
+	if (ret != CURLE_OK) {
+		return NULL;
+	}
+	CURL *curl = curl_easy_init();
+	if (curl == NULL) {
+		curl_global_cleanup();
+	}
+	return curl;
 }
 
 int preform_curl(CURL *curl)
@@ -57,11 +96,18 @@ int preform_curl(CURL *curl)
 	return 0;
 }
 
-FILE *get_file(CURL *curl, const char url[], int pid)
+void cleanup_curl(CURL *curl)
+{
+	// 释放资源
+	curl_easy_cleanup(curl);
+	curl_global_cleanup();
+}
+
+FILE *get_file(CURL *curl, int type, int pid)
 {
 	char tmp_url[BUFSIZE];
 	char tmp_filename[BUFSIZE];
-	sprintf(tmp_url, "%s%d", url, pid);
+	sprintf(tmp_url, "%s%d", ojurl[type], pid);
 	sprintf(tmp_filename, "%d", pid);
 	FILE *fp = fopen(tmp_filename, "w+");
 

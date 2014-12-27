@@ -9,7 +9,15 @@
  * 获取杭电的题目描述，并将其插入到数据库中
  */
 #include "main.h"
+#include "function.h"
 
-void get_problem_hdu(CURL *curl, struct problem_info_t *problem_info, int pid)
+extern int ojcnt;
+extern char ojstr[OJMAX][BUFSIZE];
+extern char ojurl[OJMAX][BUFSIZE];
+
+void get_problem_hdu(CURL *curl, struct problem_info_t *problem_info, int type, int pid)
 {
+	FILE *fp = NULL;
+	fp = get_file(curl, type, pid);
+	fclose(fp);
 }

@@ -8,9 +8,9 @@
 #include "main.h"
 #include "function.h"
 
-static int ojcnt;
-static char ojstr[OJMAX][BUFSIZE];
-static char ojurl[OJMAX][BUFSIZE];
+int ojcnt;
+char ojstr[OJMAX][BUFSIZE];
+char ojurl[OJMAX][BUFSIZE];
 
 int main(int argc, char *argv[])
 {
@@ -25,18 +25,25 @@ int main(int argc, char *argv[])
 	int type = -1;
 	int from = atoi(argv[2]);
 	int to = atoi(argv[3]);
-	char str[BUFSIZE];
-	strcpy(str, argv[1]);
+	char ojname[BUFSIZE];
+	strcpy(ojname, argv[1]);
 	for (i = 0; i < ojcnt; ++i) {
-		if (strcmp(str, ojstr[i]) == 0) {
+		if (strcmp(ojname, ojstr[i]) == 0) {
 			type = i;
 			break;
 		}
 	}
 
 	if (type == -1) {
-		fprintf(stderr, "%s:没有对应的oj\n", str);
+		fprintf(stderr, "%s:没有对应的oj\n", ojname);
 		exit(EXIT_FAILURE);
+	}
+
+	if (DEBUG) {
+		printf("ojname = %s\n", ojname);
+		printf("type = %d\n", type);
+		printf("from = %d\n", from);
+		printf("to = %d\n", to);
 	}
 
 	CURL *curl = prepare_curl();
@@ -55,7 +62,7 @@ int main(int argc, char *argv[])
 	for (pid = from; pid <= to; ++pid) {
 		switch (type) {
 			case 0:
-				get_problem_hdu(curl, problem_info, pid);
+				get_problem_hdu(curl, problem_info, type, pid);
 				break;
 		}
 
