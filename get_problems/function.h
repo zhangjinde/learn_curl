@@ -8,7 +8,12 @@
 #ifndef _FUNCTION_H
 #define _FUNCTION_H
 
+void init(void);
+CURL *prepare_curl(void);
+void cleanup_curl(CURL *curl);
 void preform_curl(CURL *curl);
+int execute_cmd(const char * fmt, ...);
+void add_problem(struct problem_info_t *problem_info);
 FILE *get_file(CURL *curl, const char url[], int pid);
 size_t save_data(void *buffer, size_t size, size_t nmenb, void *userp);
 void get_problem_hdu(CURL *curl, struct problem_info_t *problem_info, int pid);
