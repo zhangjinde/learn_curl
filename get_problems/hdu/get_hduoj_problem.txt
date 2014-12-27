@@ -1,0 +1,30 @@
+1，题目标题
+	整个页面只有一个h1标签，内容是题目的标题。如：
+<h1 style='color:#1A5CC8'>A + B Problem</h1>
+
+2，题目时限和内存限制
+	这两个内容都在h1标签的后边被b标签包围，b标签里边是span标签，如：
+<b><span style='font-family:Arial;font-size:12px;font-weight:bold;color:green'>Time Limit: 2000/1000 MS (Java/Others)&nbsp;&nbsp;&nbsp;&nbsp;Memory Limit: 65536/32768 K (Java/Others)<br>Total Submission(s): 443293&nbsp;&nbsp;&nbsp;&nbsp;Accepted Submission(s): 139968<br></span></b>
+
+3，题目描述
+	题目描述，由两个div组成，第一个div内容为Problem Description，后边紧跟着的div的内容为题目描述。如：
+<div class=panel_title align=left>Problem Description</div> <div class=panel_content>Calculate <i>A + B</i>.<br></div>
+
+4，输入说明
+	由两个div组成，第一个div内容为Input，后边紧跟着的div的内容为输入说明。如：
+<div class=panel_title align=left>Input</div> <div class=panel_content>Each line will contain two integers <i>A</i> and <i>B</i>. Process to end of file.<br></div>
+
+5，输出说明
+	由两个div组成，第一个div内容为Output，后边紧跟着的div的内容为输出说明。如：
+<div class=panel_title align=left>Output</div> <div class=panel_content>For each case, output <i>A + B</i> in one line.<br></div>
+
+6，样例输入
+	由两个div组成，第一个div内容为Sample Input，后边紧跟着的div的内容为样例输入。如：
+<div class=panel_title align=left>Sample Input</div><div class=panel_content><pre><div style="font-family:Courier New,Courier,monospace;">1 1</div></pre></div>
+
+7，样例输出
+	由两个div组成，第一个div内容为Sample Output，后边紧跟着的div的内容为样例输入。如：
+<div class=panel_title align=left>Sample Output</div><div class=panel_content><pre><div style="font-family:Courier New,Courier,monospace;">2</div></pre></div>
+
+8，来源
+	hduoj上的都设置为字符串HDUOJ。
