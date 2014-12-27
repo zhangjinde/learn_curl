@@ -8,6 +8,13 @@
 /*
  * 获取杭电的题目描述，并将其插入到数据库中
  */
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <unistd.h>
+#include <curl/curl.h>
+#include <mysql/mysql.h>
+
 #include "main.h"
 #include "function.h"
 

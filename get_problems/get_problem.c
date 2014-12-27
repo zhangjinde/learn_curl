@@ -5,6 +5,13 @@
 	> Created Time: 2014年12月27日 星期六 14时37分44秒
  ************************************************************************/
 
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <unistd.h>
+#include <curl/curl.h>
+#include <mysql/mysql.h>
+
 #include "main.h"
 #include "function.h"
 
@@ -47,7 +54,7 @@ int main(int argc, char *argv[])
 	}
 
 	CURL *curl = prepare_curl();
-	//MYSQL *conn = prepare_mysql();
+	MYSQL *conn = prepare_mysql(NULL);
 	if (curl == NULL) {
 		fprintf(stderr, "初始化curl失败！");
 		exit(EXIT_FAILURE);
@@ -68,7 +75,7 @@ int main(int argc, char *argv[])
 		} else {
 			printf("获取%s题目%d成功。。。开始将题目添加进数据库。。。\n", ojname, pid);
 
-			ret = add_problem(problem_info);
+			ret = add_problem(conn, problem_info);
 			if (ret < 0) {
 				printf("添加%s题目%d失败。。。两秒钟后获取下一道题目。。。\n", ojname, pid);
 			} else {
@@ -82,6 +89,7 @@ int main(int argc, char *argv[])
 
 	free(problem_info);
 	cleanup_curl(curl);
+	cleanup_mysql(conn);
 
 	return 0;
 }

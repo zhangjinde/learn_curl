@@ -5,6 +5,13 @@
 	> Created Time: 2014年12月27日 星期六 14时22分35秒
  ************************************************************************/
 
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <unistd.h>
+#include <curl/curl.h>
+#include <mysql/mysql.h>
+
 #include "main.h"
 
 extern int ojcnt;
@@ -155,7 +162,16 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 	return 0;
 }
 
-int add_problem(struct problem_info_t *problem_info)
+MYSQL *prepare_mysql(MYSQL *conn)
+{
+	return NULL;
+}
+
+void cleanup_mysql(MYSQL *conn)
+{
+}
+
+int add_problem(MYSQL *conn, struct problem_info_t *problem_info)
 {
 	return 0;
 }
