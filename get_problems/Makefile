@@ -1,8 +1,7 @@
 CC = gcc
 CFLAGS = -Wall
 SRCS = $(wildcard *.c)
-OBJS = $(SRCS:*.c=*.o)
-BINS = $(basename $(SRCS))
+OBJS = $(SRCS:%.c=%.o)
 CURL = -L/usr/lib/x86_64-linux-gnu -lcurl
 EKHTML = /usr/local/lib/libekhtml.a
 MYSQLCFLAGS = -I/usr/local/mysql/include/mysql -I/usr/include/mysql
@@ -11,7 +10,7 @@ LDFLAGS = $(CURL) $(EKHTML) $(MYSQLCFLAGS)
 ALL = get_problem
 
 .PHONY: all clean
-all: get_problem
+all: $(ALL)
 
 get_problem: $(OBJS)
 	$(CC) $(CFLAGS) -o get_problem $(OBJS)

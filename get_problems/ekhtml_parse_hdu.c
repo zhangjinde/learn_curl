@@ -4,7 +4,7 @@
 #include <assert.h>
 
 #include "ekhtml.h"
-#include "probleminfo.h"
+#include "main.h"
 
 #define MAGIC_DOODIE 0xf9d33bc1
 
