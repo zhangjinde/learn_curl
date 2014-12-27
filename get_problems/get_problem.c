@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
 	}
 
 	CURL *curl = prepare_curl();
+	//MYSQL *conn = prepare_mysql();
 	if (curl == NULL) {
 		fprintf(stderr, "初始化curl失败！");
 		exit(EXIT_FAILURE);
@@ -61,13 +62,7 @@ int main(int argc, char *argv[])
 	int pid = from;
 	for (pid = from; pid <= to; ++pid) {
 		printf("获取%s题目%d。。。\n", ojname, pid);
-		int ret = -1;
-		switch (type) {
-			case 0:
-				ret = get_problem_hdu(curl, problem_info, type, pid);
-				break;
-		}
-
+		int ret = get_problem(curl, problem_info, type, pid);
 		if (ret < 0) {
 			printf("获取%s题目%d失败。。。两秒钟后获取下一道题目。。。\n", ojname, pid);
 		} else {

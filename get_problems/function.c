@@ -134,6 +134,27 @@ FILE *get_file(CURL *curl, int type, int pid)
 	return fp;
 }
 
+void parse_html(FILE *fp, struct problem_info_t *problem_info, int type, int pid)
+{
+}
+
+int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int pid)
+{
+	FILE *fp = NULL;
+	fp = get_file(curl, type, pid);
+	if (fp == NULL) {
+		fprintf(stderr, "获取文件失败！\n");
+		return -1;
+	}
+
+	rewind(fp);
+	parse_html(fp, problem_info, type, pid);
+
+	fclose(fp);
+	execute_cmd("rm -f %d", pid);
+	return 0;
+}
+
 int add_problem(struct problem_info_t *problem_info)
 {
 	return 0;

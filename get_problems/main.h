@@ -13,6 +13,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <curl/curl.h>
+#include <mysql/mysql.h>
 
 #define DEBUG 1
 #define BUFSIZE 1024
