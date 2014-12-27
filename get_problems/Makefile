@@ -1,24 +1,12 @@
-export CC = gcc
-export CXX = g++
-export CFLAGS = -Wall
-export CXXFLAGS = -Wall
-DIRS = $(shell ls -F | grep /)
-DIRSALL = $(DIRS:%/=%all)
-DIRSCLEAN = $(DIRS:%/=%clean)
-CSRCS = $(wildcard *.c)
-COBJS = $(CSRCS:%.c=%.o)
-CPPSRCS = $(wildcard *.cpp)
-CPPOBJS = $(CPPSRCS:%.cpp=%.o)
+CC = gcc
+CFLAGS = -Wall
+SRCS = 
 CURL = -L/usr/lib/x86_64-linux-gnu -lcurl
 EKHTML = /usr/local/lib/libekhtml.a
 MYSQLCFLAGS = -I/usr/local/mysql/include/mysql -I/usr/include/mysql
 MYSQLLDFLAGS = -L/usr/local/mysql/lib/mysql -L/usr/lib/mysql  -lmysqlclient
-LDFLAGS = $(CURL)
-OBJS = $(COBJS) $(CPPOBJS)
-SRCS = $(CSRCS) $(CPPSRCS)
-CALL = $(basename $(CSRCS))
-CPPALL = $(basename $(CPPSRCS))
-ALL = $(CALL) $(CPPALL)
+LDFLAGS = $(CURL) $(EKHTML) $(MYSQLCFLAGS)
+ALL = $(basename $(SRCS))
 
 .PHONY: all clean $(DIRSALL) $(DIRSCLEAN)
 all: $(DIRSALL) $(ALL)
