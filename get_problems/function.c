@@ -17,6 +17,10 @@
 #include "ekhtml.h"
 
 extern int ojcnt;
+extern char dbuser[BUFSIZE];
+extern char dbpasswd[BUFSIZE];
+extern char dbhost[BUFSIZE];
+extern char dbname[BUFSIZE];
 extern char ojstr[OJMAX][BUFSIZE];
 extern char ojurl[OJMAX][BUFSIZE];
 
@@ -47,6 +51,7 @@ void init(void)
 		++cnt;
 	}
 	fclose(fp);
+
 	fp = fopen("ojurl.conf", "r");
 	if (fp == NULL) {
 		fprintf(stderr, "打开文件ojurl.conf失败！\n");
@@ -57,6 +62,14 @@ void init(void)
 		++cnt;
 	}
 	ojcnt = cnt;
+	fclose(fp);
+
+	fp = fopen("db.conf", "r");
+	if (fp == NULL) {
+		fprintf(stderr, "打开文件db.conf失败！\n");
+		exit(EXIT_FAILURE);
+	}
+	fscanf(fp, "%s%s%s%s", dbuser, dbpasswd, dbhost, dbname);
 	fclose(fp);
 }
 
@@ -77,16 +90,19 @@ CURL *prepare_curl(void)
 {
 	CURLcode ret = curl_global_init(CURL_GLOBAL_ALL);
 	if (ret != CURLE_OK) {
-		return NULL;
+		fprintf(stderr, "初始化curl失败！\n");
+		exit(EXIT_FAILURE);
 	}
 	CURL *curl = curl_easy_init();
 	if (curl == NULL) {
 		curl_global_cleanup();
+		fprintf(stderr, "获取curl对象失败！\n");
+		exit(EXIT_FAILURE);
 	}
 	return curl;
 }
 
-int preform_curl(CURL *curl)
+int perform_curl(CURL *curl)
 {
 	CURLcode ret = curl_easy_perform(curl);
 	if (ret != CURLE_OK) {
@@ -141,7 +157,7 @@ FILE *get_file(CURL *curl, int type, int pid)
 	}
 
 	// 执行数据请求
-	if (preform_curl(curl) < 0) {
+	if (perform_curl(curl) < 0) {
 		fclose(fp);
 		fp = NULL;
 		if (!DEBUG) {
@@ -199,7 +215,7 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 		fprintf(stderr, "获取文件失败！\n");
 		return -1;
 	}
-	char *buf = (char *)malloc(BUFSIZE * BUFSIZE);		// 1M
+	char *buf = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (buf == NULL) {
 		fprintf(stderr, "分配内存失败！\n");
 		return -1;
@@ -207,6 +223,7 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 
 	rewind(fp);
 	load_file(fp, buf);
+	printf("nihao\n");
 	int ret = parse_html(buf, problem_info, type, pid);
 	if (ret < 0) {
 		fprintf(stderr, "解析html失败！\n");
@@ -235,16 +252,192 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 	return ret;
 }
 
-MYSQL *prepare_mysql(MYSQL *conn)
+MYSQL *prepare_mysql(void)
 {
-	return NULL;
+	MYSQL *conn = mysql_init(NULL);
+	if (conn == NULL) {
+		fprintf(stderr, "初始化数据库失败！:%s\n", mysql_error(conn));
+		exit(EXIT_FAILURE);
+	}
+	unsigned int timeout = 7;
+	int ret = mysql_options(conn, MYSQL_OPT_CONNECT_TIMEOUT,
+			(const char *)&timeout);
+	if (ret) {
+		fprintf(stderr, "设置数据库连接超时失败！:%s\n", mysql_error(conn));
+		exit(EXIT_FAILURE);
+	}
+	conn = mysql_real_connect(conn, dbhost, dbuser, dbpasswd,
+			dbname, 0, NULL, 0);
+	if (conn == NULL) {
+		fprintf(stderr, "连接数据库失败！:%s\n", mysql_error(conn));
+		exit(EXIT_FAILURE);
+	}
+	return conn;
 }
 
 void cleanup_mysql(MYSQL *conn)
 {
+	if (conn != NULL) {
+		mysql_close(conn);
+	}
 }
 
 int add_problem(MYSQL *conn, struct problem_info_t *problem_info)
 {
+	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
+	char *tmp_str = (char *)malloc(BUFSIZE * BUFSIZE);
+	char *end;
+	if (sql == NULL || tmp_str == NULL) {
+		fprintf(stderr, "分配内存失败！\n");
+		return -1;
+	}
+
+	MYSQL_RES *result = mysql_store_result(conn);
+	sprintf(sql, "SELECT max(problem_id) from problem");
+	if (mysql_real_query(conn, sql, strlen(sql))) {
+		fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
+		free(sql);
+		free(tmp_str);
+		return -1;
+	}
+	result = mysql_store_result(conn);
+	if (result == NULL) {
+		fprintf(stderr, "读取数据失败！:%s\n", mysql_error(conn));
+		free(sql);
+		free(tmp_str);
+		return -1;
+	}
+	my_ulonglong cnt = mysql_num_rows(result);
+	if (cnt) {
+		MYSQL_ROW row = mysql_fetch_row(result);
+		if (row == NULL) {
+			free(sql);
+			free(tmp_str);
+			fprintf(stderr, "获取数据失败！:%s\n", mysql_error(conn));
+			return -1;
+		}
+		problem_info->problem_id = atoi(row[0]);
+	} else {
+		problem_info->problem_id = 1000;
+	}
+
+	sprintf(sql, "SELECT problem_id from vjudge where problem_id='%d' and ojtype='%d'",
+			problem_info->origin_id, problem_info->ojtype);
+	if (DEBUG) {
+		printf("sql = %s\n", sql);
+	}
+	if (mysql_real_query(conn, sql, strlen(sql))) {
+		fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
+		free(sql);
+		free(tmp_str);
+		return -1;
+	}
+
+	result = mysql_store_result(conn);
+	if (result == NULL) {
+		fprintf(stderr, "读取数据失败！:%s\n", mysql_error(conn));
+		free(sql);
+		free(tmp_str);
+		return -1;
+	}
+
+	cnt = mysql_num_rows(result);
+	mysql_free_result(result);
+	if (cnt) {
+		printf("%s题目%d已经存在！\n", problem_info->source,
+				problem_info->origin_id);
+		free(sql);
+		free(tmp_str);
+		return 2;
+	}
+
+	if (mysql_autocommit(conn, 0)) {
+		fprintf(stderr, "设置手动提交失败！:%s\n", mysql_error(conn));
+		free(sql);
+		free(tmp_str);
+		return -1;
+	}
+	end = sql;
+	strcpy(sql, "INSERT INTO problem (problem_id, title, description, "
+			"input, output, sample_input, sample_output, hint, "
+			"source, time_limit, memory_limit) values(");
+	end += strlen(sql);
+	*end++ = '\'';
+	end += sprintf(end, "%d", problem_info->problem_id);
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%s", problem_info->title);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%s", problem_info->description);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%s", problem_info->input);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%s", problem_info->output);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%s", problem_info->sample_input);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%s", problem_info->sample_output);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%s", problem_info->hint);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%s", problem_info->source);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%d", problem_info->time_limit);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%d", problem_info->memory_limit);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ')';
+	*end = '\0';
+
+	if (DEBUG) {
+		printf("sql = %s\n", sql);
+	}
+	mysql_real_query(conn, sql, (unsigned int)(end - sql));
+	sprintf(sql, "INSERT INTO vjudge (problem_id, origin_id, ojtype) "
+			"values('%d', '%d', '%d')", problem_info->problem_id,
+			problem_info->origin_id, problem_info->ojtype);
+	mysql_real_query(conn, sql, strlen(sql));
+	if (mysql_commit(conn)) {
+		fprintf(stderr, "事务执行失败！:%s\n", mysql_error(conn));
+		mysql_rollback(conn);
+		free(sql);
+		free(tmp_str);
+		return -1;
+	}
+	if (mysql_autocommit(conn, 1)) {
+		fprintf(stderr, "设置自动提交失败！:%s\n", mysql_error(conn));
+	}
+	free(sql);
+	free(tmp_str);
+
 	return 0;
 }

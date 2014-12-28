@@ -16,6 +16,10 @@
 #include "main.h"
 
 int ojcnt;
+char dbuser[BUFSIZE];
+char dbpasswd[BUFSIZE];
+char dbhost[BUFSIZE];
+char dbname[BUFSIZE];
 char ojstr[OJMAX][BUFSIZE];
 char ojurl[OJMAX][BUFSIZE];
 
@@ -54,11 +58,7 @@ int main(int argc, char *argv[])
 	}
 
 	CURL *curl = prepare_curl();
-	MYSQL *conn = prepare_mysql(NULL);
-	if (curl == NULL) {
-		fprintf(stderr, "初始化curl失败！");
-		exit(EXIT_FAILURE);
-	}
+	MYSQL *conn = prepare_mysql();
 
 	struct problem_info_t *problem_info = (struct problem_info_t *)malloc(sizeof(struct problem_info_t));
 	if (problem_info == NULL) {
@@ -80,7 +80,9 @@ int main(int argc, char *argv[])
 			if (ret < 0) {
 				printf("添加%s题目%d失败。。。两秒钟后获取下一道题目。。。\n", ojname, pid);
 			} else {
-				printf("添加%s题目%d成功。。。", ojname, pid);
+				if (ret != 2) {
+					printf("添加%s题目%d成功。。。", ojname, pid);
+				}
 				if (pid != to) {
 					printf("两秒钟后获取下一道题目。。。\n");
 				} else {

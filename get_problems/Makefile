@@ -6,7 +6,7 @@ CURL = -L/usr/lib/x86_64-linux-gnu -lcurl
 EKHTML = /usr/local/lib/libekhtml.a
 MYSQLCFLAGS = -I/usr/local/mysql/include/mysql -I/usr/include/mysql
 MYSQLLDFLAGS = -L/usr/local/mysql/lib/mysql -L/usr/lib/mysql  -lmysqlclient
-LDFLAGS = $(CURL) $(EKHTML) $(MYSQLCFLAGS)
+LDFLAGS = $(CURL) $(EKHTML) $(MYSQLLDFLAGS)
 ALL = get_problem
 
 .PHONY: all clean

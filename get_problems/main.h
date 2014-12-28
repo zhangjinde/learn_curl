@@ -12,13 +12,14 @@
 #include "ekhtml.h"
 
 #define DEBUG 1
-#define BUFSIZE 1024
+#define BUFSIZE 512
 #define OJMAX 20
 
 /*
  * 题目信息结构体
  */
 struct problem_info_t {
+	int problem_id;		// 题目编号
 	int origin_id;			// 题目在原oj上的题目编号
 	char title[BUFSIZE];		// 题目标题
 	char description[2 * BUFSIZE];	// 题目描述
@@ -52,9 +53,9 @@ struct html_state_t {
 extern void init(void);
 extern CURL *prepare_curl(void);
 extern void cleanup_curl(CURL *curl);
-extern int preform_curl(CURL *curl);
+extern int perform_curl(CURL *curl);
 extern void cleanup_mysql(MYSQL *conn);
-extern MYSQL *prepare_mysql(MYSQL *conn);
+extern MYSQL *prepare_mysql(void);
 extern int load_file(FILE *fp, char *buf);
 extern ekhtml_parser_t *prepare_ekhtml(void *cbdata);
 extern int execute_cmd(const char * fmt, ...);
