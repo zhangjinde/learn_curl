@@ -60,6 +60,16 @@ static void hdu_endtag_div(void *cbdata, ekhtml_string_t * str)
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	if (state->isdescription) {
 		--state->isdescription;
+	} else if (state->isinput) {
+		--state->isinput;
+	} else if (state->isoutput) {
+		--state->isoutput;
+	} else if (state->issinput) {
+		--state->issinput;
+	} else if (state->issoutput) {
+		--state->issoutput;
+	} else if (state->ishint) {
+		--state->ishint;
 	}
 }
 
@@ -67,42 +77,67 @@ static void hdu_endtag_div(void *cbdata, ekhtml_string_t * str)
 static void hdu_starttag(void *cbdata, ekhtml_string_t * tag,
 			    ekhtml_attr_t * attrs)
 {
-	char tagname[BUFSIZE];
+	char tagname[20];
+	char tmp_str[BUFSIZE * 2];
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	memset(tagname, 0, sizeof(tagname));
+	memset(tmp_str, 0, sizeof(tmp_str));
 	strncpy(tagname, tag->str, tag->len);
 
-	if (state->isdescription) {
-		ekhtml_attr_t *attr;
-		for (attr = attrs; attr; attr = attr->next) {
-			printf("ATTRIBUTE: \"%.*s\" = ", (int)attr->name.len,
-			       attr->name.str);
-			if (!attr->isBoolean) {
-				printf("\"%.*s\"\n", (int)attr->val.len, attr->val.str);
-			} else {
-				printf("\"%.*s\"\n", (int)attr->name.len,
-				       attr->name.str);
-			}
-		}
+	if (strcmp(tagname, "DIV") == 0) {
+		return;
 	}
+
+	if (state->isdescription || state->isinput || state->isoutput
+			|| state->issinput || state->issoutput) {
+		ekhtml_attr_t *attr;
+		sprintf(tmp_str, "<%s ", tagname);
+		for (attr = attrs; attr; attr = attr->next) {
+			strncat(tmp_str, attr->name.str, attr->name.len);
+			strcat(tmp_str, "=\"");
+			// 特殊处理图像
+			if (strcmp(tagname, "IMG") == 0 && strncmp(attr->name.str, "src", 3) == 0) {
+				char attrval[BUFSIZE];
+				memset(attrval, 0, sizeof(attrval));
+				strncpy(attrval, attr->val.str, attr->val.len);
+				strcat(tmp_str, "http://acm.hdu.edu.cn/data/images");
+				strcat(tmp_str, &attrval[strrchr(attrval, '/') - attrval]);
+			} else {
+				if (!attr->isBoolean) {
+					strncat(tmp_str, attr->val.str, attr->val.len);
+				} else {
+					strncat(tmp_str, attr->name.str, attr->name.len);
+				}
+			}
+			strcat(tmp_str, "\" ");
+		}
+		strcat(tmp_str, ">");
+	}
+
 	if (state->isdescription) {
-		char tmp_str[BUFSIZE * 2];
-		sprintf(tmp_str, "<%s>", tagname);
 		strcat(state->problem_info->description, tmp_str);
+	} else if (state->isinput) {
+		strcat(state->problem_info->input, tmp_str);
 	}
 }
 
 // 标签结束
 static void hdu_endtag(void *cbdata, ekhtml_string_t * str)
 {
-	//struct html_state_t *state = (struct html_state_t *)cbdata;
+	char tagname[20];
+	char tmp_str[BUFSIZE * 2];
+	struct html_state_t *state = (struct html_state_t *)cbdata;
+	memset(tagname, 0, sizeof(tagname));
+	memset(tmp_str, 0, sizeof(tmp_str));
+	strncpy(tagname, str->str, str->len);
 
-	//if (strncmp("DIV", str->str, 3) == 0) {
-		//if (tdata->isdescription) {
-			//tdata->isdescription--;
-		//}
-		//printf("END: \"%.*s\"\n", (int)str->len, str->str);
-	//}
+	if (strcmp("DIV", tagname) == 0) {
+		return;
+	}
+	if (state->isdescription) {
+		sprintf(tmp_str, "</%s>", tagname);
+		strcat(state->problem_info->description, tmp_str);
+	}
 }
 
 // 处理标签中的数据
@@ -134,10 +169,29 @@ static void hdu_data(void *cbdata, ekhtml_string_t * str)
 		}
 	} else if (state->isdescription) {
 		strcat(state->problem_info->description, buf);
+	} else if (state->isinput) {
+		strcat(state->problem_info->input, buf);
+	} else if (state->isoutput) {
+		strcat(state->problem_info->output, buf);
+	} else if (state->issinput) {
+		strcat(state->problem_info->sample_input, buf);
+	} else if (state->issoutput) {
+		strcat(state->problem_info->sample_output, buf);
+	} else if (state->ishint) {
+		strcat(state->problem_info->hint, buf);
 	}
 
+	// huuoj的hint在样例输出里边
 	if (strcmp("Problem Description", buf) == 0) {
 		state->isdescription = 2;
+	} else if (strcmp("Input", buf) == 0) {
+		state->isinput = 2;
+	} else if (strcmp("Output", buf) == 0) {
+		state->isoutput = 2;
+	} else if (strcmp("Sample Input", buf) == 0) {
+		state->issinput = 2;
+	} else if (strcmp("Sample Output", buf) == 0) {
+		state->issoutput = 2;
 	}
 }
 
