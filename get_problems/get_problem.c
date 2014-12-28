@@ -16,12 +16,12 @@
 #include "main.h"
 
 int ojcnt;
-char dbuser[BUFSIZE];
-char dbpasswd[BUFSIZE];
-char dbhost[BUFSIZE];
-char dbname[BUFSIZE];
-char ojstr[OJMAX][BUFSIZE];
-char ojurl[OJMAX][BUFSIZE];
+wchar_t dbuser[BUFSIZE];
+wchar_t dbpasswd[BUFSIZE];
+wchar_t dbhost[BUFSIZE];
+wchar_t dbname[BUFSIZE];
+wchar_t ojstr[OJMAX][BUFSIZE];
+wchar_t ojurl[OJMAX][BUFSIZE];
 
 int main(int argc, char *argv[])
 {
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 	int type = -1;
 	int from = atoi(argv[2]);
 	int to = atoi(argv[3]);
-	char ojname[BUFSIZE];
+	wchar_t ojname[BUFSIZE];
 	strcpy(ojname, argv[1]);
 	for (i = 0; i < ojcnt; ++i) {
 		if (strcmp(ojname, ojstr[i]) == 0) {

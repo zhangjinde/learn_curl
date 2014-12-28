@@ -226,6 +226,7 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 
 	rewind(fp);
 	load_file(fp, buf);
+	//printf("%lu..............\n", strlen(buf));
 	if (gbk2utf8(buf, strlen(buf)) < 0) {
 		fprintf(stderr, "转换编码失败！\n");
 		return -1;
@@ -278,6 +279,10 @@ MYSQL *prepare_mysql(void)
 		fprintf(stderr, "连接数据库失败！:%s\n", mysql_error(conn));
 		exit(EXIT_FAILURE);
 	}
+	if (mysql_set_character_set(conn, "utf8")) {
+		fprintf(stderr, "设置数据库编码失败！:%s\n", mysql_error(conn));
+		exit(EXIT_FAILURE);
+	}
 	return conn;
 }
 
@@ -291,6 +296,10 @@ void cleanup_mysql(MYSQL *conn)
 int gbk2utf8(char *buf, size_t len)
 {
 	iconv_t cd = iconv_open("UTF-8", "GBK");
+	if (cd == (iconv_t)-1) {
+		perror("获取字符转换描述符失败！\n");
+		return -1;
+	}
 	size_t sz = BUFSIZE * BUFSIZE;
 	char *tmp_str = (char *)malloc(sz);
 	if (tmp_str == NULL) {
@@ -298,12 +307,18 @@ int gbk2utf8(char *buf, size_t len)
 		fprintf(stderr, "分配内存失败！\n");
 		return -1;
 	}
+	// 传进去的一定得是别的东西，原来的地址不能被改变
+	char *in = buf;
+	char *out = tmp_str;
+	size_t inlen = len;
+	size_t outlen = sz;
 	memset(tmp_str, 0, sz);
-	if (iconv(cd, &buf, &len, &tmp_str, &sz) == (size_t)-1) {
+	if (iconv(cd, &in, &inlen, &out, &outlen) == (size_t)-1) {
 		iconv_close(cd);
 		return -1;
 	}
 	iconv_close(cd);
+	strcpy(buf, tmp_str);
 	return 0;
 }
 
@@ -352,7 +367,7 @@ int add_problem(MYSQL *conn, struct problem_info_t *problem_info)
 		problem_info->problem_id = 1000;
 	}
 
-	sprintf(sql, "SELECT problem_id from vjudge where problem_id='%d' and ojtype='%d'",
+	sprintf(sql, "SELECT origin_id from vjudge where origin_id='%d' and ojtype='%d'",
 			problem_info->origin_id, problem_info->ojtype);
 	if (DEBUG) {
 		printf("sql = %s\n", sql);
