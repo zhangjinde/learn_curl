@@ -32,4 +32,32 @@ struct problem_info_t {
 	char ojtype;			// oj的类型
 };
 
+typedef struct {
+	unsigned int n_starttags;
+	unsigned int n_endtags;
+	unsigned int n_comments;
+	unsigned int n_data;
+	unsigned int magic_doodie;
+	unsigned int only_parse;
+	unsigned int ish1;
+	unsigned int isdescription;
+} tester_cbdata;
+
+extern void init(void);
+extern CURL *prepare_curl(void);
+extern void cleanup_curl(CURL *curl);
+extern int preform_curl(CURL *curl);
+extern void cleanup_mysql(MYSQL *conn);
+extern MYSQL *prepare_mysql(MYSQL *conn);
+extern int load_file(FILE *fp, char *buf);
+extern ekhtml_parser_t *prepare_ekhtml(void);
+extern int execute_cmd(const char * fmt, ...);
+extern FILE *get_file(CURL *curl, int type, int pid);
+extern void cleanup_ekhtml(ekhtml_parser_t *ekparser);
+extern int add_problem(MYSQL *conn, struct problem_info_t *problem_info);
+extern size_t save_data(void *buffer, size_t size, size_t nmenb, void *userp);
+extern int parse_html(char *buf, struct problem_info_t *problem_info, int type, int pid);
+extern int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int pid);
+extern int parse_html_hdu(char *buf, struct problem_info_t *problem_info, int pid);
+
 #endif	// _MAIN_H

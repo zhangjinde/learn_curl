@@ -13,6 +13,7 @@
 #include <mysql/mysql.h>
 
 #include "main.h"
+#include "function.h"
 
 extern int ojcnt;
 extern char ojstr[OJMAX][BUFSIZE];
@@ -141,8 +142,37 @@ FILE *get_file(CURL *curl, int type, int pid)
 	return fp;
 }
 
-void parse_html(FILE *fp, struct problem_info_t *problem_info, int type, int pid)
+int load_file(FILE *fp, char *buf)
 {
+	char tmp[BUFSIZE];
+	buf[0] = '\0';
+	while (fgets(tmp, BUFSIZE, fp) != NULL) {
+		strcat(buf, tmp);
+	}
+	return 0;
+}
+
+int parse_html(char *buf, struct problem_info_t *problem_info, int type, int pid)
+{
+	int ret = -1;
+	switch (type) {
+		case 0:
+			ret = parse_html_hdu(buf, problem_info, pid);
+			break;
+	}
+	return ret;
+}
+
+ekhtml_parser_t *prepare_ekhtml(void)
+{
+	ekhtml_parser_t *ekparser = ekhtml_parser_new(NULL);
+	return ekparser;
+}
+
+void cleanup_ekhtml(ekhtml_parser_t *ekparser)
+{
+	ekhtml_parser_flush(ekparser, 1);
+	ekhtml_parser_destroy(ekparser);
 }
 
 int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int pid)
@@ -153,13 +183,19 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 		fprintf(stderr, "获取文件失败！\n");
 		return -1;
 	}
+	char *buf = (char *)malloc(BUFSIZE * BUFSIZE);		// 1M
+	if (buf == NULL) {
+		fprintf(stderr, "分配内存失败！\n");
+		return -1;
+	}
 
 	rewind(fp);
-	parse_html(fp, problem_info, type, pid);
+	load_file(fp, buf);
+	int ret = parse_html(buf, problem_info, type, pid);
 
 	fclose(fp);
 	execute_cmd("rm -f %d", pid);
-	return 0;
+	return ret;
 }
 
 MYSQL *prepare_mysql(MYSQL *conn)
