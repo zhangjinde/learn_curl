@@ -5,6 +5,7 @@
 	> Created Time: 2014年12月27日 星期六 14时22分35秒
  ************************************************************************/
 
+#include <iconv.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -225,6 +226,10 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 
 	rewind(fp);
 	load_file(fp, buf);
+	if (gbk2utf8(buf, strlen(buf)) < 0) {
+		fprintf(stderr, "转换编码失败！\n");
+		return -1;
+	}
 	int ret = parse_html(buf, problem_info, type, pid);
 	if (ret < 0) {
 		fprintf(stderr, "解析html失败！\n");
@@ -281,6 +286,25 @@ void cleanup_mysql(MYSQL *conn)
 	if (conn != NULL) {
 		mysql_close(conn);
 	}
+}
+
+int gbk2utf8(char *buf, size_t len)
+{
+	iconv_t cd = iconv_open("UTF-8", "GBK");
+	size_t sz = BUFSIZE * BUFSIZE;
+	char *tmp_str = (char *)malloc(sz);
+	if (tmp_str == NULL) {
+		iconv_close(cd);
+		fprintf(stderr, "分配内存失败！\n");
+		return -1;
+	}
+	memset(tmp_str, 0, sz);
+	if (iconv(cd, &buf, &len, &tmp_str, &sz) == (size_t)-1) {
+		iconv_close(cd);
+		return -1;
+	}
+	iconv_close(cd);
+	return 0;
 }
 
 int add_problem(MYSQL *conn, struct problem_info_t *problem_info)

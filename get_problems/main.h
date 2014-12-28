@@ -51,6 +51,7 @@ struct html_state_t {
 };
 
 extern void init(void);
+int gbk2utf8(char *buf, size_t len);
 extern CURL *prepare_curl(void);
 extern void cleanup_curl(CURL *curl);
 extern int perform_curl(CURL *curl);
