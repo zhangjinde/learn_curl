@@ -343,7 +343,7 @@ int add_problem(MYSQL *conn, struct problem_info_t *problem_info)
 			fprintf(stderr, "获取数据失败！:%s\n", mysql_error(conn));
 			return -1;
 		}
-		if (strncmp(row[0], "(null)", 6) == 0) {
+		if (row[0] == NULL) {
 			problem_info->problem_id = 1000;
 		} else {
 			problem_info->problem_id = atoi(row[0]) + 1;
