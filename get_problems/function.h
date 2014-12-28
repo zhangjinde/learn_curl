@@ -20,5 +20,6 @@ extern int add_problem(MYSQL *conn, struct problem_info_t *problem_info);
 extern size_t save_data(void *buffer, size_t size, size_t nmenb, void *userp);
 extern void parse_html(FILE *fp, struct problem_info_t *problem_info, int type, int pid);
 extern int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int pid);
+extern void parse_html_hdu(FILE *fp, struct problem_info_t *problem_info, int type, int pid);
 
 #endif	// _FUNCTION_H
