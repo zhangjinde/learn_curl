@@ -11,7 +11,7 @@
 
 #include "ekhtml.h"
 
-#define DEBUG 1
+#define DEBUG 0
 #define BUFSIZE 512
 #define OJMAX 20
 
