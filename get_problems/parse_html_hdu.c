@@ -38,6 +38,21 @@ static void hdu_endtag_h1(void *cbdata, ekhtml_string_t * str)
 	state->istitle = 0;
 }
 
+// 题目限制开始
+static void hdu_starttag_b(void *cbdata, ekhtml_string_t * tag,
+				ekhtml_attr_t * attrs)
+{
+	struct html_state_t *state = (struct html_state_t *)cbdata;
+	state->islimit = 1;
+}
+
+// 题目限制结束
+static void hdu_endtag_b(void *cbdata, ekhtml_string_t * str)
+{
+	struct html_state_t *state = (struct html_state_t *)cbdata;
+	state->islimit = 0;
+}
+
 // 标签开始
 static void hdu_starttag(void *cbdata, ekhtml_string_t * tag,
 			    ekhtml_attr_t * attrs)
@@ -82,8 +97,11 @@ static void hdu_endtag(void *cbdata, ekhtml_string_t * str)
 static void hdu_data(void *cbdata, ekhtml_string_t * str)
 {
 	struct html_state_t *state = (struct html_state_t *)cbdata;
+	// 获取标题
 	if (state->istitle) {
 		strncpy(state->problem_info->title, str->str, str->len);
+	} else if (state->islimit) {
+		printf("限制：%.*s\n", (int)str->len, str->str);
 	}
 
 	//if (strncmp("Problem Description", str->str, 19) == 0) {
@@ -102,8 +120,10 @@ int parse_html_hdu(char *buf, struct problem_info_t *problem_info, int type, int
 	ekhtml_parser_datacb_set(ekparser, hdu_data);
 	ekhtml_parser_startcb_add(ekparser, NULL, hdu_starttag);
 	ekhtml_parser_startcb_add(ekparser, "H1", hdu_starttag_h1);
+	ekhtml_parser_startcb_add(ekparser, "B", hdu_starttag_b);
 	ekhtml_parser_endcb_add(ekparser, NULL, hdu_endtag);
 	ekhtml_parser_endcb_add(ekparser, "H1", hdu_endtag_h1);
+	ekhtml_parser_endcb_add(ekparser, "B", hdu_endtag_b);
 
 	// 执行解析
 	ekhtml_string_t str;
