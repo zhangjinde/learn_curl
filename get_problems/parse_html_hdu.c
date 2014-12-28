@@ -60,15 +60,20 @@ static void hdu_endtag_div(void *cbdata, ekhtml_string_t * str)
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	if (state->isdescription) {
 		--state->isdescription;
-	} else if (state->isinput) {
+	}
+	if (state->isinput) {
 		--state->isinput;
-	} else if (state->isoutput) {
+	}
+	if (state->isoutput) {
 		--state->isoutput;
-	} else if (state->issinput) {
+	}
+	if (state->issinput) {
 		--state->issinput;
-	} else if (state->issoutput) {
+	}
+	if (state->issoutput) {
 		--state->issoutput;
-	} else if (state->ishint) {
+	}
+	if (state->ishint) {
 		--state->ishint;
 	}
 }
@@ -89,7 +94,8 @@ static void hdu_starttag(void *cbdata, ekhtml_string_t * tag,
 	}
 
 	if (state->isdescription || state->isinput || state->isoutput
-			|| state->issinput || state->issoutput) {
+			|| state->issinput || state->issoutput
+			|| state->ishint || state->istitle || state->islimit) {
 		ekhtml_attr_t *attr;
 		sprintf(tmp_str, "<%s ", tagname);
 		for (attr = attrs; attr; attr = attr->next) {
@@ -116,8 +122,20 @@ static void hdu_starttag(void *cbdata, ekhtml_string_t * tag,
 
 	if (state->isdescription) {
 		strcat(state->problem_info->description, tmp_str);
-	} else if (state->isinput) {
+	}
+	if (state->isinput) {
 		strcat(state->problem_info->input, tmp_str);
+	}
+	if (state->isoutput) {
+		strcat(state->problem_info->output, tmp_str);
+	}
+	if (state->issoutput) {
+		if (strcmp(tagname, "I") == 0) {
+			--state->issoutput;
+		}
+	}
+	if (state->ishint) {
+		strcat(state->problem_info->hint, tmp_str);
 	}
 }
 
@@ -138,6 +156,20 @@ static void hdu_endtag(void *cbdata, ekhtml_string_t * str)
 		sprintf(tmp_str, "</%s>", tagname);
 		strcat(state->problem_info->description, tmp_str);
 	}
+	if (state->isinput) {
+		sprintf(tmp_str, "</%s>", tagname);
+		strcat(state->problem_info->input, tmp_str);
+	}
+	if (state->isoutput) {
+		sprintf(tmp_str, "</%s>", tagname);
+		strcat(state->problem_info->output, tmp_str);
+	}
+	if (state->ishint) {
+		if (strcmp(tagname, "I") != 0) {
+			sprintf(tmp_str, "</%s>", tagname);
+			strcat(state->problem_info->hint, tmp_str);
+		}
+	}
 }
 
 // 处理标签中的数据
@@ -150,11 +182,9 @@ static void hdu_data(void *cbdata, ekhtml_string_t * str)
 	// 获取标题
 	if (state->istitle) {
 		strncpy(state->problem_info->title, str->str, str->len);
-	} else if (state->islimit) {		// 获取限制
+	}
+	if (state->islimit) {		// 获取限制
 		if (strstr(buf, "Time Limit") != NULL) {
-			if (DEBUG) {
-				printf("限制：%.*s\n", (int)str->len, str->str);
-			}
 			int time_limit = 0;
 			int memory_limit = 0;
 			int tmp[2];
@@ -167,31 +197,43 @@ static void hdu_data(void *cbdata, ekhtml_string_t * str)
 			state->problem_info->time_limit = time_limit;
 			state->problem_info->memory_limit = memory_limit;
 		}
-	} else if (state->isdescription) {
+	}
+	if (state->isdescription) {
 		strcat(state->problem_info->description, buf);
-	} else if (state->isinput) {
+	}
+	if (state->isinput) {
 		strcat(state->problem_info->input, buf);
-	} else if (state->isoutput) {
+	}
+	if (state->isoutput) {
 		strcat(state->problem_info->output, buf);
-	} else if (state->issinput) {
+	}
+	if (state->issinput) {
 		strcat(state->problem_info->sample_input, buf);
-	} else if (state->issoutput) {
+	}
+	if (state->issoutput) {
 		strcat(state->problem_info->sample_output, buf);
-	} else if (state->ishint) {
+	}
+	if (state->ishint) {
 		strcat(state->problem_info->hint, buf);
 	}
 
-	// huuoj的hint在样例输出里边
 	if (strcmp("Problem Description", buf) == 0) {
 		state->isdescription = 2;
-	} else if (strcmp("Input", buf) == 0) {
+	}
+	if (strcmp("Input", buf) == 0) {
 		state->isinput = 2;
-	} else if (strcmp("Output", buf) == 0) {
+	}
+	if (strcmp("Output", buf) == 0) {
 		state->isoutput = 2;
-	} else if (strcmp("Sample Input", buf) == 0) {
+	}
+	if (strcmp("Sample Input", buf) == 0) {
 		state->issinput = 2;
-	} else if (strcmp("Sample Output", buf) == 0) {
+	}
+	if (strcmp("Sample Output", buf) == 0) {
 		state->issoutput = 2;
+	}
+	if (strcmp("Hint", buf) == 0) {
+		state->ishint = 2;
 	}
 }
 
