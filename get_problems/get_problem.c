@@ -8,12 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <string.h>
 #include <unistd.h>
 #include <curl/curl.h>
 #include <mysql/mysql.h>
 
 #include "main.h"
-#include "function.h"
 
 int ojcnt;
 char ojstr[OJMAX][BUFSIZE];
@@ -79,7 +79,10 @@ int main(int argc, char *argv[])
 			if (ret < 0) {
 				printf("添加%s题目%d失败。。。两秒钟后获取下一道题目。。。\n", ojname, pid);
 			} else {
-				printf("添加%s题目%d成功。。。两秒钟后获取下一道题目。。。\n", ojname, pid);
+				printf("添加%s题目%d成功。。。", ojname, pid);
+				if (pid != to) {
+					printf("两秒钟后获取下一道题目。。。\n");
+				}
 				execute_cmd("echo %d >> %s", pid, ojname);
 			}
 		}

@@ -8,12 +8,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <string.h>
 #include <unistd.h>
 #include <curl/curl.h>
 #include <mysql/mysql.h>
 
 #include "main.h"
-#include "function.h"
+#include "ekhtml.h"
 
 extern int ojcnt;
 extern char ojstr[OJMAX][BUFSIZE];
@@ -30,9 +31,6 @@ size_t save_data(void *buffer, size_t size, size_t nmenb, void *userp)
 {
 	FILE *fp = (FILE *)userp;
 	size_t ret = fwrite(buffer, size, nmenb, fp);
-	if (DEBUG) {
-		printf("%s\n", (char *)buffer);
-	}
 	return ret;
 }
 
@@ -99,6 +97,12 @@ int preform_curl(CURL *curl)
 			fprintf(stderr, "执行失败！\n");
 			return -1;
 		}
+		int http_code = 0;
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+		if (http_code >= 400) {
+			fprintf(stderr, "服务器错误！\n");
+			return -1;
+		}
 	}
 
 	return 0;
@@ -154,18 +158,24 @@ int load_file(FILE *fp, char *buf)
 
 int parse_html(char *buf, struct problem_info_t *problem_info, int type, int pid)
 {
+	// 已知的题目描述
+	problem_info->origin_id = pid;
+	problem_info->ojtype = type;
+	strcpy(problem_info->source, ojstr[type]);
+
 	int ret = -1;
 	switch (type) {
 		case 0:
-			ret = parse_html_hdu(buf, problem_info, pid);
+			ret = parse_html_hdu(buf, problem_info, type, pid);
 			break;
 	}
 	return ret;
 }
 
-ekhtml_parser_t *prepare_ekhtml(void)
+ekhtml_parser_t *prepare_ekhtml(void *cbdata)
 {
 	ekhtml_parser_t *ekparser = ekhtml_parser_new(NULL);
+	ekhtml_parser_cbdata_set(ekparser, cbdata);
 	return ekparser;
 }
 
@@ -192,6 +202,25 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 	rewind(fp);
 	load_file(fp, buf);
 	int ret = parse_html(buf, problem_info, type, pid);
+	if (ret < 0) {
+		fprintf(stderr, "解析html失败！\n");
+		return -1;
+	}
+
+	if (DEBUG) {
+		printf("原题编号：%d\n", problem_info->origin_id);
+		printf("题目标题：%s\n", problem_info->title);
+		printf("题目描述：%s\n", problem_info->description);
+		printf("输入说明：%s\n", problem_info->input);
+		printf("输出说明：%s\n", problem_info->output);
+		printf("样例输入：%s\n", problem_info->sample_input);
+		printf("样例输出：%s\n", problem_info->sample_output);
+		printf("题目提示：%s\n", problem_info->hint);
+		printf("题目来源：%s\n", problem_info->source);
+		printf("时间限制：%d秒\n", problem_info->time_limit);
+		printf("内存限制：%d兆\n", problem_info->memory_limit);
+		printf("OJ类型：%d\n", problem_info->ojtype);
+	}
 
 	fclose(fp);
 	execute_cmd("rm -f %d", pid);
