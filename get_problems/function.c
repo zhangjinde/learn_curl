@@ -97,12 +97,16 @@ int preform_curl(CURL *curl)
 			fprintf(stderr, "执行失败！\n");
 			return -1;
 		}
-		int http_code = 0;
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-		if (http_code >= 400) {
-			fprintf(stderr, "服务器错误！\n");
-			return -1;
-		}
+	}
+
+	int http_code = 0;
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+	if (DEBUG) {
+		printf("http_code = %d\n", http_code);
+	}
+	if (http_code >= 400) {
+		fprintf(stderr, "服务器错误！\n");
+		return -1;
 	}
 
 	return 0;
@@ -140,7 +144,9 @@ FILE *get_file(CURL *curl, int type, int pid)
 	if (preform_curl(curl) < 0) {
 		fclose(fp);
 		fp = NULL;
-		execute_cmd("rm -f %s", pid);
+		if (!DEBUG) {
+			execute_cmd("rm -f %s", pid);
+		}
 	}
 
 	return fp;
@@ -223,7 +229,9 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 	}
 
 	fclose(fp);
-	execute_cmd("rm -f %d", pid);
+	if (!DEBUG) {
+		execute_cmd("rm -f %d", pid);
+	}
 	return ret;
 }
 

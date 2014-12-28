@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
 	int pid = from;
 	for (pid = from; pid <= to; ++pid) {
 		printf("获取%s题目%d。。。\n", ojname, pid);
+		memset(problem_info, 0, sizeof(struct problem_info_t));
 		int ret = get_problem(curl, problem_info, type, pid);
 		if (ret < 0) {
 			printf("获取%s题目%d失败。。。两秒钟后获取下一道题目。。。\n", ojname, pid);
@@ -82,6 +83,8 @@ int main(int argc, char *argv[])
 				printf("添加%s题目%d成功。。。", ojname, pid);
 				if (pid != to) {
 					printf("两秒钟后获取下一道题目。。。\n");
+				} else {
+					printf("\n");
 				}
 				execute_cmd("echo %d >> %s", pid, ojname);
 			}
