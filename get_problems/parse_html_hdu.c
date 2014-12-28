@@ -83,13 +83,18 @@ static void hdu_starttag(void *cbdata, ekhtml_string_t * tag,
 			    ekhtml_attr_t * attrs)
 {
 	char tagname[20];
-	char tmp_str[BUFSIZE * 2];
+	char *tmp_str = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (tmp_str == NULL) {
+		fprintf(stderr, "分配内存失败！\n");
+		return;
+	}
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	memset(tagname, 0, sizeof(tagname));
-	memset(tmp_str, 0, sizeof(tmp_str));
+	memset(tmp_str, 0, BUFSIZE * BUFSIZE);
 	strncpy(tagname, tag->str, tag->len);
 
 	if (strcmp(tagname, "DIV") == 0) {
+		free(tmp_str);
 		return;
 	}
 
@@ -137,19 +142,25 @@ static void hdu_starttag(void *cbdata, ekhtml_string_t * tag,
 	if (state->ishint) {
 		strcat(state->problem_info->hint, tmp_str);
 	}
+	free(tmp_str);
 }
 
 // 标签结束
 static void hdu_endtag(void *cbdata, ekhtml_string_t * str)
 {
 	char tagname[20];
-	char tmp_str[BUFSIZE * 2];
+	char *tmp_str = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (tmp_str == NULL) {
+		fprintf(stderr, "分配内存失败！\n");
+		return;
+	}
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	memset(tagname, 0, sizeof(tagname));
-	memset(tmp_str, 0, sizeof(tmp_str));
+	memset(tmp_str, 0, BUFSIZE * BUFSIZE);
 	strncpy(tagname, str->str, str->len);
 
 	if (strcmp("DIV", tagname) == 0) {
+		free(tmp_str);
 		return;
 	}
 	if (state->isdescription) {
@@ -170,13 +181,18 @@ static void hdu_endtag(void *cbdata, ekhtml_string_t * str)
 			strcat(state->problem_info->hint, tmp_str);
 		}
 	}
+	free(tmp_str);
 }
 
 // 处理标签中的数据
 static void hdu_data(void *cbdata, ekhtml_string_t * str)
 {
-	char buf[BUFSIZE];
-	memset(buf, 0, sizeof(buf));
+	char *buf = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (buf == NULL) {
+		fprintf(stderr, "分配内存失败！\n");
+		return;
+	}
+	memset(buf, 0, BUFSIZE * BUFSIZE);
 	strncpy(buf, str->str, str->len);
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	// 获取标题
@@ -235,6 +251,7 @@ static void hdu_data(void *cbdata, ekhtml_string_t * str)
 	if (strcmp("Hint", buf) == 0) {
 		state->ishint = 2;
 	}
+	free(buf);
 }
 
 int parse_html_hdu(char *buf, struct problem_info_t *problem_info, int type, int pid)

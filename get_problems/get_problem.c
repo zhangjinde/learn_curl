@@ -52,6 +52,7 @@ int main(int argc, char *argv[])
 
 	if (DEBUG) {
 		printf("ojname = %s\n", ojname);
+		printf("ojurl = %s\n", ojurl[type]);
 		printf("type = %d\n", type);
 		printf("from = %d\n", from);
 		printf("to = %d\n", to);
@@ -72,23 +73,28 @@ int main(int argc, char *argv[])
 		memset(problem_info, 0, sizeof(struct problem_info_t));
 		int ret = get_problem(curl, problem_info, type, pid);
 		if (ret < 0) {
-			printf("获取%s题目%d失败。。。两秒钟后获取下一道题目。。。\n", ojname, pid);
+			printf("获取%s题目%d失败。。。", ojname, pid);
+			if (pid != to) {
+				printf("两秒钟后获取下一道题目。。。\n");
+			} else {
+				printf("\n");
+			}
 		} else {
 			printf("获取%s题目%d成功。。。开始将题目添加进数据库。。。\n", ojname, pid);
 
 			ret = add_problem(conn, problem_info);
 			if (ret < 0) {
-				printf("添加%s题目%d失败。。。两秒钟后获取下一道题目。。。\n", ojname, pid);
+				printf("添加%s题目%d失败。。。\n", ojname, pid);
 			} else {
 				if (ret != 2) {
 					printf("添加%s题目%d成功。。。", ojname, pid);
 				}
-				if (pid != to) {
-					printf("两秒钟后获取下一道题目。。。\n");
-				} else {
-					printf("\n");
-				}
 				execute_cmd("echo %d >> %s", pid, ojname);
+			}
+			if (pid != to) {
+				printf("两秒钟后获取下一道题目。。。\n");
+			} else {
+				printf("\n");
 			}
 		}
 		sleep(2);

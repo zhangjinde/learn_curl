@@ -99,6 +99,8 @@ CURL *prepare_curl(void)
 		fprintf(stderr, "获取curl对象失败！\n");
 		exit(EXIT_FAILURE);
 	}
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 120);
+	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 120);
 	return curl;
 }
 
@@ -223,7 +225,6 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 
 	rewind(fp);
 	load_file(fp, buf);
-	printf("nihao\n");
 	int ret = parse_html(buf, problem_info, type, pid);
 	if (ret < 0) {
 		fprintf(stderr, "解析html失败！\n");
@@ -289,6 +290,8 @@ int add_problem(MYSQL *conn, struct problem_info_t *problem_info)
 	char *end;
 	if (sql == NULL || tmp_str == NULL) {
 		fprintf(stderr, "分配内存失败！\n");
+		free(sql);
+		free(tmp_str);
 		return -1;
 	}
 
@@ -316,7 +319,11 @@ int add_problem(MYSQL *conn, struct problem_info_t *problem_info)
 			fprintf(stderr, "获取数据失败！:%s\n", mysql_error(conn));
 			return -1;
 		}
-		problem_info->problem_id = atoi(row[0]);
+		if (strncmp(row[0], "(null)", 6) == 0) {
+			problem_info->problem_id = 1000;
+		} else {
+			problem_info->problem_id = atoi(row[0]) + 1;
+		}
 	} else {
 		problem_info->problem_id = 1000;
 	}
