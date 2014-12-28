@@ -14,6 +14,7 @@ int utf2gbk(char *buf, size_t len)
 	}
 	size_t sz = BUFSIZE * BUFSIZE;
 	char *tmp_str = (char *)malloc(sz);
+	// 不要将原始的指针传进去，那样会改变原始指针的
 	size_t inlen = len;
 	size_t outlen = sz;
 	char *in = buf;
@@ -24,14 +25,10 @@ int utf2gbk(char *buf, size_t len)
 		return -1;
 	}
 	memset(tmp_str, 0, sz);
-	//printf("%lu %lu ............%s\n", sz, len, buf);
-	//printf("%s..................%p\n", tmp_str, buf);
 	if (iconv(cd, &in, &inlen, &out, &outlen) == (size_t)-1) {
 		iconv_close(cd);
 		return -1;
 	}
-	//printf("%lu %lu ............%s\n", sz, len, buf);
-	//printf("%s..................%p\n", tmp_str, buf);
 	iconv_close(cd);
 	return 0;
 }
@@ -40,7 +37,8 @@ int main(int argc, char *argv[])
 {
 	char in[BUFSIZE] = "nihao1nih年后";
 	int len = strlen(in);
+	printf("%s\n", in);
 	utf2gbk(in, len);
-	printf("%x\n", '≤');
+	printf("%s\n", in);
 	return 0;
 }
