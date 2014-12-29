@@ -226,7 +226,6 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 
 	rewind(fp);
 	load_file(fp, buf);
-	//printf("%lu..............\n", strlen(buf));
 	if (gbk2utf8(buf, strlen(buf)) < 0) {
 		fprintf(stderr, "转换编码失败！\n");
 		return -1;
@@ -249,7 +248,11 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 		printf("题目来源：%s\n", problem_info->source);
 		printf("时间限制：%d秒\n", problem_info->time_limit);
 		printf("内存限制：%d兆\n", problem_info->memory_limit);
-		printf("OJ类型：%d\n", problem_info->ojtype);
+		printf("OJ类型：%d\n", problem_info->spj);
+		printf("通过次数：%d\n", problem_info->accepted);
+		printf("提交次数：%d\n", problem_info->submit);
+		printf("未用：%d\n", problem_info->solved);
+		printf("是否屏蔽：%d\n", problem_info->defunct);
 	}
 
 	fclose(fp);
@@ -315,10 +318,12 @@ int gbk2utf8(char *buf, size_t len)
 	memset(tmp_str, 0, sz);
 	if (iconv(cd, &in, &inlen, &out, &outlen) == (size_t)-1) {
 		iconv_close(cd);
+		free(tmp_str);
 		return -1;
 	}
 	iconv_close(cd);
 	strcpy(buf, tmp_str);
+	free(tmp_str);
 	return 0;
 }
 

@@ -72,6 +72,7 @@ int main(int argc, char *argv[])
 		printf("获取%s题目%d。。。\n", ojname, pid);
 		memset(problem_info, 0, sizeof(struct problem_info_t));
 		int ret = get_problem(curl, problem_info, type, pid);
+		printf("1..............\n");
 		if (ret < 0) {
 			printf("获取%s题目%d失败。。。", ojname, pid);
 			if (pid != to) {
@@ -82,7 +83,9 @@ int main(int argc, char *argv[])
 		} else {
 			printf("获取%s题目%d成功。。。开始将题目添加进数据库。。。\n", ojname, pid);
 
+			printf("2..............\n");
 			ret = add_problem(conn, problem_info);
+			printf("2..............\n");
 			if (ret < 0) {
 				printf("添加%s题目%d失败。。。\n", ojname, pid);
 			} else {

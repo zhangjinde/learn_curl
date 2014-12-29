@@ -11,7 +11,7 @@
 
 #include "ekhtml.h"
 
-#define DEBUG 0
+#define DEBUG 1
 #define BUFSIZE 512
 #define OJMAX 20
 
@@ -32,6 +32,11 @@ struct problem_info_t {
 	int time_limit;			// 时限（秒）
 	int memory_limit;		// 内存限制（兆）
 	int ojtype;			// oj的类型
+	int spj;			// 是否是spj
+	int accepted;			// 通过的提交次数
+	int submit;			// 总提交次数
+	int solved;			// 未用
+	int defunct;			// 是否屏蔽
 };
 
 /*
@@ -46,6 +51,7 @@ struct html_state_t {
 	int issoutput;			// 是否是题目样例输出
 	int ishint;			// 是否是题目提示
 	int islimit;			// 是否是题目限制
+	int isstat;			// 是否是题目通过统计
 	// 题目信息
 	struct problem_info_t *problem_info;
 };

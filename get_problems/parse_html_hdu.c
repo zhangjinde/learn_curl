@@ -39,19 +39,21 @@ static void hdu_endtag_h1(void *cbdata, ekhtml_string_t * str)
 	state->istitle = 0;
 }
 
-// 题目限制开始
+// 题目限制和统计开始
 static void hdu_starttag_span(void *cbdata, ekhtml_string_t * tag,
 				ekhtml_attr_t * attrs)
 {
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	state->islimit = 1;
+	state->isstat = 1;
 }
 
-// 题目限制结束
+// 题目限制和统计结束
 static void hdu_endtag_span(void *cbdata, ekhtml_string_t * str)
 {
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	state->islimit = 0;
+	state->isstat = 0;
 }
 
 // div标签结束
@@ -212,6 +214,17 @@ static void hdu_data(void *cbdata, ekhtml_string_t * str)
 			memory_limit /= 1024;
 			state->problem_info->time_limit = time_limit;
 			state->problem_info->memory_limit = memory_limit;
+		}
+	}
+	if (state->isstat) {
+		if (strstr(buf, "Total Submission") != NULL) {
+			int submit = 0;
+			int accepted = 0;
+			sscanf(buf, "Total Submission(s): %d&nbsp;&nbsp;"
+					"&nbsp;&nbsp;Accepted Submission(s): "
+					"%d", &submit, &accepted);
+			state->problem_info->submit = submit;
+			state->problem_info->accepted = accepted;
 		}
 	}
 	if (state->isdescription) {
