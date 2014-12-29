@@ -163,9 +163,7 @@ FILE *get_file(CURL *curl, int type, int pid)
 	if (perform_curl(curl) < 0) {
 		fclose(fp);
 		fp = NULL;
-		if (!DEBUG) {
-			execute_cmd("rm -f %s", pid);
-		}
+		execute_cmd("rm -f %s", pid);
 	}
 
 	return fp;
@@ -248,7 +246,8 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 		printf("题目来源：%s\n", problem_info->source);
 		printf("时间限制：%d秒\n", problem_info->time_limit);
 		printf("内存限制：%d兆\n", problem_info->memory_limit);
-		printf("OJ类型：%d\n", problem_info->spj);
+		printf("OJ类型：%d\n", problem_info->ojtype);
+		printf("是否spj：%d\n", problem_info->spj);
 		printf("通过次数：%d\n", problem_info->accepted);
 		printf("提交次数：%d\n", problem_info->submit);
 		printf("未用：%d\n", problem_info->solved);
@@ -256,9 +255,7 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 	}
 
 	fclose(fp);
-	if (!DEBUG) {
-		execute_cmd("rm -f %d", pid);
-	}
+	execute_cmd("rm -f %d", pid);
 	return ret;
 }
 
@@ -411,7 +408,8 @@ int add_problem(MYSQL *conn, struct problem_info_t *problem_info)
 	end = sql;
 	strcpy(sql, "INSERT INTO problem (problem_id, title, description, "
 			"input, output, sample_input, sample_output, hint, "
-			"source, time_limit, memory_limit) values(");
+			"source, time_limit, memory_limit, spj, accepted, "
+			"submit, solved, defunct, in_date) values(");
 	end += strlen(sql);
 	*end++ = '\'';
 	end += sprintf(end, "%d", problem_info->problem_id);
@@ -466,17 +464,62 @@ int add_problem(MYSQL *conn, struct problem_info_t *problem_info)
 	*end++ = '\'';
 	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
 	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%d", problem_info->spj);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%d", problem_info->accepted);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%d", problem_info->submit);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "%d", problem_info->solved);
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
+	*end++ = '\'';
+	*end++ = ',';
+	*end++ = '\'';
+	*end++ = problem_info->defunct ? 'Y' : 'N';
+	*end++ = '\'';
+	*end++ = ',';
+	sprintf(tmp_str, "now()");
+	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
 	*end++ = ')';
 	*end = '\0';
 
 	if (DEBUG) {
 		printf("sql = %s\n", sql);
 	}
-	mysql_real_query(conn, sql, (unsigned int)(end - sql));
+	if (mysql_real_query(conn, sql, (unsigned int)(end - sql))) {
+		fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
+		free(sql);
+		free(tmp_str);
+		return -1;
+	}
 	sprintf(sql, "INSERT INTO vjudge (problem_id, origin_id, ojtype) "
 			"values('%d', '%d', '%d')", problem_info->problem_id,
 			problem_info->origin_id, problem_info->ojtype);
-	mysql_real_query(conn, sql, strlen(sql));
+	if (mysql_real_query(conn, sql, strlen(sql))) {
+		mysql_real_query(conn, sql, strlen(sql));
+		free(sql);
+		free(tmp_str);
+		return -1;
+	}
+	sprintf(sql, "INSERT INTO cha (problem_id) values('%d')",
+			problem_info->problem_id);
+	if (mysql_real_query(conn, sql, strlen(sql))) {
+		mysql_real_query(conn, sql, strlen(sql));
+		free(sql);
+		free(tmp_str);
+		return -1;
+	}
 	if (mysql_commit(conn)) {
 		fprintf(stderr, "事务执行失败！:%s\n", mysql_error(conn));
 		mysql_rollback(conn);

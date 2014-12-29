@@ -52,6 +52,7 @@ struct html_state_t {
 	int ishint;			// 是否是题目提示
 	int islimit;			// 是否是题目限制
 	int isstat;			// 是否是题目通过统计
+	int isspj;			// 是否是题目spj描述
 	// 题目信息
 	struct problem_info_t *problem_info;
 };

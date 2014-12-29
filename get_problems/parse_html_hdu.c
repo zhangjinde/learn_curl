@@ -46,6 +46,7 @@ static void hdu_starttag_span(void *cbdata, ekhtml_string_t * tag,
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	state->islimit = 1;
 	state->isstat = 1;
+	state->isspj = 1;
 }
 
 // 题目限制和统计结束
@@ -54,6 +55,7 @@ static void hdu_endtag_span(void *cbdata, ekhtml_string_t * str)
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	state->islimit = 0;
 	state->isstat = 0;
+	state->isspj = 0;
 }
 
 // div标签结束
@@ -225,6 +227,11 @@ static void hdu_data(void *cbdata, ekhtml_string_t * str)
 					"%d", &submit, &accepted);
 			state->problem_info->submit = submit;
 			state->problem_info->accepted = accepted;
+		}
+	}
+	if (state->isspj) {
+		if (strstr(buf, "Special Judge") != NULL) {
+			state->problem_info->spj = 1;
 		}
 	}
 	if (state->isdescription) {
