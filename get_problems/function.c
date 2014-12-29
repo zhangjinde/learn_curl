@@ -225,11 +225,13 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 	rewind(fp);
 	load_file(fp, buf);
 	if (gbk2utf8(buf, strlen(buf)) < 0) {
+		free(buf);
 		fprintf(stderr, "转换编码失败！\n");
 		return -1;
 	}
 	int ret = parse_html(buf, problem_info, type, pid);
 	if (ret < 0) {
+		free(buf);
 		fprintf(stderr, "解析html失败！\n");
 		return -1;
 	}
@@ -256,6 +258,7 @@ int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int p
 
 	fclose(fp);
 	execute_cmd("rm -f %d", pid);
+	free(buf);
 	return ret;
 }
 
@@ -266,7 +269,7 @@ MYSQL *prepare_mysql(void)
 		fprintf(stderr, "初始化数据库失败！:%s\n", mysql_error(conn));
 		exit(EXIT_FAILURE);
 	}
-	unsigned int timeout = 7;
+	unsigned int timeout = 120;
 	int ret = mysql_options(conn, MYSQL_OPT_CONNECT_TIMEOUT,
 			(const char *)&timeout);
 	if (ret) {
