@@ -163,10 +163,6 @@ static void hdu_endtag(void *cbdata, ekhtml_string_t * str)
 	memset(tmp_str, 0, BUFSIZE * BUFSIZE);
 	strncpy(tagname, str->str, str->len);
 
-	if (strcmp("DIV", tagname) == 0) {
-		free(tmp_str);
-		return;
-	}
 	if (state->isdescription) {
 		sprintf(tmp_str, "</%s>", tagname);
 		strcat(state->problem_info->description, tmp_str);

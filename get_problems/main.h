@@ -11,7 +11,7 @@
 
 #include "ekhtml.h"
 
-#define DEBUG 1
+#define DEBUG 0
 #define BUFSIZE 512
 #define OJMAX 20
 
@@ -22,12 +22,12 @@ struct problem_info_t {
 	int problem_id;		// 题目编号
 	int origin_id;			// 题目在原oj上的题目编号
 	char title[BUFSIZE];		// 题目标题
-	char description[2 * BUFSIZE];	// 题目描述
-	char input[2 * BUFSIZE];	// 输入说明
-	char output[2 * BUFSIZE];	// 输出说明
+	char description[BUFSIZE * BUFSIZE];	// 题目描述
+	char input[BUFSIZE * BUFSIZE];	// 输入说明
+	char output[BUFSIZE * BUFSIZE];	// 输出说明
 	char sample_input[BUFSIZE];	// 样例输入
 	char sample_output[BUFSIZE];	// 样例输出
-	char hint[BUFSIZE];		// 提示
+	char hint[BUFSIZE * BUFSIZE];	// 提示
 	char source[BUFSIZE];		// 题目来源，为抓取题目的ojname
 	int time_limit;			// 时限（秒）
 	int memory_limit;		// 内存限制（兆）
