@@ -558,6 +558,7 @@ int main(int argc, char **argv)
 {
 	DEBUG = (argc > 2);
 	//如果第2个参数指定了家目录,就设置为那个目录
+	//在debug时有用
 	//否则默认为/home/judge
 	if (argc > 1)
 		strcpy(oj_home, argv[1]);
