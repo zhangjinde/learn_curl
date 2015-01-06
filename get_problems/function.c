@@ -296,9 +296,9 @@ void cleanup_mysql(MYSQL *conn)
 	}
 }
 
-int gbk2utf8(char *buf, size_t len)
+int convert(char *buf, size_t len, const char *from, const char *to)
 {
-	iconv_t cd = iconv_open("UTF-8", "GBK");
+	iconv_t cd = iconv_open(to, from);
 	if (cd == (iconv_t)-1) {
 		perror("获取字符转换描述符失败！\n");
 		return -1;
@@ -325,6 +325,16 @@ int gbk2utf8(char *buf, size_t len)
 	strcpy(buf, tmp_str);
 	free(tmp_str);
 	return 0;
+}
+
+int gbk2utf8(char *buf, size_t len)
+{
+	return convert(buf, len, "GBK", "UTF-8");
+}
+
+int utf2gbk(char *buf, size_t len)
+{
+	return convert(buf, len, "GBK", "UTF-8");
 }
 
 int add_problem(MYSQL *conn, struct problem_info_t *problem_info)

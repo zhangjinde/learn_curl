@@ -13,7 +13,7 @@
 #include <curl/curl.h>
 
 
-#define BURSIZE 1024
+#define BURSIZE 2048
 
 int hex2dec(char c)
 {
@@ -95,6 +95,43 @@ void urldecode(char url[])
 	strcpy(url, res);
 }
 
+int convert(char *buf, size_t len, const char *from, const char *to)
+{
+	iconv_t cd = iconv_open(to, from);
+	if (cd == (iconv_t)-1) {
+		perror("获取字符转换描述符失败！\n");
+		return -1;
+	}
+	size_t sz = BUFSIZE * BUFSIZE;
+	char *tmp_str = (char *)malloc(sz);
+	if (tmp_str == NULL) {
+		iconv_close(cd);
+		fprintf(stderr, "分配内存失败！\n");
+		return -1;
+	}
+	// 传进去的一定得是别的东西，原来的地址不能被改变
+	char *in = buf;
+	char *out = tmp_str;
+	size_t inlen = len;
+	size_t outlen = sz;
+	memset(tmp_str, 0, sz);
+	if (iconv(cd, &in, &inlen, &out, &outlen) == (size_t)-1) {
+		iconv_close(cd);
+		free(tmp_str);
+		return -1;
+	}
+	iconv_close(cd);
+	strcpy(buf, tmp_str);
+	free(tmp_str);
+	return 0;
+}
+
+int gbk2utf8(char *buf, size_t len)
+{
+	return convert(buf, len, "GBK", "UTF-8");
+}
+
+
 /*
  * 模拟登陆要设置cookie，保存登陆信息。
  * post的参数要将url的转义字符转换一下
@@ -132,7 +169,7 @@ int main(int argc, char *argv[])
 	// 设置参数
 	// 不需要这个login参数
 	//curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "username=username&userpass=password8&login=Sign+In");
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "username=username&userpass=password");
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "username=zzuvjudge&userpass=zzuacmlab");
 
 	// 登陆
 	ret = curl_easy_perform(curl);
@@ -150,8 +187,9 @@ int main(int argc, char *argv[])
 	printf("登陆成功。。。5秒后提交\n");
 
 	int ch = 0;
-	char src[BURSIZE] = "usercode=";
-	int len = strlen(src);
+	char src[BURSIZE];
+	char fields[BURSIZE] = "check=0&problemid=1000&language=2&usercode=";
+	int len = 0;
 	FILE *fp_src = fopen("src.c", "r");
 	if (fp_src == NULL) {
 		error(EXIT_FAILURE, 0, "打开文件src.c失败！\n");
@@ -159,16 +197,17 @@ int main(int argc, char *argv[])
 	while ((ch = fgetc(fp_src)) != EOF) {
 		src[len++] = ch;
 	}
+	src[len] = '\0';
 	fclose(fp_src);
 
 	// 对其进行url编码
 	urlencode(src);
+	strcat(fields, src);
 
 	// 设置提交地址
 	curl_easy_setopt(curl, CURLOPT_URL, "http://acm.hdu.edu.cn/submit.php?action=submit");
 	// 设置参数
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "check=0&problemid=1000&language=2&usercode=");
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, src);
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, fields);
 	sleep(5);
 
 	fclose(fp);
