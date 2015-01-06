@@ -126,11 +126,10 @@ int convert(char *buf, size_t len, const char *from, const char *to)
 	return 0;
 }
 
-int gbk2utf8(char *buf, size_t len)
+int utf2gbk(char *buf, size_t len)
 {
 	return convert(buf, len, "GBK", "UTF-8");
 }
-
 
 /*
  * 模拟登陆要设置cookie，保存登陆信息。
@@ -201,6 +200,7 @@ int main(int argc, char *argv[])
 	fclose(fp_src);
 
 	// 对其进行url编码
+	utf2gbk(src, len);
 	urlencode(src);
 	strcat(fields, src);
 

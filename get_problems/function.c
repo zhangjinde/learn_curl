@@ -334,7 +334,7 @@ int gbk2utf8(char *buf, size_t len)
 
 int utf2gbk(char *buf, size_t len)
 {
-	return convert(buf, len, "GBK", "UTF-8");
+	return convert(buf, len, "UTF-8", "GBK");
 }
 
 int add_problem(MYSQL *conn, struct problem_info_t *problem_info)
