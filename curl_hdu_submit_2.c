@@ -159,6 +159,7 @@ int main(int argc, char *argv[])
 	while ((ch = fgetc(fp_src)) != EOF) {
 		src[len++] = ch;
 	}
+	fclose(fp_src);
 
 	// 对其进行url编码
 	urlencode(src);
@@ -171,6 +172,7 @@ int main(int argc, char *argv[])
 	sleep(5);
 
 	fclose(fp);
+
 	fp = fopen("submit.html", "w");
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 	// 执行提交
