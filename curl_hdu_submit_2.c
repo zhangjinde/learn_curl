@@ -10,10 +10,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <error.h>
+#include <iconv.h>
 #include <curl/curl.h>
 
 
-#define BURSIZE 2048
+#define BUFSIZE 2048
 
 int hex2dec(char c)
 {
@@ -47,7 +48,7 @@ void urlencode(char url[])
 	int i = 0;
 	int len = strlen(url);
 	int res_len = 0;
-	char res[BURSIZE];
+	char res[BUFSIZE];
 	for (i = 0; i < len; ++i) {
 		char c = url[i];
 		if (('0' <= c && c <= '9') ||
@@ -78,7 +79,7 @@ void urldecode(char url[])
 	int i = 0;
 	int len = strlen(url);
 	int res_len = 0;
-	char res[BURSIZE];
+	char res[BUFSIZE];
 	for (i = 0; i < len; ++i) {
 		char c = url[i];
 		if (c != '%') {
@@ -186,8 +187,8 @@ int main(int argc, char *argv[])
 	printf("登陆成功。。。5秒后提交\n");
 
 	int ch = 0;
-	char src[BURSIZE];
-	char fields[BURSIZE] = "check=0&problemid=1000&language=2&usercode=";
+	char src[BUFSIZE];
+	char fields[BUFSIZE] = "check=0&problemid=1000&language=2&usercode=";
 	int len = 0;
 	FILE *fp_src = fopen("src.c", "r");
 	if (fp_src == NULL) {
