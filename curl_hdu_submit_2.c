@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
 	int ch = 0;
 	char src[BURSIZE] = "usercode=";
 	int len = strlen(src);
-	FILE *fp_src = fopen("src.c");
+	FILE *fp_src = fopen("src.c", "r");
 	if (fp_src == NULL) {
 		error(EXIT_FAILURE, 0, "打开文件src.c失败！\n");
 	}
