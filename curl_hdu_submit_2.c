@@ -129,7 +129,7 @@ int convert(char *buf, size_t len, const char *from, const char *to)
 
 int utf2gbk(char *buf, size_t len)
 {
-	return convert(buf, len, "GBK", "UTF-8");
+	return convert(buf, len, "UTF-8", "GBK");
 }
 
 /*
