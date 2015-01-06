@@ -40,21 +40,29 @@ struct problem_info_t {
 };
 
 /*
- * 记录html中的状态，从而获得题目描述
+ * 记录一次提交的信息
  */
-struct html_state_t {
-	int isdescription;		// 是否是题目描述
-	int istitle;			// 是否是题目标题
-	int isinput;			// 是否是题目输入说明
-	int isoutput;			// 是否是题目输出说明
-	int issinput;			// 是否是题目样例输入
-	int issoutput;			// 是否是题目样例输出
-	int ishint;			// 是否是题目提示
-	int islimit;			// 是否是题目限制
-	int isstat;			// 是否是题目通过统计
-	int isspj;			// 是否是题目spj描述
-	// 题目信息
-	struct problem_info_t *problem_info;
+struct solution_t {
+	int solution_id;		// 运行id
+	int problem_id;			// 题目id
+	char user_id[BUFSIZE];		// 用户id
+	int time;			// 用时（秒）
+	int memory;			// 所用空间
+	int result;			// 结果（4：AC）
+	char in_date[BUFSIZE];		// 加入时间
+	int language;			// 语言
+	char ip[BUFSIZE];		// 用户ip
+	int contest_id;			// 所属比赛id
+	int vaild;			// 是否有效？
+	int num;			// 题目在比赛中的序号
+	int code_lenght;		// 代码长度
+	char judgetime[BUFSIZE];	// 判题时间
+	double pass_rate;		// 通过百分比（OI模式下可用）
+	char src[BUFSIZE * BUFSIZE];	// 源代码
+	// 运行错误信息
+	char runtimeinfo[BUFSIZE * BUFSIZE];
+	// 编译错误信息
+	char compileinfo[BUFSIZE * BUFSIZE];
 };
 
 extern void init(void);
