@@ -49,7 +49,12 @@ void urlencode(char url[])
 	int i = 0;
 	int len = strlen(url);
 	int res_len = 0;
-	char res[BUFSIZE];
+	size_t sz = BUFSIZE * BUFSIZE;
+	char *res = (char *)malloc(sz);
+	if (res == NULL) {
+		fprintf(stderr, "分配内存失败！\n");
+		return;
+	}
 	for (i = 0; i < len; ++i) {
 		char c = url[i];
 		if (('0' <= c && c <= '9') ||
@@ -80,7 +85,12 @@ void urldecode(char url[])
 	int i = 0;
 	int len = strlen(url);
 	int res_len = 0;
-	char res[BUFSIZE];
+	size_t sz = BUFSIZE * BUFSIZE;
+	char *res = (char *)malloc(sz);
+	if (res == NULL) {
+		fprintf(stderr, "分配内存失败！\n");
+		return;
+	}
 	for (i = 0; i < len; ++i) {
 		char c = url[i];
 		if (c != '%') {
@@ -136,4 +146,150 @@ int utf2gbk(char *buf, size_t len)
 int gbk2utf8(char *buf, size_t len)
 {
 	return convert(buf, len, "GBK", "UTF-8");
+}
+
+CURL *prepare_curl(void)
+{
+	CURLcode ret = curl_global_init(CURL_GLOBAL_ALL);
+	if (ret != CURLE_OK) {
+		fprintf(stderr, "初始化curl失败！\n");
+		exit(EXIT_FAILURE);
+	}
+	CURL *curl = curl_easy_init();
+	if (curl == NULL) {
+		curl_global_cleanup();
+		fprintf(stderr, "获取curl对象失败！\n");
+		exit(EXIT_FAILURE);
+	}
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 120);
+	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 120);
+	return curl;
+}
+
+int perform_curl(CURL *curl)
+{
+	CURLcode ret = curl_easy_perform(curl);
+	if (ret != CURLE_OK) {
+		printf("执行失败！5秒后重试。。。\n");
+		sleep(5);
+		ret = curl_easy_perform(curl);
+		if (ret != CURLE_OK) {
+			fprintf(stderr, "执行失败！\n");
+			return -1;
+		}
+	}
+
+	int http_code = 0;
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+	if (DEBUG) {
+		printf("http_code = %d\n", http_code);
+	}
+	if (http_code >= 400) {
+		fprintf(stderr, "服务器错误！\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+void cleanup_curl(CURL *curl)
+{
+	// 释放资源
+	curl_easy_cleanup(curl);
+	curl_global_cleanup();
+}
+
+int main(int argc, char *argv[])
+{
+	CURLcode ret = curl_global_init(CURL_GLOBAL_ALL);
+	if (ret != CURLE_OK) {
+		error(EXIT_FAILURE, 0, "初始化curl失败！\n");
+	}
+	CURL *curl = curl_easy_init();
+	if (curl == NULL) {
+		curl_global_cleanup();
+		error(EXIT_FAILURE, 0, "获取curl失败！\n");
+	}
+
+	FILE *fp = fopen("login.html", "w");
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
+	// 不认证ssl证书
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+	// 跟踪重定向的信息
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+	// 设置cookie信息，否则就不能保存登陆信息
+	// 设置读取cookie的文件名
+	curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "hducookie");
+	// 设置写入cookie的文件名
+	curl_easy_setopt(curl, CURLOPT_COOKIEJAR, "hducookie");
+
+	// 调试
+	//curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+
+	// 设置提交地址
+	curl_easy_setopt(curl, CURLOPT_URL, "http://acm.hdu.edu.cn/userloginex.php?action=login");
+	// 设置参数
+	// 不需要这个login参数
+	//curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "username=username&userpass=password8&login=Sign+In");
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "username=zzuvjudge&userpass=zzuacmlab");
+
+	// 登陆
+	ret = curl_easy_perform(curl);
+	if (ret != CURLE_OK) {
+		printf("登陆失败!5秒后尝试重新登陆。。。\n");
+		sleep(5);
+		ret = curl_easy_perform(curl);
+		if (ret != CURLE_OK) {
+			curl_easy_cleanup(curl);
+			curl_global_cleanup();
+			fclose(fp);
+			error(EXIT_FAILURE, 0, "登陆失败！\n");
+		}
+	}
+	printf("登陆成功。。。5秒后提交\n");
+
+	int ch = 0;
+	char src[BUFSIZE];
+	char fields[BUFSIZE] = "check=0&problemid=1000&language=2&usercode=";
+	int len = 0;
+	FILE *fp_src = fopen("src.c", "r");
+	if (fp_src == NULL) {
+		error(EXIT_FAILURE, 0, "打开文件src.c失败！\n");
+	}
+	while ((ch = fgetc(fp_src)) != EOF) {
+		src[len++] = ch;
+	}
+	src[len] = '\0';
+	fclose(fp_src);
+
+	// 对其进行url编码
+	utf2gbk(src, len);
+	urlencode(src);
+	strcat(fields, src);
+
+	// 设置提交地址
+	curl_easy_setopt(curl, CURLOPT_URL, "http://acm.hdu.edu.cn/submit.php?action=submit");
+	// 设置参数
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, fields);
+	sleep(5);
+
+	fclose(fp);
+
+	fp = fopen("submit.html", "w");
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+	// 执行提交
+	ret = curl_easy_perform(curl);
+	if (ret != CURLE_OK) {
+		printf("提交失败！\n");
+	} else {
+		printf("提交成功！\n");
+	}
+
+	// 释放资源
+	curl_easy_cleanup(curl);
+	curl_global_cleanup();
+	fclose(fp);
+
+	return 0;
 }
