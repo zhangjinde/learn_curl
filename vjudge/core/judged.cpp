@@ -85,12 +85,10 @@ void call_for_exit(int s)
 	printf("Stopping judged...\n");
 }
 
-void write_log(const char *fmt, ...)
+int write_log(const char *fmt, ...)
 {
 	va_list ap;
-	char buffer[4096];
-//      time_t          t = time(NULL);
-//      int             l;
+	char buffer[BUFFER_SIZE * 4];
 	sprintf(buffer, "%s/log/client.log", oj_home);
 	FILE *fp = fopen(buffer, "a+");
 	if (fp == NULL) {
@@ -99,12 +97,12 @@ void write_log(const char *fmt, ...)
 	}
 	va_start(ap, fmt);
 	vsprintf(buffer, fmt, ap);
-	fprintf(fp, "%s\n", buffer);
+	int ret = fprintf(fp, "%s\n", buffer);
 	if (DEBUG)
 		printf("%s\n", buffer);
 	va_end(ap);
 	fclose(fp);
-
+	return ret;
 }
 
 int after_equal(char *c)
