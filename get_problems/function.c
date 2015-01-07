@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <curl/curl.h>
 #include <mysql/mysql.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "main.h"
 #include "ekhtml.h"
