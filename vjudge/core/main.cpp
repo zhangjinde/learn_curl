@@ -57,7 +57,6 @@ int DEBUG = 0;
 MYSQL *conn;
 MYSQL_RES *res;
 MYSQL_ROW row;
-//static FILE *fp_log;
 char query[BUFFER_SIZE];
 
 void call_for_exit(int s)
@@ -160,11 +159,13 @@ void init_mysql_conf()
 		}
 		//从数据库中选出没有判过的提交
 		//limit限定查询出来的结果数
-		sprintf(query,
-			"SELECT solution_id FROM solution WHERE language in (%s) and result<2 and MOD(solution_id,%d)=%d ORDER BY result ASC,solution_id ASC limit %d",
-			oj_lang_set, oj_tot, oj_mod, max_running * 2);
+		sprintf(query, "SELECT solution_id FROM solution WHERE "
+				"language in (%s) and result<2 and "
+				"MOD(solution_id,%d)=%d ORDER BY result "
+				"ASC,solution_id ASC limit %d",
+				oj_lang_set, oj_tot, oj_mod, max_running * 2);
 		sleep_tmp = sleep_time;
-		//      fclose(fp);
+		//fclose(fp);
 	}
 }
 
@@ -196,12 +197,13 @@ void run_client(int runid, int clientid)
 	//freopen(err,"a+",stderr);
 
 	//运行判题客户端程序
-	if (!DEBUG)
+	if (!DEBUG) {
 		execl("/usr/bin/judge_client", "/usr/bin/judge_client",
 		      runidstr, buf, oj_home, (char *)NULL);
-	else
+	} else {
 		execl("/usr/bin/judge_client", "/usr/bin/judge_client",
 		      runidstr, buf, oj_home, "debug", (char *)NULL);
+	}
 
 	//exit(0);
 }
@@ -242,79 +244,6 @@ int init_mysql()
 	}
 }
 
-FILE *read_cmd_output(const char *fmt, ...)
-{
-	char cmd[BUFFER_SIZE];
-
-	FILE *ret = NULL;
-	va_list ap;
-
-	va_start(ap, fmt);
-	vsprintf(cmd, fmt, ap);
-	va_end(ap);
-	//if(DEBUG) printf("%s\n",cmd);
-	ret = popen(cmd, "r");
-
-	return ret;
-}
-
-int read_int_http(FILE * f)
-{
-	char buf[BUFFER_SIZE];
-	fgets(buf, BUFFER_SIZE - 1, f);
-	return atoi(buf);
-}
-
-bool check_login()
-{
-	const char *cmd =
-	    "wget --post-data=\"checklogin=1\" --load-cookies=cookie --save-cookies=cookie --keep-session-cookies -q -O - \"%s/admin/problem_judge.php\"";
-	int ret = 0;
-
-	FILE *fjobs = read_cmd_output(cmd, http_baseurl);
-	ret = read_int_http(fjobs);
-	pclose(fjobs);
-
-	return ret > 0;
-}
-
-void login()
-{
-	if (!check_login()) {
-		char cmd[BUFFER_SIZE];
-		sprintf(cmd,
-			"wget --post-data=\"user_id=%s&password=%s\" --load-cookies=cookie --save-cookies=cookie --keep-session-cookies -q -O - \"%s/login.php\"",
-			http_username, http_password, http_baseurl);
-		system(cmd);
-	}
-
-}
-
-int _get_jobs_http(int *jobs)
-{
-	login();
-	int ret = 0;
-	int i = 0;
-	char buf[BUFFER_SIZE];
-	const char *cmd =
-	    "wget --post-data=\"getpending=1&oj_lang_set=%s&max_running=%d\" --load-cookies=cookie --save-cookies=cookie --keep-session-cookies -q -O - \"%s/admin/problem_judge.php\"";
-	FILE *fjobs =
-	    read_cmd_output(cmd, oj_lang_set, max_running, http_baseurl);
-	while (fscanf(fjobs, "%s", buf) != EOF) {
-		//puts(buf);
-		int sid = atoi(buf);
-		if (sid > 0)
-			jobs[i++] = sid;
-		//i++;
-	}
-	pclose(fjobs);
-	ret = i;
-	while (i <= max_running * 2)
-		jobs[i++] = 0;
-	return ret;
-	return ret;
-}
-
 int get_jobs(int *jobs)
 {
 	if (mysql_real_query(conn, query, strlen(query))) {
@@ -350,7 +279,6 @@ int check_out(int solution_id, int result)
 		else
 			return 1;
 	}
-
 }
 
 int work()
@@ -420,10 +348,8 @@ int work()
 		ID[i] = 0;
 		printf("tmp_pid = %d\n", tmp_pid);
 	}
-	if (!http_judge) {
-		mysql_free_result(res);	// free the memory
-		executesql("commit");
-	}
+	mysql_free_result(res);	// free the memory
+	executesql("commit");
 	if (DEBUG && retcnt)
 		write_log("<<%ddone!>>", retcnt);
 	//free(ID);
@@ -529,7 +455,7 @@ int main(int argc, char *argv[])
 	while (1) {		// start to run
 		//从数据库中查询出来的没有判的题目判完
 		//然后一直询问
-		while (j && (http_judge || !init_mysql())) {
+		while (j && !init_mysql()) {
 			j = work();
 		}
 		sleep(sleep_time);
