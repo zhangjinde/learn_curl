@@ -45,43 +45,8 @@
 #include <unistd.h>
 #include <mysql/mysql.h>
 #include <assert.h>
+
 #include "okcalls.h"
-
-#define STD_MB 1048576		//1M
-#define STD_T_LIM 2
-#define STD_F_LIM (STD_MB<<5)	//32M
-#define STD_M_LIM (STD_MB<<7)	//128M
-#define BUFFER_SIZE 512
-
-#define OJ_WT0 0		//Pending
-#define OJ_WT1 1		//Pending Rejudge
-#define OJ_CI 2			//Compiling
-#define OJ_RI 3			//Running & Judging
-#define OJ_AC 4			//Accepted
-#define OJ_PE 5			//Persentation Error
-#define OJ_WA 6			//Wrong Answer
-#define OJ_TL 7			//Time Limit Exceeded
-#define OJ_ML 8			//Memory Limit Exceeded
-#define OJ_OL 9			//Output Limit Exceeded
-#define OJ_RE 10		//Runtime Error
-#define OJ_CE 11		//Compile Error
-#define OJ_CO 12
-#define OJ_TR 13		//Test Running
-
-/*copy from ZOJ
- http://code.google.com/p/zoj/source/browse/trunk/judge_client/client/tracer.cc?spec=svn367&r=367#39
- */
-#ifdef __i386
-#define REG_SYSCALL orig_eax
-#define REG_RET eax
-#define REG_ARG0 ebx
-#define REG_ARG1 ecx
-#else
-#define REG_SYSCALL orig_rax
-#define REG_RET rax
-#define REG_ARG0 rdi
-#define REG_ARG1 rsi
-#endif
 
 int DEBUG = 1;
 int db_port;

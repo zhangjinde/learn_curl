@@ -1,6 +1,6 @@
 all: judge_client judged
 
-judge_client: judge_client.cpp
+judge_client: judge_client.cpp judge_client.h
 	g++ -Wall -c -I/usr/local/mysql/include/mysql -I/usr/include/mysql judge_client.cpp
 	g++ -Wall -o judge_client judge_client.o -L/usr/local/mysql/lib/mysql -L/usr/lib/mysql -lmysqlclient
 judged: judged.cpp
