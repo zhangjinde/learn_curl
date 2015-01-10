@@ -16,13 +16,18 @@ extern int use_max_time;
 extern char record_call;
 extern char db_host[BUFSIZE];
 extern char db_user[BUFSIZE];
+extern char work_dir[BUFSIZE];
 extern char db_passwd[BUFSIZE];
 extern char db_name[BUFSIZE];
 extern char oj_home[BUFSIZE];
 extern char java_xms[BUFSIZE];
 extern char java_xmx[BUFSIZE];
+extern char LANG_NAME[BUFSIZE];
+extern char lang_ext[15][8];
+extern MYSQL *conn;
+extern struct solution_t *solution;
 
-void copy_shell_runtime(char *work_dir)
+void copy_shell_runtime(void)
 {
 
 	execute_cmd("/bin/mkdir %s/lib", work_dir);
@@ -39,9 +44,9 @@ void copy_shell_runtime(char *work_dir)
 
 }
 
-void copy_objc_runtime(char *work_dir)
+void copy_objc_runtime(void)
 {
-	copy_shell_runtime(work_dir);
+	copy_shell_runtime();
 	execute_cmd("/bin/mkdir -p %s/proc", work_dir);
 	execute_cmd("/bin/mount -o bind /proc %s/proc", work_dir);
 	execute_cmd("/bin/mkdir -p %s/lib/", work_dir);
@@ -111,11 +116,11 @@ void copy_objc_runtime(char *work_dir)
 
 }
 
-void copy_bash_runtime(char *work_dir)
+void copy_bash_runtime(void)
 {
 	//char cmd[BUFSIZE];
 	//const char * ruby_run="/usr/bin/ruby";
-	copy_shell_runtime(work_dir);
+	copy_shell_runtime();
 	execute_cmd("/bin/cp `which bc`  %s/bin/", work_dir);
 	execute_cmd("busybox dos2unix Main.sh", work_dir);
 	execute_cmd("/bin/ln -s /bin/busybox %s/bin/grep", work_dir);
@@ -136,10 +141,10 @@ void copy_bash_runtime(char *work_dir)
 
 }
 
-void copy_ruby_runtime(char *work_dir)
+void copy_ruby_runtime(void)
 {
 
-	copy_shell_runtime(work_dir);
+	copy_shell_runtime();
 	execute_cmd("mkdir -p %s/usr", work_dir);
 	execute_cmd("mkdir -p %s/usr/lib", work_dir);
 	execute_cmd("mkdir -p %s/usr/lib64", work_dir);
@@ -151,10 +156,10 @@ void copy_ruby_runtime(char *work_dir)
 
 }
 
-void copy_guile_runtime(char *work_dir)
+void copy_guile_runtime(void)
 {
 
-	copy_shell_runtime(work_dir);
+	copy_shell_runtime();
 	execute_cmd("/bin/mkdir -p %s/proc", work_dir);
 	execute_cmd("/bin/mount -o bind /proc %s/proc", work_dir);
 	execute_cmd("/bin/mkdir -p %s/usr/lib", work_dir);
@@ -174,10 +179,10 @@ void copy_guile_runtime(char *work_dir)
 
 }
 
-void copy_python_runtime(char *work_dir)
+void copy_python_runtime(void)
 {
 
-	copy_shell_runtime(work_dir);
+	copy_shell_runtime();
 	execute_cmd("mkdir -p %s/usr/include", work_dir);
 	execute_cmd("mkdir -p %s/usr/lib", work_dir);
 	execute_cmd("mkdir -p %s/usr/lib64", work_dir);
@@ -191,10 +196,10 @@ void copy_python_runtime(char *work_dir)
 
 }
 
-void copy_php_runtime(char *work_dir)
+void copy_php_runtime(void)
 {
 
-	copy_shell_runtime(work_dir);
+	copy_shell_runtime();
 	execute_cmd("/bin/mkdir %s/usr", work_dir);
 	execute_cmd("/bin/mkdir %s/usr/lib", work_dir);
 	execute_cmd("/bin/cp /usr/lib/libedit* %s/usr/lib/", work_dir);
@@ -215,10 +220,10 @@ void copy_php_runtime(char *work_dir)
 
 }
 
-void copy_perl_runtime(char *work_dir)
+void copy_perl_runtime(void)
 {
 
-	copy_shell_runtime(work_dir);
+	copy_shell_runtime();
 	execute_cmd("/bin/mkdir %s/usr", work_dir);
 	execute_cmd("/bin/mkdir %s/usr/lib", work_dir);
 	execute_cmd("/bin/cp /usr/lib/libperl* %s/usr/lib/", work_dir);
@@ -226,10 +231,10 @@ void copy_perl_runtime(char *work_dir)
 
 }
 
-void copy_freebasic_runtime(char *work_dir)
+void copy_freebasic_runtime(void)
 {
 
-	copy_shell_runtime(work_dir);
+	copy_shell_runtime();
 	execute_cmd("/bin/mkdir -p %s/usr/local/lib", work_dir);
 	execute_cmd("/bin/mkdir -p %s/usr/local/bin", work_dir);
 	execute_cmd("/bin/cp /usr/local/lib/freebasic %s/usr/local/lib/",
@@ -239,10 +244,9 @@ void copy_freebasic_runtime(char *work_dir)
 
 }
 
-void copy_mono_runtime(char *work_dir)
+void copy_mono_runtime(void)
 {
-
-	copy_shell_runtime(work_dir);
+	copy_shell_runtime();
 	execute_cmd("/bin/mkdir %s/usr", work_dir);
 	execute_cmd("/bin/mkdir %s/proc", work_dir);
 	execute_cmd("/bin/mkdir -p %s/usr/lib/mono/2.0", work_dir);
@@ -267,4 +271,21 @@ void copy_mono_runtime(char *work_dir)
 	execute_cmd("/bin/mkdir -p %s/etc", work_dir);
 	execute_cmd("/bin/grep judge /etc/passwd>%s/etc/passwd", work_dir);
 
+}
+
+void copy_runtime(void)
+{
+	//create chroot for ruby bash python
+	int lang = solution->language;
+	switch (lang) {
+		case 4: copy_ruby_runtime(); break;
+		case 5: copy_bash_runtime(); break;
+		case 6: copy_python_runtime(); break;
+		case 7: copy_php_runtime(); break;
+		case 8: copy_perl_runtime(); break;
+		case 9: copy_mono_runtime(); break;
+		case 10: copy_objc_runtime(); break;
+		case 11: copy_freebasic_runtime(); break;
+		case 12: copy_guile_runtime(); break;
+	}
 }

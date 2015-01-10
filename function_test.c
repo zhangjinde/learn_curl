@@ -340,7 +340,6 @@ struct solution_t *get_solution(MYSQL *conn, int sid)
 		return NULL;
 	}
 	char sql[BUFSIZE];
-	int pid = 1000;
 	memset(solution, 0, sizeof(struct solution_t));
 	memset(sql, 0, sizeof(sql));
 	sprintf(sql, "select solution.solution_id, problem_id, user_id, time, memory, "

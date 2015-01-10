@@ -9,8 +9,7 @@
 #define _JUDGE_CLIENT_H
 
 #include <stdio.h>
-
-#include "ekhtml.h"
+#include <mysql/mysql.h>
 
 #define STD_MB 1048576		//1M
 #define STD_T_LIM 2
@@ -87,20 +86,19 @@ struct solution_t {
 
 extern void trim(char *c);
 extern int after_equal(char *c);
-extern long get_file_size(const char *filename);
+extern MYSQL *prepare_mysql(void);
+extern void cleanup_mysql(void);
 extern int write_log(const char *fmt, ...);
+extern long get_file_size(const char *filename);
+extern void copy_runtime(void);
 extern int execute_cmd(const char *fmt, ...);
-extern void copy_shell_runtime(char *work_dir);
-extern void copy_objc_runtime(char *work_dir);
-extern void copy_bash_runtime(char *work_dir);
-extern void copy_ruby_runtime(char *work_dir);
-extern void copy_guile_runtime(char *work_dir);
-extern void copy_python_runtime(char *work_dir);
-extern void copy_php_runtime(char *work_dir);
-extern void copy_perl_runtime(char *work_dir);
-extern void copy_freebasic_runtime(char *work_dir);
-extern void copy_mono_runtime(char *work_dir);
+extern int execute_sql(const char *fmt, ...);
 extern int read_buf(char *buf, const char *key, char *value);
 extern void read_int(char *buf, const char *key, int *value);
+extern void init_parameters(int argc, char **argv, int *solution_id, int *runner_id);
+extern int update_solution(void);
+extern struct solution_t *get_solution(int sid);
+extern int get_problem_info(struct problem_info_t *problem_info);
+extern void save_solution_src(void);
 
 #endif	// _JUDGE_CLIENT_H

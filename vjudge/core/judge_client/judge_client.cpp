@@ -80,20 +80,20 @@ int oi_mode = 0;
 int use_max_time = 0;
 char record_call = 0;
 char db_host[BUFSIZE];
+char work_dir[BUFSIZE];
 char db_user[BUFSIZE];
 char db_passwd[BUFSIZE];
 char db_name[BUFSIZE];
 char oj_home[BUFSIZE];
 char java_xms[BUFSIZE];
 char java_xmx[BUFSIZE];
-const int call_array_size = 512;
 int call_counter[BUFSIZE] = { 0 };
-static char LANG_NAME[BUFSIZE];
-
+char LANG_NAME[BUFSIZE];
+const int call_array_size = 512;
+char lang_ext[15][8] = {"c", "cc", "pas", "java", "rb", "sh", "py",
+	"php", "pl", "cs", "m", "bas", "scm", "c", "cc"};
 MYSQL *conn;
-static char lang_ext[15][8] = { "c", "cc", "pas", "java", "rb", "sh", "py",
-	"php", "pl", "cs", "m", "bas", "scm", "c", "cc"
-};
+struct solution_t *solution;
 
 void init_syscalls_limits(int lang)
 {
@@ -148,7 +148,7 @@ void init_syscalls_limits(int lang)
 
 
 // read the configue file
-void init_mysql_conf()
+void init_conf()
 {
 	write_log("init mysql config.\n");
 	char buf[BUFSIZE];
@@ -759,56 +759,6 @@ int get_proc_status(int pid, const char *mark)
 	return ret;
 }
 
-int executesql(const char *sql)
-{
-	write_log("execute sql：%s.\n", sql);
-	if (mysql_real_query(conn, sql, strlen(sql))) {
-		write_log("execute sql error:%s.\n", mysql_error(conn));
-		sleep(db_timeout);
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-int init_mysql_conn()
-{
-	conn = mysql_init(NULL);	// init the database connection
-	mysql_options(conn, MYSQL_OPT_CONNECT_TIMEOUT, &db_timeout);
-	write_log("try to connect database\n");
-	if (!mysql_real_connect(conn, db_host, db_user, db_passwd,
-				db_name, db_port, 0, 0)) {
-		write_log("connect database error:%s.\n", mysql_error(conn));
-		sleep(sleep_time);
-		return 1;
-	} else {
-		return 0;
-	}
-	return executesql("set names utf8");
-}
-
-void get_solution(int solution_id, char *work_dir, int lang)
-{
-	char sql[BUFSIZE], src_pth[BUFSIZE];
-	// get the source code
-	MYSQL_RES *res;
-	MYSQL_ROW row;
-	sprintf(sql, "SELECT source FROM source_code WHERE solution_id=%d",
-		solution_id);
-	mysql_real_query(conn, sql, strlen(sql));
-	res = mysql_store_result(conn);
-	row = mysql_fetch_row(res);
-
-	// create the src file
-	sprintf(src_pth, "Main.%s", lang_ext[lang]);
-	if (DEBUG)
-		printf("Main=%s", src_pth);
-	FILE *fp_src = fopen(src_pth, "w");
-	fprintf(fp_src, "%s", row[0]);
-	mysql_free_result(res);
-	fclose(fp_src);
-}
-
 void get_custominput(int solution_id, char *work_dir)
 {
 	char sql[BUFSIZE], src_pth[BUFSIZE];
@@ -851,24 +801,6 @@ void get_solution_info(int solution_id, int *p_id, char *user_id,
 	*p_id = atoi(row[0]);
 	strcpy(user_id, row[1]);
 	*lang = atoi(row[2]);
-	mysql_free_result(res);
-}
-
-void get_problem_info(int p_id, int *time_lmt, int *mem_lmt, int *isspj)
-{
-	// get the problem info from Table:problem
-	char sql[BUFSIZE];
-	MYSQL_RES *res;
-	MYSQL_ROW row;
-	sprintf(sql,
-		"SELECT time_limit,memory_limit,spj FROM problem where problem_id=%d",
-		p_id);
-	mysql_real_query(conn, sql, strlen(sql));
-	res = mysql_store_result(conn);
-	row = mysql_fetch_row(res);
-	*time_lmt = atoi(row[0]);
-	*mem_lmt = atoi(row[1]);
-	*isspj = (row[2][0] == '1');
 	mysql_free_result(res);
 }
 
@@ -1333,44 +1265,15 @@ void watch_solution(pid_t pidApp, char *infile, int *ACflg, int isspj,
 	//clean_session(pidApp);
 }
 
-void clean_workdir(char *work_dir)
+void clean_workdir(void)
 {
 	execute_cmd("/bin/umount %s/proc", work_dir);
 	if (DEBUG) {
 		execute_cmd("/bin/mv %s/* %slog/", work_dir, work_dir);
 	} else {
 		execute_cmd("/bin/rm -Rf %s/*", work_dir);
-
 	}
 
-}
-
-void init_parameters(int argc, char **argv, int *solution_id, int *runner_id)
-{
-	if (argc < 3) {
-		fprintf(stderr, "Usage:%s solution_id runner_id.\n", argv[0]);
-		fprintf(stderr,
-			"Multi:%s solution_id runner_id judge_base_path.\n",
-			argv[0]);
-		fprintf(stderr,
-			"Debug:%s solution_id runner_id judge_base_path debug.\n",
-			argv[0]);
-		exit(1);
-	}
-	DEBUG = (argc > 4);
-	record_call = (argc > 5);
-	if (argc > 5) {
-		strcpy(LANG_NAME, argv[5]);
-	}
-	if (argc > 3)
-		strcpy(oj_home, argv[3]);
-	else
-		strcpy(oj_home, "/home/judge");
-
-	chdir(oj_home);		// change the dir// init our work
-
-	*solution_id = atoi(argv[1]);
-	*runner_id = atoi(argv[2]);
 }
 
 int get_sim(int solution_id, int lang, int pid)
@@ -1435,19 +1338,18 @@ int get_sim(int solution_id, int lang, int pid)
 	return 0;
 }
 
-void mk_shm_workdir(char *work_dir)
+void mk_shm_workdir(void)
 {
 	char shm_path[BUFSIZE];
-	sprintf(shm_path, "/dev/shm/hustoj/%s", work_dir);
+	sprintf(shm_path, "/dev/shm/zzuoj/%s", work_dir);
 	execute_cmd("/bin/mkdir -p %s", shm_path);
 	execute_cmd("/bin/rm -rf %s", work_dir);
 	execute_cmd("/bin/ln -s %s %s/", shm_path, oj_home);
 	execute_cmd("/bin/chown judge %s ", shm_path);
 	execute_cmd("chmod 755 %s ", shm_path);
 	//sim need a soft link in shm_dir to work correctly
-	sprintf(shm_path, "/dev/shm/hustoj/%s/", oj_home);
+	sprintf(shm_path, "/dev/shm/zzuoj/%s/", oj_home);
 	execute_cmd("/bin/ln -s %s/data %s", oj_home, shm_path);
-
 }
 
 void print_call_array()
@@ -1473,58 +1375,46 @@ void print_call_array()
 
 int main(int argc, char **argv)
 {
-#ifndef _GNU_SOURCE
-		printf("....\n");
-#endif
-
-	char work_dir[BUFSIZE];
 	char user_id[BUFSIZE];
 	int solution_id = 1000;
 	int runner_id = 0;
-	int p_id, time_lmt, mem_lmt, lang, isspj, max_case_time = 0;
+	int p_id = 0;
+	int time_lmt = 1;
+	int mem_lmt  = 128;
+	int lang = 0;
+	int isspj = 0;
+	int max_case_time = 0;
 
 	//获取参数,得到solution_id,runner_id,如果指定了oj_home就设置oj_home
 	init_parameters(argc, argv, &solution_id, &runner_id);
 
 	//从judge.conf文件中读取各种字段
-	init_mysql_conf();
+	init_conf();
 
-	//连接数据库
-	if (!init_mysql_conn()) {
-		exit(0);	//exit if mysql is down
-	}
+	conn = prepare_mysql();
+
 	//set work directory to start running & judging
-	sprintf(work_dir, "%s/run%s/", oj_home, argv[2]);
+	sprintf(work_dir, "%s/run%d/", oj_home, runner_id);
 
 	//如果使用了/dev/shm的共享内存虚拟磁盘来运行答案
 	//启用能提高判题速度，但需要较多内存。
 	if (shm_run) {
-		mk_shm_workdir(work_dir);
+		mk_shm_workdir();
 	}
 
 	chdir(work_dir);
-	if (!DEBUG)
-		clean_workdir(work_dir);
 
-	//通过数据库获取题号(p_id),用户名(user_id),使用的语言(lang)
-	get_solution_info(solution_id, &p_id, user_id, &lang);
-	//get the limit
-
-	if (p_id == 0) {
-		time_lmt = 5;
-		mem_lmt = 128;
-		isspj = 0;
-	} else {
-		//获取运行时限,内存时限,是否是special judge
-		get_problem_info(p_id, &time_lmt, &mem_lmt, &isspj);
+	if (!DEBUG) {
+		clean_workdir();
 	}
-	//copy source file
+
+	// 获取solution的各种信息
+	solution = get_solution(solution_id);
 
 	//将提交的源代码存放在work_dir的Main.*文件中
-	get_solution(solution_id, work_dir, lang);
+	save_solution_src();
 
 	//java is lucky
-	//对java语言特殊处理
 	if (lang >= 3) {
 		// the limit for java
 		time_lmt = time_lmt + java_time_bonus;
@@ -1533,14 +1423,6 @@ int main(int argc, char **argv)
 		execute_cmd("/bin/cp %s/etc/java0.policy %s/java.policy",
 			    oj_home, work_dir);
 	}
-	//never bigger than judged set value;
-	if (time_lmt > 300 || time_lmt < 1)
-		time_lmt = 300;
-	if (mem_lmt > 1024 || mem_lmt < 1)
-		mem_lmt = 1024;
-
-	if (DEBUG)
-		printf("time: %d mem: %d\n", time_lmt, mem_lmt);
 
 	// compile
 	//      printf("%s\n",cmd);
@@ -1556,10 +1438,11 @@ int main(int argc, char **argv)
 		update_user(user_id);
 		update_problem(p_id);
 		mysql_close(conn);
-		if (!DEBUG)
-			clean_workdir(work_dir);
-		else
+		if (!DEBUG) {
+			clean_workdir();
+		} else {
 			write_log("compile error");
+		}
 		exit(0);
 	} else {
 		//如果编译成功就设置为正在运行
@@ -1589,27 +1472,9 @@ int main(int argc, char **argv)
 	int namelen;
 	int usedtime = 0, topmemory = 0;
 
-	//create chroot for ruby bash python
-	if (lang == 4)
-		copy_ruby_runtime(work_dir);
-	if (lang == 5)
-		copy_bash_runtime(work_dir);
-	if (lang == 6)
-		copy_python_runtime(work_dir);
-	if (lang == 7)
-		copy_php_runtime(work_dir);
-	if (lang == 8)
-		copy_perl_runtime(work_dir);
-	if (lang == 9)
-		copy_mono_runtime(work_dir);
-	if (lang == 10)
-		copy_objc_runtime(work_dir);
-	if (lang == 11)
-		copy_freebasic_runtime(work_dir);
-	if (lang == 12)
-		copy_guile_runtime(work_dir);
-	// read files and run
-	// read files and run
+	// 为某些语言拷贝运行时库
+	copy_runtime();
+
 	// read files and run
 	double pass_rate = 0.0;
 	int num_of_test = 0;
@@ -1757,7 +1622,7 @@ int main(int argc, char **argv)
 	}
 	update_user(user_id);
 	update_problem(p_id);
-	clean_workdir(work_dir);
+	clean_workdir();
 
 	if (DEBUG)
 		write_log("result=%d", oi_mode ? finalACflg : ACflg);
