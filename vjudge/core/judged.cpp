@@ -95,10 +95,11 @@ int write_log(const char *fmt, ...)
 	va_start(ap, fmt);
 	vsprintf(buffer, fmt, ap);
 	time_t tm = time(NULL);
-	int ret = fprintf(fp, "[%s]:%s", ctime(&tm), buffer);
-	if (DEBUG) {
-		printf("%s\n", buffer);
-	}
+	char timestr[BUFFER_SIZE];
+	sprintf(timestr, "%s", ctime(&tm));
+	int len = strlen(timestr);
+	timestr[len - 1] = '\0';
+	int ret = fprintf(fp, "[%s]:%s", timestr, buffer);
 	va_end(ap);
 	fclose(fp);
 	return ret;
@@ -131,8 +132,7 @@ bool read_buf(char *buf, const char *key, char *value)
 	if (strncmp(buf, key, strlen(key)) == 0) {
 		strcpy(value, buf + after_equal(buf));
 		trim(value);
-		if (DEBUG)
-			printf("%s\n", value);
+		write_log("%s = %s\n", key, value);
 		return 1;
 	}
 	return 0;
@@ -141,9 +141,9 @@ bool read_buf(char *buf, const char *key, char *value)
 void read_int(char *buf, const char *key, int *value)
 {
 	char buf2[BUFFER_SIZE];
-	if (read_buf(buf, key, buf2))
+	if (read_buf(buf, key, buf2)) {
 		sscanf(buf2, "%d", value);
-
+	}
 }
 
 // read the configue file
@@ -238,7 +238,7 @@ int init_mysql()
 {
 	if (conn == NULL) {
 		conn = mysql_init(NULL);	// init the database connection
-		mysql_options(conn, MYSQL_OPT_CONNECT_TIMEOUT, db_timeout);
+		mysql_options(conn, MYSQL_OPT_CONNECT_TIMEOUT, &db_timeout);
 
 		write_log("try to connect database\n");
 		if (!mysql_real_connect(conn, db_host, db_user, db_passwd,
@@ -420,6 +420,9 @@ int daemon_init(void)
 	return 0;
 }
 
+/*
+ * Usage: ./judged oj_home [debug]
+ */
 int main(int argc, char *argv[])
 {
 	DEBUG = (argc > 2);
