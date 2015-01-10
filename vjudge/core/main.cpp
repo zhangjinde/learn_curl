@@ -132,12 +132,8 @@ void init_mysql_conf()
 {
 	FILE *fp = NULL;
 	char buf[BUFFER_SIZE];
-	host_name[0] = 0;
-	user_name[0] = 0;
-	password[0] = 0;
-	db_name[0] = 0;
-	port_number = 3306;
-	max_running = 3;
+	db_port = 3306;
+	max_running = 4;
 	sleep_time = 1;
 	oj_tot = 1;
 	oj_mod = 0;
@@ -145,8 +141,8 @@ void init_mysql_conf()
 	fp = fopen("./etc/judge.conf", "r");
 	if (fp != NULL) {
 		while (fgets(buf, BUFFER_SIZE - 1, fp)) {
-			read_buf(buf, "OJ_HOST_NAME", host_name);
-			read_buf(buf, "OJ_USER_NAME", user_name);
+			read_buf(buf, "DB_HOST", db_host);
+			read_buf(buf, "OJ_USER_NAME", db_user);
 			read_buf(buf, "OJ_PASSWORD", password);
 			read_buf(buf, "OJ_DB_NAME", db_name);
 			read_int(buf, "OJ_PORT_NUMBER", &port_number);
@@ -164,8 +160,7 @@ void init_mysql_conf()
 				"MOD(solution_id,%d)=%d ORDER BY result "
 				"ASC,solution_id ASC limit %d",
 				oj_lang_set, oj_tot, oj_mod, max_running * 2);
-		sleep_tmp = sleep_time;
-		//fclose(fp);
+		fclose(fp);
 	}
 }
 
@@ -375,7 +370,7 @@ int already_running()
 	if (fd < 0) {
 		syslog(LOG_ERR | LOG_DAEMON, "can't open %s: %s", LOCKFILE,
 		       strerror(errno));
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	if (lockfile(fd) < 0) {
 		if (errno == EACCES || errno == EAGAIN) {
@@ -434,23 +429,24 @@ int main(int argc, char *argv[])
 	chdir(oj_home);		// change the dir
 
 	//不调试就设为守护进程
-	if (!DEBUG)
+	if (!DEBUG) {
 		daemon_init();
+	}
 
 	//进程已经运行了
 	if (strcmp(oj_home, "/home/judge") == 0 && already_running()) {
 		syslog(LOG_ERR | LOG_DAEMON,
 		       "This daemon program is already running!\n");
-		return 1;
+		exit(EXIT_FAILURE);
 	}
-	//struct timespec final_sleep;
-	//final_sleep.tv_sec=0;
-	//final_sleep.tv_nsec=500000000;
+
 	init_mysql_conf();	// set the database info
+
 	//设置信号的回调函数
 	signal(SIGQUIT, call_for_exit);
 	signal(SIGKILL, call_for_exit);
 	signal(SIGTERM, call_for_exit);
+
 	int j = 1;
 	while (1) {		// start to run
 		//从数据库中查询出来的没有判的题目判完
@@ -461,5 +457,6 @@ int main(int argc, char *argv[])
 		sleep(sleep_time);
 		j = 1;
 	}
+
 	return 0;
 }
