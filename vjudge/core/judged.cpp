@@ -88,6 +88,9 @@ int write_log(const char *fmt, ...)
 	char buffer[BUFFER_SIZE * 4];
 	sprintf(buffer, "%s/log/judged.log", oj_home);
 	FILE *fp = fopen(buffer, "a+");
+	if (DEBUG) {
+		freopen("/dev/stdout", "w", fp);
+	}
 	if (fp == NULL) {
 		fprintf(stderr, "open log file error:%s.\n", strerror(errno));
 		return 0;
@@ -277,7 +280,7 @@ int get_jobs(int *jobs)
 
 int check_out(int solution_id, int result)
 {
-	write_log("update solution %d for compiling", solution_id);
+	write_log("update solution %d for compiling.\n", solution_id);
 	char sql[BUFFER_SIZE];
 	sprintf(sql,
 		"UPDATE solution SET result=%d,time=0,memory=0,judgetime=NOW() WHERE solution_id=%d and result<2 LIMIT 1",
@@ -338,7 +341,7 @@ int work(void)
 			workcnt++;
 			ID[i] = fork();		// start to fork
 			if (ID[i] == 0) {
-				write_log("judge solution %d int client%d.\n",
+				write_log("judge solution %d in client%d.\n",
 						runid, i);
 				// 子进程运行判题客户端
 				run_client(runid, i);	// if the process is the son, run it
