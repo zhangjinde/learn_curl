@@ -1,7 +1,8 @@
 CC = gcc
+CXX = g++
 CFLAGS = -Wall
-SRCS = $(wildcard *.c)
-OBJS = $(SRCS:%.c=%.o)
+SRCS = $(wildcard *.cpp)
+OBJS = $(SRCS:%.cpp=%.o)
 CURL = -L/usr/lib/x86_64-linux-gnu -lcurl
 EKHTML = /usr/local/lib/libekhtml.a
 MYSQLCFLAGS = -I/usr/local/mysql/include/mysql -I/usr/include/mysql
@@ -13,8 +14,8 @@ ALL = judge_client
 all: $(ALL)
 
 judge_client: $(OBJS)
-	$(CC) $(CFLAGS) -o judge_client $(OBJS) $(LDFLAGS)
-$(OBJS): %.o: %.c
-	$(CC) $(CFLAGS) -c $<
+	$(CXX) $(CFLAGS) -o judge_client $(OBJS) $(LDFLAGS)
+$(OBJS): %.o: %.cpp
+	$(CXX) $(CFLAGS) -c $<
 clean:
 	$(RM) $(OBJS) $(ALL)

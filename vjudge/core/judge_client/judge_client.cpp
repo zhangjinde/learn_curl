@@ -221,7 +221,7 @@ void find_next_nonspace(int *c1, int *c2, FILE **f1, FILE **f2, int *ret)
 		if (isspace(*c1)) {
 			*c1 = fgetc(*f1);
 		}
-		if (isspace(c2)) {
+		if (isspace(*c2)) {
 			*c2 = fgetc(*f2);
 		}
 	}
@@ -396,23 +396,6 @@ int compare(const char *file1, const char *file2)
 			return OJ_AC;
 	}
 #endif
-}
-
-FILE *read_cmd_output(const char *fmt, ...)
-{
-	char cmd[BUFSIZE];
-
-	FILE *ret = NULL;
-	va_list ap;
-
-	va_start(ap, fmt);
-	vsprintf(cmd, fmt, ap);
-	va_end(ap);
-	if (DEBUG)
-		printf("%s\n", cmd);
-	ret = popen(cmd, "r");
-
-	return ret;
 }
 
 void update_solution(int solution_id, int result, int time, int memory, int sim,
@@ -1465,17 +1448,6 @@ void mk_shm_workdir(char *work_dir)
 	sprintf(shm_path, "/dev/shm/hustoj/%s/", oj_home);
 	execute_cmd("/bin/ln -s %s/data %s", oj_home, shm_path);
 
-}
-
-int count_in_files(char *dirpath)
-{
-	const char *cmd = "ls -l %s/*.in|wc -l";
-	int ret = 0;
-	FILE *fjobs = read_cmd_output(cmd, dirpath);
-	fscanf(fjobs, "%d", &ret);
-	pclose(fjobs);
-
-	return ret;
 }
 
 void print_call_array()
