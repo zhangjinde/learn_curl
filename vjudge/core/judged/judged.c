@@ -130,7 +130,7 @@ void trim(char *c)
 	strcpy(c, start);
 }
 
-bool read_buf(char *buf, const char *key, char *value)
+int read_buf(char *buf, const char *key, char *value)
 {
 	if (strncmp(buf, key, strlen(key)) == 0) {
 		strcpy(value, buf + after_equal(buf));
@@ -313,7 +313,8 @@ int work(void)
 	}
 
 	/* exec the submit */
-	for (int j = 0; jobs[j] > 0; j++) {
+	int j = 0;
+	for (j = 0; jobs[j] > 0; j++) {
 		runid = jobs[j];
 		if (runid % oj_tot != oj_mod) {
 			continue;
