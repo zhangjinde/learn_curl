@@ -12,7 +12,7 @@ ALL = judge_client
 .PHONY: all clean
 all: $(ALL)
 
-judge_client: $(OBJS) main.h
+judge_client: $(OBJS)
 	$(CC) $(CFLAGS) -o judge_client $(OBJS) $(LDFLAGS)
 $(OBJS): %.o: %.c
 	$(CC) $(CFLAGS) -c $<

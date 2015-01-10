@@ -33,21 +33,6 @@
 #define OJ_CO 12
 #define OJ_TR 13		//Test Running
 
-/*copy from ZOJ
- http://code.google.com/p/zoj/source/browse/trunk/judge_client/client/tracer.cc?spec=svn367&r=367#39
- */
-#ifdef __i386
-#define REG_SYSCALL orig_eax
-#define REG_RET eax
-#define REG_ARG0 ebx
-#define REG_ARG1 ecx
-#else
-#define REG_SYSCALL orig_rax
-#define REG_RET rax
-#define REG_ARG0 rdi
-#define REG_ARG1 rsi
-#endif
-
 /*
  * 题目信息结构体
  */
@@ -77,7 +62,7 @@ struct problem_info_t {
  */
 struct solution_t {
 	int solution_id;		// 运行id
-	problem_info_t problem_info;	// 题目信息
+	struct problem_info_t problem_info;	// 题目信息
 	char user_id[BUFSIZE];		// 用户id
 	int time;			// 用时（秒）
 	int memory;			// 所用空间
@@ -100,6 +85,11 @@ struct solution_t {
 	char compileinfo[BUFSIZE * BUFSIZE];
 };
 
+extern void trim(char *c);
+extern int after_equal(char *c);
+extern long get_file_size(const char *filename);
+extern int write_log(const char *fmt, ...);
+extern int execute_cmd(const char *fmt, ...);
 extern void copy_shell_runtime(char *work_dir);
 extern void copy_objc_runtime(char *work_dir);
 extern void copy_bash_runtime(char *work_dir);
@@ -110,5 +100,7 @@ extern void copy_php_runtime(char *work_dir);
 extern void copy_perl_runtime(char *work_dir);
 extern void copy_freebasic_runtime(char *work_dir);
 extern void copy_mono_runtime(char *work_dir);
+extern int read_buf(char *buf, const char *key, char *value);
+extern void read_int(char *buf, const char *key, int *value);
 
 #endif	// _JUDGE_CLIENT_H

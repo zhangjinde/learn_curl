@@ -2,18 +2,18 @@
 
 #include "judge_client.h"
 
-extern int DEBUG = 1;
+extern int DEBUG;
 extern int db_port;
-extern int shm_run = 0;
+extern int shm_run;
 extern int max_running;
 extern int db_timeout;
 extern int sleep_time;
-extern int java_time_bonus = 5;
-extern int java_memory_bonus = 512;
-extern int sim_enable = 0;
-extern int oi_mode = 0;
-extern int use_max_time = 0;
-extern char record_call = 0;
+extern int java_time_bonus;
+extern int java_memory_bonus;
+extern int sim_enable;
+extern int oi_mode;
+extern int use_max_time;
+extern char record_call;
 extern char db_host[BUFSIZE];
 extern char db_user[BUFSIZE];
 extern char db_passwd[BUFSIZE];

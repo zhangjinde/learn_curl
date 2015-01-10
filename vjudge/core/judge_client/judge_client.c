@@ -1,7 +1,5 @@
 //
-// File:   main.cc
-// Author: sempr
-// refacted by zhblue
+// File:   judge_client.c
 /*
  * Copyright 2008 sempr <iamsempr@gmail.com>
  *
@@ -47,9 +45,27 @@
 #include <unistd.h>
 #include <mysql/mysql.h>
 #include <assert.h>
+#include <features.h>
 
 #include "okcalls.h"
 #include "judge_client.h"
+
+#define ZOJ_COM
+
+/*copy from ZOJ
+ http://code.google.com/p/zoj/source/browse/trunk/judge_client/client/tracer.cc?spec=svn367&r=367#39
+ */
+#ifdef __i386
+#define REG_SYSCALL orig_eax
+#define REG_RET eax
+#define REG_ARG0 ebx
+#define REG_ARG1 ecx
+#else
+#define REG_SYSCALL orig_rax
+#define REG_RET rax
+#define REG_ARG0 rdi
+#define REG_ARG1 rsi
+#endif
 
 int DEBUG = 1;
 int db_port;
@@ -70,27 +86,15 @@ char db_name[BUFSIZE];
 char oj_home[BUFSIZE];
 char java_xms[BUFSIZE];
 char java_xmx[BUFSIZE];
-
-//static int sleep_tmp;
-#define ZOJ_COM
+const int call_array_size = 512;
+int call_counter[BUFSIZE] = { 0 };
+static char LANG_NAME[BUFSIZE];
 
 MYSQL *conn;
 static char lang_ext[15][8] = { "c", "cc", "pas", "java", "rb", "sh", "py",
 	"php", "pl", "cs", "m", "bas", "scm", "c", "cc"
 };
 
-long get_file_size(const char *filename)
-{
-	struct stat f_stat;
-	if (stat(filename, &f_stat) == -1) {
-		return 0;
-	}
-	return (long)f_stat.st_size;
-}
-
-const int call_array_size = 512;
-int call_counter[call_array_size] = { 0 };
-static char LANG_NAME[BUFSIZE];
 void init_syscalls_limits(int lang)
 {
 	int i;
@@ -142,46 +146,6 @@ void init_syscalls_limits(int lang)
 
 }
 
-int after_equal(char *c)
-{
-	int i = 0;
-	for (; c[i] != '\0' && c[i] != '='; i++) ;
-	return ++i;
-}
-
-void trim(char *c)
-{
-	char buf[BUFSIZE];
-	char *start, *end;
-	strcpy(buf, c);
-	start = buf;
-	while (isspace(*start))
-		start++;
-	end = start;
-	while (!isspace(*end))
-		end++;
-	*end = '\0';
-	strcpy(c, start);
-}
-
-bool read_buf(char *buf, const char *key, char *value)
-{
-	if (strncmp(buf, key, strlen(key)) == 0) {
-		strcpy(value, buf + after_equal(buf));
-		trim(value);
-		write_log("%s = %s\n", key, value);
-		return 1;
-	}
-	return 0;
-}
-
-void read_int(char *buf, const char *key, int *value)
-{
-	char buf2[BUFSIZE];
-	if (read_buf(buf, key, buf2)) {
-		sscanf(buf2, "%d", value);
-	}
-}
 
 // read the configue file
 void init_mysql_conf()
@@ -228,37 +192,37 @@ int isInFile(const char fname[])
 	}
 }
 
-void find_next_nonspace(int &c1, int &c2, FILE * &f1, FILE * &f2, int &ret)
+void find_next_nonspace(int *c1, int *c2, FILE **f1, FILE **f2, int *ret)
 {
 	// Find the next non-space character or \n.
-	while ((isspace(c1)) || (isspace(c2))) {
-		if (c1 != c2) {
-			if (c2 == EOF) {
+	while ((isspace(*c1)) || (isspace(*c2))) {
+		if (*c1 != *c2) {
+			if (*c2 == EOF) {
 				do {
-					c1 = fgetc(f1);
-				} while (isspace(c1));
+					*c1 = fgetc(*f1);
+				} while (isspace(*c1));
 				continue;
-			} else if (c1 == EOF) {
+			} else if (*c1 == EOF) {
 				do {
-					c2 = fgetc(f2);
-				} while (isspace(c2));
+					*c2 = fgetc(*f2);
+				} while (isspace(*c2));
 				continue;
-			} else if ((c1 == '\r' && c2 == '\n')) {
-				c1 = fgetc(f1);
-			} else if ((c2 == '\r' && c1 == '\n')) {
-				c2 = fgetc(f2);
+			} else if ((*c1 == '\r' && *c2 == '\n')) {
+				*c1 = fgetc(*f1);
+			} else if ((*c2 == '\r' && *c1 == '\n')) {
+				*c2 = fgetc(*f2);
 			} else {
 				if (DEBUG)
-					printf("%d=%c\t%d=%c", c1, c1, c2, c2);
+					printf("%d=%c\t%d=%c", *c1, *c1, *c2, *c2);
 				;
-				ret = OJ_PE;
+				*ret = OJ_PE;
 			}
 		}
-		if (isspace(c1)) {
-			c1 = fgetc(f1);
+		if (isspace(*c1)) {
+			*c1 = fgetc(*f1);
 		}
 		if (isspace(c2)) {
-			c2 = fgetc(f2);
+			*c2 = fgetc(*f2);
 		}
 	}
 }
@@ -278,7 +242,8 @@ void find_next_nonspace(int &c1, int &c2, FILE * &f1, FILE * &f2, int &ret)
  */
 const char *getFileNameFromPath(const char *path)
 {
-	for (int i = strlen(path); i >= 0; i--) {
+	int i = 0;
+	for (i = strlen(path); i >= 0; i--) {
 		if (path[i] == '/')
 			return &path[i];
 	}
@@ -324,7 +289,7 @@ int compare_zoj(const char *file1, const char *file2)
 			// Blank lines are skipped.
 			c1 = fgetc(f1);
 			c2 = fgetc(f2);
-			find_next_nonspace(c1, c2, f1, f2, ret);
+			find_next_nonspace(&c1, &c2, &f1, &f2, &ret);
 			// Compare the current line.
 			for (;;) {
 				// Read until 2 files return a space or 0 together.
@@ -344,7 +309,7 @@ int compare_zoj(const char *file1, const char *file2)
 					c1 = fgetc(f1);
 					c2 = fgetc(f2);
 				}
-				find_next_nonspace(c1, c2, f1, f2, ret);
+				find_next_nonspace(&c1, &c2, &f1, &f2, &ret);
 				if (c1 == EOF && c2 == EOF) {
 					goto end;
 				}
@@ -668,7 +633,8 @@ int compile(int lang)
 	char javac_buf[7][16];
 	char *CP_J[7];
 
-	for (int i = 0; i < 7; i++)
+	int i = 0;
+	for (i = 0; i < 7; i++)
 		CP_J[i] = javac_buf[i];
 
 	sprintf(CP_J[0], "javac");
@@ -705,13 +671,15 @@ int compile(int lang)
 			freopen("ce.txt", "w", stdout);
 		}
 		execute_cmd("chown judge *");
-		while (setgid(1536) != 0)
+		while (setgid(1536) != 0) {
 			sleep(1);
-		while (setuid(1536) != 0)
+		}
+		while (setuid(1536) != 0) {
 			sleep(1);
-		while (setresuid(1536, 1536, 1536) != 0)
+		}
+		while (setresuid(1536, 1536, 1536) != 0) {
 			sleep(1);
-
+		}
 		switch (lang) {
 		case 0:
 			execvp(CP_C[0], (char *const *)CP_C);
@@ -881,8 +849,8 @@ void get_custominput(int solution_id, char *work_dir)
 	mysql_free_result(res);
 }
 
-void get_solution_info(int solution_id, int &p_id, char *user_id,
-			      int &lang)
+void get_solution_info(int solution_id, int *p_id, char *user_id,
+			      int *lang)
 {
 
 	MYSQL_RES *res;
@@ -897,13 +865,13 @@ void get_solution_info(int solution_id, int &p_id, char *user_id,
 	mysql_real_query(conn, sql, strlen(sql));
 	res = mysql_store_result(conn);
 	row = mysql_fetch_row(res);
-	p_id = atoi(row[0]);
+	*p_id = atoi(row[0]);
 	strcpy(user_id, row[1]);
-	lang = atoi(row[2]);
+	*lang = atoi(row[2]);
 	mysql_free_result(res);
 }
 
-void get_problem_info(int p_id, int &time_lmt, int &mem_lmt, int &isspj)
+void get_problem_info(int p_id, int *time_lmt, int *mem_lmt, int *isspj)
 {
 	// get the problem info from Table:problem
 	char sql[BUFSIZE];
@@ -915,13 +883,13 @@ void get_problem_info(int p_id, int &time_lmt, int &mem_lmt, int &isspj)
 	mysql_real_query(conn, sql, strlen(sql));
 	res = mysql_store_result(conn);
 	row = mysql_fetch_row(res);
-	time_lmt = atoi(row[0]);
-	mem_lmt = atoi(row[1]);
-	isspj = (row[2][0] == '1');
+	*time_lmt = atoi(row[0]);
+	*mem_lmt = atoi(row[1]);
+	*isspj = (row[2][0] == '1');
 	mysql_free_result(res);
 }
 
-void prepare_files(char *filename, int namelen, char *infile, int &p_id,
+void prepare_files(char *filename, int namelen, char *infile, int p_id,
 		   char *work_dir, char *outfile, char *userfile, int runner_id)
 {
 	//              printf("ACflg=%d %d check a file!\n",ACflg,solution_id);
@@ -937,8 +905,8 @@ void prepare_files(char *filename, int namelen, char *infile, int &p_id,
 	sprintf(userfile, "%s/run%d/user.out", oj_home, runner_id);
 }
 
-void run_solution(int &lang, char *work_dir, int &time_lmt, int &usedtime,
-		  int &mem_lmt)
+void run_solution(int lang, char *work_dir, int time_lmt, int usedtime,
+		  int mem_lmt)
 {
 	//将优先级调成19(最低级)
 	//优先级数为-20到19,数字越小优先级越高
@@ -1057,7 +1025,7 @@ void run_solution(int &lang, char *work_dir, int &time_lmt, int &usedtime,
 	exit(0);
 }
 
-int fix_java_mis_judge(char *work_dir, int &ACflg, int &topmemory, int mem_lmt)
+int fix_java_mis_judge(char *work_dir, int *ACflg, int *topmemory, int mem_lmt)
 {
 	int comp_res = OJ_AC;
 	if (DEBUG)
@@ -1065,7 +1033,7 @@ int fix_java_mis_judge(char *work_dir, int &ACflg, int &topmemory, int mem_lmt)
 	comp_res = execute_cmd("/bin/grep 'Exception'  %s/error.out", work_dir);
 	if (!comp_res) {
 		printf("Exception reported\n");
-		ACflg = OJ_RE;
+		*ACflg = OJ_RE;
 	}
 
 	comp_res =
@@ -1074,8 +1042,8 @@ int fix_java_mis_judge(char *work_dir, int &ACflg, int &topmemory, int mem_lmt)
 
 	if (!comp_res) {
 		printf("JVM need more Memory!");
-		ACflg = OJ_ML;
-		topmemory = mem_lmt * STD_MB;
+		*ACflg = OJ_ML;
+		*topmemory = mem_lmt * STD_MB;
 	}
 	comp_res =
 	    execute_cmd("/bin/grep 'java.lang.OutOfMemoryError'  %s/user.out",
@@ -1083,15 +1051,15 @@ int fix_java_mis_judge(char *work_dir, int &ACflg, int &topmemory, int mem_lmt)
 
 	if (!comp_res) {
 		printf("JVM need more Memory or Threads!");
-		ACflg = OJ_ML;
-		topmemory = mem_lmt * STD_MB;
+		*ACflg = OJ_ML;
+		*topmemory = mem_lmt * STD_MB;
 	}
 	comp_res = execute_cmd("/bin/grep 'Could not create'  %s/error.out",
 			       work_dir);
 	if (!comp_res) {
 		printf
 		    ("jvm need more resource,tweak -Xmx(OJ_JAVA_BONUS) Settings");
-		ACflg = OJ_RE;
+		*ACflg = OJ_RE;
 		//topmemory=0;
 	}
 	return comp_res;
@@ -1148,22 +1116,22 @@ int special_judge(char *oj_home, int problem_id, char *infile, char *outfile,
 
 }
 
-void judge_solution(int &ACflg, int &usedtime, int time_lmt, int isspj,
+void judge_solution(int *ACflg, int usedtime, int time_lmt, int isspj,
 		    int p_id, char *infile, char *outfile, char *userfile,
-		    int &PEflg, int lang, char *work_dir, int &topmemory,
+		    int *PEflg, int lang, char *work_dir, int *topmemory,
 		    int mem_lmt, int solution_id, double num_of_test)
 {
 	//usedtime-=1000;
 	int comp_res;
 	if (!oi_mode)
 		num_of_test = 1.0;
-	if (ACflg == OJ_AC
+	if (*ACflg == OJ_AC
 	    && usedtime > time_lmt * 1000 * (use_max_time ? 1 : num_of_test))
-		ACflg = OJ_TL;
-	if (topmemory > mem_lmt * STD_MB)
-		ACflg = OJ_ML;	//issues79
+		*ACflg = OJ_TL;
+	if (*topmemory > mem_lmt * STD_MB)
+		*ACflg = OJ_ML;	//issues79
 	// compare
-	if (ACflg == OJ_AC) {
+	if (*ACflg == OJ_AC) {
 		if (isspj) {
 			comp_res =
 			    special_judge(oj_home, p_id, infile, outfile,
@@ -1180,12 +1148,12 @@ void judge_solution(int &ACflg, int &usedtime, int time_lmt, int isspj,
 			comp_res = compare(outfile, userfile);
 		}
 		if (comp_res == OJ_WA) {
-			ACflg = OJ_WA;
+			*ACflg = OJ_WA;
 			if (DEBUG)
 				printf("fail test %s\n", infile);
 		} else if (comp_res == OJ_PE)
-			PEflg = OJ_PE;
-		ACflg = comp_res;
+			*PEflg = OJ_PE;
+		*ACflg = comp_res;
 	}
 	//jvm popup messages, if don't consider them will get miss-WrongAnswer
 	if (lang == 3) {
@@ -1194,7 +1162,7 @@ void judge_solution(int &ACflg, int &usedtime, int time_lmt, int isspj,
 	}
 }
 
-int get_page_fault_mem(struct rusage &ruse, pid_t & pidApp)
+int get_page_fault_mem(struct rusage ruse, pid_t pidApp)
 {
 	//java use pagefault
 	int m_vmpeak, m_vmdata, m_minflt;
@@ -1224,10 +1192,10 @@ void clean_session(pid_t p)
 	execute_cmd("ps aux |grep \\^judge|awk '{print $2}'|xargs kill");
 }
 
-void watch_solution(pid_t pidApp, char *infile, int &ACflg, int isspj,
+void watch_solution(pid_t pidApp, char *infile, int *ACflg, int isspj,
 		    char *userfile, char *outfile, int solution_id, int lang,
-		    int &topmemory, int mem_lmt, int &usedtime, int time_lmt,
-		    int &p_id, int &PEflg, char *work_dir)
+		    int *topmemory, int mem_lmt, int *usedtime, int time_lmt,
+		    int p_id, int PEflg, char *work_dir)
 {
 	// parent
 	int tempmemory;
@@ -1249,13 +1217,13 @@ void watch_solution(pid_t pidApp, char *infile, int &ACflg, int isspj,
 		} else {	//other use VmPeak
 			tempmemory = get_proc_status(pidApp, "VmPeak:") << 10;
 		}
-		if (tempmemory > topmemory)
-			topmemory = tempmemory;
-		if (topmemory > mem_lmt * STD_MB) {
+		if (tempmemory > *topmemory)
+			*topmemory = tempmemory;
+		if (*topmemory > mem_lmt * STD_MB) {
 			if (DEBUG)
-				printf("out of memory %d\n", topmemory);
-			if (ACflg == OJ_AC)
-				ACflg = OJ_ML;
+				printf("out of memory %d\n", *topmemory);
+			if (*ACflg == OJ_AC)
+				*ACflg = OJ_ML;
 			ptrace(PTRACE_KILL, pidApp, NULL, NULL);
 			break;
 		}
@@ -1267,7 +1235,7 @@ void watch_solution(pid_t pidApp, char *infile, int &ACflg, int isspj,
 		//出现了错误RE
 		if ((lang < 4 || lang == 9) && get_file_size("error.out")
 		    && !oi_mode) {
-			ACflg = OJ_RE;
+			*ACflg = OJ_RE;
 			//addreinfo(solution_id, "error.out");
 			ptrace(PTRACE_KILL, pidApp, NULL, NULL);
 			break;
@@ -1276,7 +1244,7 @@ void watch_solution(pid_t pidApp, char *infile, int &ACflg, int isspj,
 		if (!isspj &&
 		    get_file_size(userfile) >
 		    get_file_size(outfile) * 2 + 1024) {
-			ACflg = OJ_OL;
+			*ACflg = OJ_OL;
 			ptrace(PTRACE_KILL, pidApp, NULL, NULL);
 			break;
 		}
@@ -1294,20 +1262,20 @@ void watch_solution(pid_t pidApp, char *infile, int &ACflg, int isspj,
 				printf("status>>8=%d\n", exitcode);
 			}
 			//psignal(exitcode, NULL);
-			if (ACflg == OJ_AC) {
+			if (*ACflg == OJ_AC) {
 				switch (exitcode) {
 				case SIGCHLD:
 				case SIGALRM:
 					alarm(0);
 				case SIGKILL:
 				case SIGXCPU:
-					ACflg = OJ_TL;
+					*ACflg = OJ_TL;
 					break;
 				case SIGXFSZ:
-					ACflg = OJ_OL;
+					*ACflg = OJ_OL;
 					break;
 				default:
-					ACflg = OJ_RE;
+					*ACflg = OJ_RE;
 				}
 				print_runtimeerror(strsignal(exitcode));
 			}
@@ -1328,21 +1296,21 @@ void watch_solution(pid_t pidApp, char *infile, int &ACflg, int isspj,
 				printf("WTERMSIG=%d\n", sig);
 				psignal(sig, NULL);
 			}
-			if (ACflg == OJ_AC) {
+			if (*ACflg == OJ_AC) {
 				switch (sig) {
 				case SIGCHLD:
 				case SIGALRM:	//前面设置了足够长时间的时钟中断,被时钟中断终止说明超时了
 					alarm(0);
 				case SIGKILL:
 				case SIGXCPU:
-					ACflg = OJ_TL;
+					*ACflg = OJ_TL;
 					break;
 				case SIGXFSZ:
-					ACflg = OJ_OL;
+					*ACflg = OJ_OL;
 					break;
 
 				default:
-					ACflg = OJ_RE;
+					*ACflg = OJ_RE;
 				}
 				print_runtimeerror(strsignal(sig));
 			}
@@ -1362,7 +1330,7 @@ void watch_solution(pid_t pidApp, char *infile, int &ACflg, int isspj,
 			call_counter[reg.REG_SYSCALL] = 1;
 
 		} else {	//do not limit JVM syscall for using different JVM
-			ACflg = OJ_RE;
+			*ACflg = OJ_RE;
 			char error[BUFSIZE];
 			sprintf(error,
 				"[ERROR] A Not allowed system call: runid:%d callid:%ld\n TO FIX THIS , ask admin to add the CALLID into corresponding LANG_XXV[] located at okcalls32/64.h ,and recompile judge_client",
@@ -1374,9 +1342,9 @@ void watch_solution(pid_t pidApp, char *infile, int &ACflg, int isspj,
 
 		ptrace(PTRACE_SYSCALL, pidApp, NULL, NULL);
 	}
-	usedtime +=
+	*usedtime +=
 	    (ruse.ru_utime.tv_sec * 1000 + ruse.ru_utime.tv_usec / 1000);
-	usedtime +=
+	*usedtime +=
 	    (ruse.ru_stime.tv_sec * 1000 + ruse.ru_stime.tv_usec / 1000);
 
 	//clean_session(pidApp);
@@ -1394,7 +1362,7 @@ void clean_workdir(char *work_dir)
 
 }
 
-void init_parameters(int argc, char **argv, int &solution_id, int &runner_id)
+void init_parameters(int argc, char **argv, int *solution_id, int *runner_id)
 {
 	if (argc < 3) {
 		fprintf(stderr, "Usage:%s solution_id runner_id.\n", argv[0]);
@@ -1418,12 +1386,13 @@ void init_parameters(int argc, char **argv, int &solution_id, int &runner_id)
 
 	chdir(oj_home);		// change the dir// init our work
 
-	solution_id = atoi(argv[1]);
-	runner_id = atoi(argv[2]);
+	*solution_id = atoi(argv[1]);
+	*runner_id = atoi(argv[2]);
 }
 
-int get_sim(int solution_id, int lang, int pid, int &sim_s_id)
+int get_sim(int solution_id, int lang, int pid)
 {
+	int sim_s_id;
 	char src_pth[BUFSIZE];
 	//char cmd[BUFSIZE];
 	sprintf(src_pth, "Main.%s", lang_ext[lang]);
@@ -1532,16 +1501,18 @@ void print_call_array()
 
 int main(int argc, char **argv)
 {
+#ifndef _GNU_SOURCE
+		printf("....\n");
+#endif
 
 	char work_dir[BUFSIZE];
 	char user_id[BUFSIZE];
 	int solution_id = 1000;
 	int runner_id = 0;
-	int p_id, time_lmt, mem_lmt, lang, isspj, sim, sim_s_id, max_case_time =
-	    0;
+	int p_id, time_lmt, mem_lmt, lang, isspj, max_case_time = 0;
 
 	//获取参数,得到solution_id,runner_id,如果指定了oj_home就设置oj_home
-	init_parameters(argc, argv, solution_id, runner_id);
+	init_parameters(argc, argv, &solution_id, &runner_id);
 
 	//从judge.conf文件中读取各种字段
 	init_mysql_conf();
@@ -1564,7 +1535,7 @@ int main(int argc, char **argv)
 		clean_workdir(work_dir);
 
 	//通过数据库获取题号(p_id),用户名(user_id),使用的语言(lang)
-	get_solution_info(solution_id, p_id, user_id, lang);
+	get_solution_info(solution_id, &p_id, user_id, &lang);
 	//get the limit
 
 	if (p_id == 0) {
@@ -1573,7 +1544,7 @@ int main(int argc, char **argv)
 		isspj = 0;
 	} else {
 		//获取运行时限,内存时限,是否是special judge
-		get_problem_info(p_id, time_lmt, mem_lmt, isspj);
+		get_problem_info(p_id, &time_lmt, &mem_lmt, &isspj);
 	}
 	//copy source file
 
@@ -1632,7 +1603,7 @@ int main(int argc, char **argv)
 
 	// open DIRs
 	DIR *dp;
-	dirent *dirp;
+	struct dirent *dirp;
 	//打开存放测试数据的目录,如果失败,则返回
 	if (p_id > 0 && (dp = opendir(fullpath)) == NULL) {
 
@@ -1683,9 +1654,9 @@ int main(int argc, char **argv)
 			run_solution(lang, work_dir, time_lmt, usedtime,
 				     mem_lmt);
 		} else {	//父进程中
-			watch_solution(pidApp, infile, ACflg, isspj, userfile,
-				       outfile, solution_id, lang, topmemory,
-				       mem_lmt, usedtime, time_lmt, p_id, PEflg,
+			watch_solution(pidApp, infile, &ACflg, isspj, userfile,
+				       outfile, solution_id, lang, &topmemory,
+				       mem_lmt, &usedtime, time_lmt, p_id, PEflg,
 				       work_dir);
 
 		}
@@ -1722,13 +1693,13 @@ int main(int argc, char **argv)
 				     mem_lmt);
 		} else {	//父进程等待子进程判题结束,获取结果
 			num_of_test++;
-			watch_solution(pidApp, infile, ACflg, isspj, userfile,
-				       outfile, solution_id, lang, topmemory,
-				       mem_lmt, usedtime, time_lmt, p_id, PEflg,
+			watch_solution(pidApp, infile, &ACflg, isspj, userfile,
+				       outfile, solution_id, lang, &topmemory,
+				       mem_lmt, &usedtime, time_lmt, p_id, PEflg,
 				       work_dir);
-			judge_solution(ACflg, usedtime, time_lmt, isspj, p_id,
-				       infile, outfile, userfile, PEflg, lang,
-				       work_dir, topmemory, mem_lmt,
+			judge_solution(&ACflg, usedtime, time_lmt, isspj, p_id,
+				       infile, outfile, userfile, &PEflg, lang,
+				       work_dir, &topmemory, mem_lmt,
 				       solution_id, num_of_test);
 			if (use_max_time) {
 				max_case_time =
@@ -1777,9 +1748,7 @@ int main(int argc, char **argv)
 	if (ischa && sim_enable && ACflg == OJ_AC
 	    && (!oi_mode || finalACflg == OJ_AC)
 	    && lang < 5) {	//bash don't supported
-		sim = get_sim(solution_id, lang, p_id, sim_s_id);
-	} else {
-		sim = 0;
+		get_sim(solution_id, lang, p_id);
 	}
 	//write_log("solution_id = %d", solution_id);
 	//write_log("sim_s_id = %d", sim_s_id);
@@ -1801,7 +1770,7 @@ int main(int argc, char **argv)
 		if (num_of_test > 0)
 			pass_rate /= num_of_test;
 		update_solution(solution_id, finalACflg, usedtime,
-				topmemory >> 10, sim, sim_s_id, pass_rate);
+				topmemory >> 10, 0, 0, pass_rate);
 	} else {
 		//write_log("ACflg = %d\n", ACflg);
 		//前面已经更新过sim了
