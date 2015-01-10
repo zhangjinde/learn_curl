@@ -16,7 +16,7 @@
 #define STD_T_LIM 2
 #define STD_F_LIM (STD_MB<<5)	//32M
 #define STD_M_LIM (STD_MB<<7)	//128M
-#define BUFFER_SIZE 512
+#define BUFSIZE 512
 
 #define OJ_WT0 0		//Pending
 #define OJ_WT1 1		//Pending Rejudge
@@ -86,16 +86,29 @@ struct solution_t {
 	int language;			// 语言
 	char ip[BUFSIZE];		// 用户ip
 	int contest_id;			// 所属比赛id
-	int vaild;			// 是否有效？
+	int valid;			// 是否有效？
 	int num;			// 题目在比赛中的序号
-	int code_lenght;		// 代码长度
+	int code_length;		// 代码长度
 	char judgetime[BUFSIZE];	// 判题时间
 	double pass_rate;		// 通过百分比（OI模式下可用）
 	char src[BUFSIZE * BUFSIZE];	// 源代码
 	// 运行错误信息
+	int isre;
 	char runtimeinfo[BUFSIZE * BUFSIZE];
 	// 编译错误信息
+	int isce;
 	char compileinfo[BUFSIZE * BUFSIZE];
 };
+
+extern void copy_shell_runtime(char *work_dir);
+extern void copy_objc_runtime(char *work_dir);
+extern void copy_bash_runtime(char *work_dir);
+extern void copy_ruby_runtime(char *work_dir);
+extern void copy_guile_runtime(char *work_dir);
+extern void copy_python_runtime(char *work_dir);
+extern void copy_php_runtime(char *work_dir);
+extern void copy_perl_runtime(char *work_dir);
+extern void copy_freebasic_runtime(char *work_dir);
+extern void copy_mono_runtime(char *work_dir);
 
 #endif	// _JUDGE_CLIENT_H

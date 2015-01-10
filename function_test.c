@@ -8,16 +8,12 @@
 #include <iconv.h>
 #include <stdlib.h>
 #include <string.h>
+#include <error.h>
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
 #include <curl/curl.h>
 #include <mysql/mysql.h>
-
-#include "main.h"
-#include "ekhtml.h"
-
-#include <stdio.h>
 
 #include "ekhtml.h"
 
@@ -53,7 +49,8 @@ struct problem_info_t {
  */
 struct solution_t {
 	int solution_id;		// 运行id
-	problem_info_t problem_info;	// 题目信息
+	// 题目信息
+	struct problem_info_t problem_info;
 	char user_id[BUFSIZE];		// 用户id
 	int time;			// 用时（秒）
 	int memory;			// 所用空间
@@ -62,17 +59,24 @@ struct solution_t {
 	int language;			// 语言
 	char ip[BUFSIZE];		// 用户ip
 	int contest_id;			// 所属比赛id
-	int vaild;			// 是否有效？
+	int valid;			// 是否有效？
 	int num;			// 题目在比赛中的序号
-	int code_lenght;		// 代码长度
+	int code_length;		// 代码长度
 	char judgetime[BUFSIZE];	// 判题时间
 	double pass_rate;		// 通过百分比（OI模式下可用）
 	char src[BUFSIZE * BUFSIZE];	// 源代码
 	// 运行错误信息
+	int isre;
 	char runtimeinfo[BUFSIZE * BUFSIZE];
 	// 编译错误信息
+	int isce;
 	char compileinfo[BUFSIZE * BUFSIZE];
 };
+
+char dbhost[] = "127.0.0.1";
+char dbuser[] = "root";
+char dbpasswd[] = "1234";
+char dbname[] = "jol";
 
 int hex2dec(char c)
 {
@@ -256,7 +260,260 @@ void cleanup_curl(CURL *curl)
 	curl_global_cleanup();
 }
 
-int main(int argc, char *argv[])
+int get_problem_info(MYSQL *conn, struct problem_info_t *problem_info)
+{
+	char sql[BUFSIZE];
+	MYSQL_RES *result;
+	memset(sql, 0, sizeof(sql));
+	sprintf(sql, "select spj, time_limit, memory_limit, accepted, submit, "
+			"solved from problem where problem_id = %d",
+			problem_info->problem_id);
+	if (mysql_real_query(conn, sql, strlen(sql))) {
+		fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
+		return -1;
+	}
+	result = mysql_store_result(conn);
+	if (result == NULL) {
+		fprintf(stderr, "读取数据失败！:%s\n", mysql_error(conn));
+		return -1;
+	}
+	my_ulonglong cnt = mysql_num_rows(result);
+	if (cnt > 0) {
+		MYSQL_ROW row = mysql_fetch_row(result);
+		if (row == NULL) {
+			fprintf(stderr, "获取数据失败！:%s\n", mysql_error(conn));
+			return -1;
+		}
+		problem_info->spj = atoi(row[0]);
+		problem_info->time_limit = atoi(row[1]);
+		problem_info->memory_limit = atoi(row[2]);
+		problem_info->accepted = atoi(row[3]);
+		problem_info->submit = atoi(row[4]);
+		problem_info->solved = atoi(row[5]);
+		int i = 0;
+		int field_cnt = mysql_field_count(conn);
+		for (i = 0; i < field_cnt; ++i) {
+			printf("row[%d] = %s\n", i, row[i]);
+		}
+	} else {
+			fprintf(stderr, "没有数据！\n");
+			return -1;
+	}
+	memset(sql, 0, sizeof(sql));
+	sprintf(sql, "select ojtype, origin_id from vjudge where "
+			"problem_id = %d", problem_info->problem_id);
+	if (mysql_real_query(conn, sql, strlen(sql))) {
+		fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
+		return -1;
+	}
+	result = mysql_store_result(conn);
+	if (result == NULL) {
+		fprintf(stderr, "读取数据失败！:%s\n", mysql_error(conn));
+		return -1;
+	}
+	cnt = mysql_num_rows(result);
+	if (cnt > 0) {
+		MYSQL_ROW row = mysql_fetch_row(result);
+		if (row == NULL) {
+			fprintf(stderr, "获取数据失败！:%s\n", mysql_error(conn));
+			return -1;
+		}
+		problem_info->ojtype = atoi(row[0]);
+		problem_info->origin_id = atoi(row[1]);
+		int i = 0;
+		int field_cnt = mysql_field_count(conn);
+		for (i = 0; i < field_cnt; ++i) {
+			printf("row[%d] = %s\n", i, row[i]);
+		}
+	} else {
+			fprintf(stderr, "没有数据！\n");
+			return -1;
+	}
+	return 0;
+}
+
+struct solution_t *get_solution(MYSQL *conn, int sid)
+{
+	struct solution_t *solution = (struct solution_t *)malloc(sizeof(struct solution_t));
+	if (solution == NULL) {
+		fprintf(stderr, "分配内存失败！\n");
+		return NULL;
+	}
+	char sql[BUFSIZE];
+	int pid = 1000;
+	memset(solution, 0, sizeof(struct solution_t));
+	memset(sql, 0, sizeof(sql));
+	sprintf(sql, "select solution.solution_id, problem_id, user_id, time, memory, "
+			"in_date, result, language, ip, contest_id, valid, "
+			"num, code_length, judgetime, pass_rate, source from solution,source_code "
+			"where solution.solution_id = source_code.solution_id and solution.solution_id = %d", sid);
+	if (mysql_real_query(conn, sql, strlen(sql))) {
+		fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
+		free(solution);
+		return NULL;
+	}
+	MYSQL_RES *result = mysql_store_result(conn);
+	if (result == NULL) {
+		fprintf(stderr, "读取数据失败！:%s\n", mysql_error(conn));
+		free(solution);
+		return NULL;
+	}
+	my_ulonglong cnt = mysql_num_rows(result);
+	if (cnt > 0) {
+		MYSQL_ROW row = mysql_fetch_row(result);
+		if (row == NULL) {
+			free(solution);
+			fprintf(stderr, "获取数据失败！:%s\n", mysql_error(conn));
+			return NULL;
+		}
+		solution->solution_id = sid;
+		solution->problem_info.problem_id = atoi(row[1]);
+		strcpy(solution->user_id, row[2]);
+		solution->time = atoi(row[3]);
+		solution->memory = atoi(row[4]);
+		solution->result = atoi(row[5]);
+		strcpy(solution->in_date, row[6]);
+		solution->language = atoi(row[7]);
+		strcpy(solution->ip, row[8]);
+		if (row[9] != NULL) {
+			solution->contest_id = atoi(row[9]);
+		} else {
+			solution->contest_id = -1;
+		}
+		solution->valid = atoi(row[10]);
+		solution->num = atoi(row[11]);
+		solution->code_length = atoi(row[12]);
+		if (row[13] != NULL) {
+			strcpy(solution->judgetime, row[13]);
+		}
+		solution->pass_rate = atof(row[14]);
+		strcpy(solution->src, row[15]);
+		int i = 0;
+		int field_cnt = mysql_field_count(conn);
+		for (i = 0; i < field_cnt; ++i) {
+			printf("row[%d] = %s\n", i, row[i]);
+		}
+		get_problem_info(conn, &solution->problem_info);
+	} else {
+			fprintf(stderr, "没有数据！\n");
+			free(solution);
+			return NULL;
+	}
+	return solution;
+}
+
+int update_solution(MYSQL *conn, struct solution_t *solution)
+{
+	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (sql == NULL) {
+		fprintf(stderr, "分配内存失败！\n");
+		return -1;
+	}
+	memset(sql, 0, BUFSIZE * BUFSIZE);
+	sprintf(sql, "update solution set time=%d, memory=%d, result=%d, "
+			"pass_rate=%f, judgetime=now() where solution_id = %d",
+			solution->time, solution->memory, solution->result,
+			solution->pass_rate, solution->solution_id);
+	if (mysql_real_query(conn, sql, strlen(sql))) {
+		fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
+		free(sql);
+		return -1;
+	}
+	char *end;
+	if (solution->isce) {
+		memset(sql, 0, BUFSIZE * BUFSIZE);
+		sprintf(sql, "delete from compileinfo where solution_id = %d",
+				solution->solution_id);
+		if (mysql_real_query(conn, sql, strlen(sql))) {
+			fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
+			free(sql);
+			return -1;
+		}
+		memset(sql, 0, BUFSIZE * BUFSIZE);
+		strcpy(sql, "insert into compileinfo (solution_id, error) values(");
+		end = sql + strlen(sql);
+		*end++ = '\'';
+		end += sprintf(end, "%d", solution->solution_id);
+		*end++ = '\'';
+		*end++ = ',';
+		*end++ = '\'';
+		end += mysql_real_escape_string(conn, end, solution->compileinfo,
+				strlen(solution->compileinfo));
+		*end++ = '\'';
+		*end++ = ')';
+		*end++ = '\0';
+		if (mysql_real_query(conn, sql, strlen(sql))) {
+			fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
+			free(sql);
+			return -1;
+		}
+	}
+	if (solution->isre) {
+		memset(sql, 0, BUFSIZE * BUFSIZE);
+		sprintf(sql, "delete from runtimeinfo where solution_id = %d",
+				solution->solution_id);
+		if (mysql_real_query(conn, sql, strlen(sql))) {
+			fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
+			free(sql);
+			return -1;
+		}
+		memset(sql, 0, BUFSIZE * BUFSIZE);
+		strcpy(sql, "insert into runtimeinfo (solution_id, error) values(");
+		end = sql + strlen(sql);
+		*end++ = '\'';
+		end += sprintf(end, "%d", solution->solution_id);
+		*end++ = '\'';
+		*end++ = ',';
+		*end++ = '\'';
+		end += mysql_real_escape_string(conn, end, solution->runtimeinfo,
+				strlen(solution->runtimeinfo));
+		*end++ = '\'';
+		*end++ = ')';
+		*end++ = '\0';
+		if (mysql_real_query(conn, sql, strlen(sql))) {
+			fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
+			free(sql);
+			return -1;
+		}
+	}
+	return 0;
+}
+
+MYSQL *prepare_mysql(void)
+{
+	MYSQL *conn = mysql_init(NULL);
+	if (conn == NULL) {
+		fprintf(stderr, "初始化数据库失败！:%s\n", mysql_error(conn));
+		exit(EXIT_FAILURE);
+	}
+	unsigned int timeout = 120;
+	int ret = mysql_options(conn, MYSQL_OPT_CONNECT_TIMEOUT,
+			(const char *)&timeout);
+	if (ret) {
+		fprintf(stderr, "设置数据库连接超时失败！:%s\n", mysql_error(conn));
+		exit(EXIT_FAILURE);
+	}
+	conn = mysql_real_connect(conn, dbhost, dbuser, dbpasswd,
+			dbname, 0, NULL, 0);
+	if (conn == NULL) {
+		fprintf(stderr, "连接数据库失败！:%s\n", mysql_error(conn));
+		exit(EXIT_FAILURE);
+	}
+	if (mysql_set_character_set(conn, "utf8")) {
+		fprintf(stderr, "设置数据库编码失败！:%s\n", mysql_error(conn));
+		exit(EXIT_FAILURE);
+	}
+	return conn;
+}
+
+void cleanup_mysql(MYSQL *conn)
+{
+	if (conn != NULL) {
+		mysql_close(conn);
+	}
+}
+
+int submit(void)
 {
 	CURLcode ret = curl_global_init(CURL_GLOBAL_ALL);
 	if (ret != CURLE_OK) {
@@ -348,5 +605,22 @@ int main(int argc, char *argv[])
 	curl_global_cleanup();
 	fclose(fp);
 
+	return 0;
+}
+
+void get_info(int sid)
+{
+	MYSQL *conn = prepare_mysql();
+	struct solution_t *solution = get_solution(conn, sid);
+	solution->result = 6;
+	update_solution(conn, solution);
+	cleanup_mysql(conn);
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc == 2) {
+		get_info(atoi(argv[1]));
+	}
 	return 0;
 }

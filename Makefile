@@ -11,6 +11,8 @@ CPPSRCS = $(wildcard *.cpp)
 CPPOBJS = $(CPPSRCS:%.cpp=%.o)
 CURL = -L/usr/lib/x86_64-linux-gnu -lcurl
 EKHTML = /usr/local/lib/libekhtml.a
+MYSQLCFLAGS = -I/usr/local/mysql/include/mysql -I/usr/include/mysql
+MYSQLLDFLAGS = -L/usr/local/mysql/lib/mysql -L/usr/lib/mysql  -lmysqlclient
 LDFLAGS = $(CURL)
 OBJS = $(COBJS) $(CPPOBJS)
 SRCS = $(CSRCS) $(CPPSRCS)
@@ -21,6 +23,7 @@ ALL = $(CALL) $(CPPALL)
 .PHONY: all clean $(DIRSALL) $(DIRSCLEAN)
 all: $(DIRSALL) $(ALL)
 ekhtml_tester ekhtml_parse_hdu: LDFLAGS = $(CURL) $(EKHTML)
+function_test: LDFLAGS = $(CURL) $(EKHTML) $(MYSQLLDFLAGS)
 $(CALL): %: %.o
 	$(CC) $(CFLAGS) -o $@ $@.o $(LDFLAGS)
 $(CPPALL): %: %.o
