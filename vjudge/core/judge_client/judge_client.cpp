@@ -368,7 +368,8 @@ int main(int argc, char **argv)
 			&& solution->result == OJ_AC
 			&& (!oi_mode || finalACflg == OJ_AC)
 			&& solution->language < 5) {	//bash don't supported
-		get_sim(solution_id, 0, 0);
+		get_sim();
+		update_sim();
 	}
 
 	if ((oi_mode && finalACflg == OJ_RE) || solution->result == OJ_RE) {

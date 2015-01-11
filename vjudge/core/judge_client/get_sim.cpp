@@ -51,14 +51,16 @@ extern struct solution_t *solution;
 extern int call_counter[BUFSIZE];
 extern int call_array_size;
 
-int get_sim(int solution_id, int lang, int pid)
+int get_sim(void)
 {
-	int sim_s_id;
+	int lang = solution->language;
+	int solution_id = solution->solution_id;
+	int problem_id = solution->problem_info.problem_id;
 	char src_pth[BUFSIZE];
 	sprintf(src_pth, "Main.%s", lang_ext[lang]);
 
-	int sim = 0;
-	sim = execute_cmd("/usr/bin/sim.sh %s %d", src_pth, pid);
+	int sim_s_id;
+	int sim = execute_cmd("/usr/bin/sim.sh %s %d", src_pth, pid);
 	if (DEBUG) {
 		write_log("get_sim : sim = %d", sim);
 	}
@@ -104,7 +106,5 @@ int get_sim(int solution_id, int lang, int pid)
 		}
 
 	}
-	if (solution_id <= sim_s_id)
-		sim = 0;
 	return 0;
 }

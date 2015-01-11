@@ -445,6 +445,25 @@ int update_solution(void)
 	return 0;
 }
 
+int update_sim(void)
+{
+	FILE *fp = fopen("sim", "r");
+	if (fp == NULL) {
+		write_log("open file sim error:%s.\n", strerror(errno));
+		return -1;
+	}
+	int s_id = solution->solution_id;
+	int sim_s_id, sim;
+	while (fscanf("%d%d", &sim_s_id, &sim) != EOF) {
+		if (execute_sql("insert into sim(s_id, sim_s_id, sim) "
+				"values(%d,%d,%d) ", s_id, sim_s_id, sim) < 0) {
+			return -1;
+		}
+	}
+	fclose(fp);
+	return 0;
+}
+
 void save_solution_src(void)
 {
 	int lang = solution->language;
