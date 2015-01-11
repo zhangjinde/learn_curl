@@ -22,7 +22,6 @@
 #include <assert.h>
 #include <features.h>
 
-#include "okcalls.h"
 #include "judge_client.h"
 
 extern int DEBUG;
@@ -42,6 +41,7 @@ extern char db_user[BUFSIZE];
 extern char db_passwd[BUFSIZE];
 extern char db_name[BUFSIZE];
 extern char oj_home[BUFSIZE];
+extern char work_dir[BUFSIZE];
 extern char java_xms[BUFSIZE];
 extern char java_xmx[BUFSIZE];
 extern char LANG_NAME[BUFSIZE];
@@ -49,7 +49,7 @@ extern char lang_ext[15][8];
 extern MYSQL *conn;
 extern struct solution_t *solution;
 extern int call_counter[BUFSIZE];
-extern const int call_array_size;
+extern int call_array_size;
 
 void fix_java_mis_judge(void) {
 	int comp_res = OJ_AC;
@@ -95,8 +95,8 @@ void judge_solution(char *infile, char *outfile, char *userfile, double num_of_t
 
 	// compare
 	if (solution->result == OJ_AC) {
-		if (isspj) {
-			comp_res = special_judge(solution->problem_info.problem_id, infile, outfile, userfile);
+		if (solution->problem_info.spj) {
+			comp_res = special_judge(infile, outfile, userfile);
 			if (comp_res == 0)
 				comp_res = OJ_AC;
 			else {

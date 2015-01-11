@@ -47,7 +47,6 @@
 #include <assert.h>
 #include <features.h>
 
-#include "okcalls.h"
 #include "judge_client.h"
 
 int DEBUG = 1;
@@ -72,7 +71,7 @@ char java_xms[BUFSIZE];
 char java_xmx[BUFSIZE];
 int call_counter[BUFSIZE] = {0};
 char LANG_NAME[BUFSIZE];
-const int call_array_size = 512;
+int call_array_size = 512;
 char lang_ext[15][8] = {"c", "cc", "pas", "java", "rb", "sh", "py",
 	"php", "pl", "cs", "m", "bas", "scm", "c", "cc"};
 MYSQL *conn;
@@ -128,27 +127,6 @@ int adddiffinfo(int solution_id)
 	return addreinfo(solution_id, "diff.out");
 }
 
-
-int get_proc_status(int pid, const char *mark)
-{
-	FILE *pf;
-	char fn[BUFSIZE], buf[BUFSIZE];
-	int ret = 0;
-	sprintf(fn, "/proc/%d/status", pid);
-	pf = fopen(fn, "r");
-	int m = strlen(mark);
-	while (pf && fgets(buf, BUFSIZE - 1, pf)) {
-
-		buf[strlen(buf) - 1] = 0;
-		if (strncmp(buf, mark, m) == 0) {
-			sscanf(buf + m + 1, "%d", &ret);
-		}
-	}
-	if (pf)
-		fclose(pf);
-	return ret;
-}
-
 void prepare_files(char *filename, int namelen, char *infile, char *outfile,
 		char *userfile, int runner_id)
 {
@@ -161,77 +139,6 @@ void prepare_files(char *filename, int namelen, char *infile, char *outfile,
 	execute_cmd("/bin/cp %s/data/%d/*.dic %s/", oj_home, p_id, work_dir);
 	sprintf(outfile, "%s/data/%d/%s.out", oj_home, p_id, fname);
 	sprintf(userfile, "%s/run%d/user.out", oj_home, runner_id);
-}
-
-int special_judge(char *oj_home, int problem_id, char *infile, char *outfile,
-		  char *userfile)
-{
-	pid_t pid;
-	printf("pid=%d\n", problem_id);
-	pid = fork();
-	int ret = 0;
-	if (pid == 0) {
-
-		while (setgid(1536) != 0)
-			sleep(1);
-		while (setuid(1536) != 0)
-			sleep(1);
-		while (setresuid(1536, 1536, 1536) != 0)
-			sleep(1);
-
-		struct rlimit LIM;	// time limit, file limit& memory limit
-
-		LIM.rlim_cur = 5;
-		LIM.rlim_max = LIM.rlim_cur;
-		setrlimit(RLIMIT_CPU, &LIM);
-		alarm(0);
-		alarm(10);
-
-		// file limit
-		LIM.rlim_max = STD_F_LIM + STD_MB;
-		LIM.rlim_cur = STD_F_LIM;
-		setrlimit(RLIMIT_FSIZE, &LIM);
-
-		ret =
-		    execute_cmd("%s/data/%d/spj %s %s %s", oj_home, problem_id,
-				infile, outfile, userfile);
-		if (DEBUG)
-			printf("spj1=%d\n", ret);
-		if (ret)
-			exit(1);
-		else
-			exit(0);
-	} else {
-		int status;
-
-		waitpid(pid, &status, 0);
-		ret = WEXITSTATUS(status);
-		if (DEBUG)
-			printf("spj2=%d\n", ret);
-	}
-	return ret;
-
-}
-
-int get_page_fault_mem(struct rusage ruse, pid_t pidApp)
-{
-	//java use pagefault
-	int m_vmpeak, m_vmdata, m_minflt;
-	m_minflt = ruse.ru_minflt * getpagesize();
-	if (0 && DEBUG) {
-		m_vmpeak = get_proc_status(pidApp, "VmPeak:");
-		m_vmdata = get_proc_status(pidApp, "VmData:");
-		printf("VmPeak:%d KB VmData:%d KB minflt:%d KB\n", m_vmpeak,
-		       m_vmdata, m_minflt >> 10);
-	}
-	return m_minflt;
-}
-
-void print_runtimeerror(char *err)
-{
-	FILE *ferr = fopen("error.out", "a+");
-	fprintf(ferr, "Runtime Error:%s\n", err);
-	fclose(ferr);
 }
 
 void clean_session(pid_t p)
@@ -300,9 +207,6 @@ int get_sim(int solution_id, int lang, int pid)
 						  sim, sim_s_id);
 				}
 				if (sim_s_id > solution_id) {
-					update_solution(solution_id, OJ_RI,
-							0, 0, sim, sim_s_id,
-							0.0);
 				}
 			}
 			fclose(pf);
@@ -348,7 +252,6 @@ void print_call_array()
 		}
 	}
 	printf("0};\n");
-
 }
 
 int main(int argc, char **argv)
@@ -410,7 +313,7 @@ int main(int argc, char **argv)
 	}
 
 	// test run
-	if (p_id == 0) {
+	if (solution->problem_info.problem_id == 0) {
 		test_run();
 		free(solution);
 		cleanup_mysql();
@@ -453,7 +356,7 @@ int main(int argc, char **argv)
 	// 为某些语言拷贝运行时库
 	copy_runtime();
 
-	while ((oi_mode || ACflg == OJ_AC) && (dirp = readdir(dp)) != NULL) {
+	while ((oi_mode || solution->result == OJ_AC) && (dirp = readdir(dp)) != NULL) {
 		// check if the file is *.in or not
 		int namelen = isinfile(dirp->d_name);
 		if (namelen == 0) {
@@ -462,14 +365,14 @@ int main(int argc, char **argv)
 
 		prepare_files(dirp->d_name, namelen, infile, outfile,
 				userfile, runner_id);
-		init_syscalls_limits(lang);
+		init_syscalls_limits(solution->language);
 
 		pid_t pid = fork();
 		if (pid == 0) {		// son run solution
 			run_solution();
 		} else {
 			num_of_test++;
-			watch_solution(pid);
+			watch_solution(pid, outfile, userfile);
 			judge_solution(infile, outfile, userfile, num_of_test);
 			if (use_max_time) {
 				max_case_time = solution->time > max_case_time ? solution->time : max_case_time;
@@ -504,78 +407,53 @@ int main(int argc, char **argv)
 		}
 	}
 
-	MYSQL_RES *res;
-	MYSQL_ROW row;
-	char sql[BUFSIZE];
-	//这里将查询语句写错了，导致不能判题
-	sprintf(sql,
-		"select ischa from solution,cha where cha.problem_id=solution.problem_id "
-		"and solution_id=%d", solution_id);
-	int ischa = 0;
-	int errnum = 0;
-	if ((errnum = mysql_real_query(conn, sql, strlen(sql))) == 0) {
-		res = mysql_store_result(conn);
-		row = mysql_fetch_row(res);
-		if (row != NULL) {
-			ischa = row[0][0] - '0';
-		}
-	} else {
-		write_log("mysql_real_query error = %d", errnum);
-		write_log("mysql_error = %s", mysql_error(conn));
-		write_log("sql = %s", sql);
+	if (solution->result == OJ_AC) {
 	}
-	if (DEBUG) {
-		write_log("ischa = %d", ischa);
-	}
-	if (ischa && sim_enable && ACflg == OJ_AC
-	    && (!oi_mode || finalACflg == OJ_AC)
-	    && lang < 5) {	//bash don't supported
-		get_sim(solution_id, lang, p_id);
+	if (solution->problem_info.ischa && sim_enable
+			&& solution->result == OJ_AC
+			&& (!oi_mode || finalACflg == OJ_AC)
+			&& solution->language < 5) {	//bash don't supported
+		get_sim(solution_id, 0, 0);
 	}
 
-	//write_log("solution_id = %d", solution_id);
-	//write_log("sim_s_id = %d", sim_s_id);
-	//write_log("sim = %d", sim);
-	//if(ACflg == OJ_RE)addreinfo(solution_id, "error.out");
-
-	if ((oi_mode && finalACflg == OJ_RE) || ACflg == OJ_RE) {
-		if (DEBUG)
-			printf("add RE info of %d..... \n", solution_id);
+	if ((oi_mode && finalACflg == OJ_RE) || solution->result == OJ_RE) {
 		addreinfo(solution_id, "error.out");
 	}
 	if (use_max_time) {
-		usedtime = max_case_time;
+		solution->time = max_case_time;
 	}
-	if (ACflg == OJ_TL) {
-		usedtime = time_lmt * 1000;
+	if (solution->result == OJ_TL) {
+		solution->time = solution->problem_info.time_limit * 1000;
 	}
-	if (oi_mode) {
-		if (num_of_test > 0)
-			pass_rate /= num_of_test;
-		update_solution(solution_id, finalACflg, usedtime,
-				topmemory >> 10, 0, 0, pass_rate);
-	} else {
-		//write_log("ACflg = %d\n", ACflg);
-		//前面已经更新过sim了
-		update_solution(solution_id, ACflg, usedtime, topmemory >> 10,
-				0, 0, 0);
-	}
-	if ((oi_mode && finalACflg == OJ_WA) || ACflg == OJ_WA) {
-		if (DEBUG)
-			printf("add diff info of %d..... \n", solution_id);
-		if (!isspj)
-			adddiffinfo(solution_id);
-	}
-	update_user(user_id);
-	update_problem(p_id);
-	clean_workdir();
 
-	if (DEBUG)
-		write_log("result=%d", oi_mode ? finalACflg : ACflg);
-	mysql_close(conn);
+	solution->memory >>= 10;
+	if (oi_mode) {
+		if (num_of_test > 0) {
+			pass_rate /= num_of_test;
+		}
+		solution->pass_rate = pass_rate;
+		solution->result = finalACflg;
+	}
+
+	update_solution();
+
+	if ((oi_mode && finalACflg == OJ_WA) || solution->result == OJ_WA) {
+		if (!solution->problem_info.spj) {
+			adddiffinfo(solution_id);
+		}
+	}
+
+	update_user();
+	update_problem();
+	if (!DEBUG) {
+		clean_workdir();
+	}
+	cleanup_mysql();
+	free(solution);
+	closedir(dp);
 	if (record_call) {
 		print_call_array();
 	}
-	closedir(dp);
+
 	return 0;
 }

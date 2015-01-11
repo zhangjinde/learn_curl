@@ -35,6 +35,8 @@ extern char LANG_NAME[BUFSIZE];
 extern char lang_ext[15][8];
 extern MYSQL *conn;
 extern struct solution_t *solution;
+extern int call_counter[BUFSIZE];
+extern int call_array_size;
 
 //copy http://www.geekhideout.com/urlcode.shtml
 
@@ -56,7 +58,7 @@ char to_hex(char code)
 char *url_encode(char *str)
 {
 	char *pstr = str;
-	char *buf = malloc(strlen(str) * 3 + 1);
+	char *buf = (char *)malloc(strlen(str) * 3 + 1);
 	char *pbuf = buf;
 	if (buf == NULL) {
 		write_log("alloc memory error!\n");
@@ -84,7 +86,7 @@ char *url_encode(char *str)
 char *url_decode(char *str)
 {
 	char *pstr = str;
-	char *buf = malloc(strlen(str) + 1);
+	char *buf = (char *)malloc(strlen(str) + 1);
 	char *pbuf = buf;
 	if (buf == NULL) {
 		write_log("alloc memory error!\n");

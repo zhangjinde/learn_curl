@@ -1,6 +1,5 @@
 #include <stdio.h>
 
-#include "okcalls.h"
 #include "judge_client.h"
 
 extern int DEBUG;
@@ -19,6 +18,7 @@ extern char db_host[BUFSIZE];
 extern char db_user[BUFSIZE];
 extern char work_dir[BUFSIZE];
 extern char db_passwd[BUFSIZE];
+extern char work_dir[BUFSIZE];
 extern char db_name[BUFSIZE];
 extern char oj_home[BUFSIZE];
 extern char java_xms[BUFSIZE];
@@ -28,7 +28,7 @@ extern char lang_ext[15][8];
 extern MYSQL *conn;
 extern struct solution_t *solution;
 extern int call_counter[BUFSIZE];
-extern const int call_array_size;
+extern int call_array_size;
 
 void copy_shell_runtime(void)
 {

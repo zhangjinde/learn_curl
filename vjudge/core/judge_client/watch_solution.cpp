@@ -22,7 +22,6 @@
 #include <assert.h>
 #include <features.h>
 
-#include "okcalls.h"
 #include "judge_client.h"
 
 extern int DEBUG;
@@ -42,6 +41,7 @@ extern char db_user[BUFSIZE];
 extern char db_passwd[BUFSIZE];
 extern char db_name[BUFSIZE];
 extern char oj_home[BUFSIZE];
+extern char work_dir[BUFSIZE];
 extern char java_xms[BUFSIZE];
 extern char java_xmx[BUFSIZE];
 extern char LANG_NAME[BUFSIZE];
@@ -49,9 +49,51 @@ extern char lang_ext[15][8];
 extern MYSQL *conn;
 extern struct solution_t *solution;
 extern int call_counter[BUFSIZE];
-extern const int call_array_size;
+extern int call_array_size;
 
-void watch_solution(pid_t pid)
+
+int get_proc_status(int pid, const char *mark)
+{
+	FILE *pf;
+	char fn[BUFSIZE], buf[BUFSIZE];
+	int ret = 0;
+	sprintf(fn, "/proc/%d/status", pid);
+	pf = fopen(fn, "r");
+	int m = strlen(mark);
+	while (pf && fgets(buf, BUFSIZE - 1, pf)) {
+
+		buf[strlen(buf) - 1] = 0;
+		if (strncmp(buf, mark, m) == 0) {
+			sscanf(buf + m + 1, "%d", &ret);
+		}
+	}
+	if (pf)
+		fclose(pf);
+	return ret;
+}
+
+int get_page_fault_mem(struct rusage ruse, pid_t pid)
+{
+	//java use pagefault
+	int m_vmpeak, m_vmdata, m_minflt;
+	m_minflt = ruse.ru_minflt * getpagesize();
+	if (0 && DEBUG) {
+		m_vmpeak = get_proc_status(pid, "VmPeak:");
+		m_vmdata = get_proc_status(pid, "VmData:");
+		printf("VmPeak:%d KB VmData:%d KB minflt:%d KB\n", m_vmpeak,
+		       m_vmdata, m_minflt >> 10);
+	}
+	return m_minflt;
+}
+
+void print_runtimeerror(char *err)
+{
+	FILE *ferr = fopen("error.out", "a+");
+	fprintf(ferr, "Runtime Error:%s\n", err);
+	fclose(ferr);
+}
+
+void watch_solution(pid_t pid, char *outfile, char *userfile)
 {
 	int lang = solution->language;
 	int tempmemory;
@@ -159,7 +201,7 @@ void watch_solution(pid_t pid)
 		 */
 
 		// check the system calls
-		ptrace(PTRACE_GETREGS, pidApp, NULL, &reg);
+		ptrace(PTRACE_GETREGS, pid, NULL, &reg);
 		if (call_counter[reg.REG_SYSCALL]) {
 			//call_counter[reg.REG_SYSCALL]--;
 		} else if (record_call) {

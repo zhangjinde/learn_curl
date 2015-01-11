@@ -10,7 +10,6 @@
 #include <unistd.h>
 #include <mysql/mysql.h>
 
-#include "okcalls.h"
 #include "judge_client.h"
 
 extern int DEBUG;
@@ -37,7 +36,7 @@ extern char lang_ext[15][8];
 extern MYSQL *conn;
 extern struct solution_t *solution;
 extern int call_counter[BUFSIZE];
-extern const int call_array_size;
+extern int call_array_size;
 
 int vjudge(void)
 {

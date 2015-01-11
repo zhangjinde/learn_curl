@@ -10,7 +10,6 @@
 #include <unistd.h>
 #include <mysql/mysql.h>
 
-#include "okcalls.h"
 #include "judge_client.h"
 
 extern int DEBUG;
@@ -38,7 +37,7 @@ extern char lang_ext[15][8];
 extern MYSQL *conn;
 extern struct solution_t *solution;
 extern int call_counter[BUFSIZE];
-extern const int call_array_size;
+extern int call_array_size;
 
 int save_custom_input(void)
 {
@@ -74,7 +73,7 @@ int save_custom_input(void)
 			write_log("solution_id = %d\n", solution->solution_id);
 		}
 	} else {
-		write_log("no custom intput %d.\n", sid);
+		write_log("no custom intput %d.\n", solution->solution_id);
 		mysql_free_result(result);
 		return -1;
 	}
@@ -90,14 +89,14 @@ int addcustomout(int solution_id)
 void test_run(void)
 {
 	save_custom_input();
-	init_syscalls_limits(lang);
+	init_syscalls_limits(solution->language);
 
 	pid_t pid = fork();
 	if (pid == 0) {		//在子进程中
 		//运行编译后的程序,生成用户产生的结果user.out文件
 		run_solution();
 	} else {		//父进程中
-		watch_solution(pid);
+		watch_solution(pid, NULL, NULL);
 	}
 	if (solution->result == OJ_TL) {
 		solution->time = solution->problem_info.time_limit * 1000;

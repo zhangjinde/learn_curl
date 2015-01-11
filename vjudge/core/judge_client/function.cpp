@@ -10,7 +10,6 @@
 #include <unistd.h>
 #include <mysql/mysql.h>
 
-#include "okcalls.h"
 #include "judge_client.h"
 
 extern int DEBUG;
@@ -38,7 +37,7 @@ extern char lang_ext[15][8];
 extern MYSQL *conn;
 extern struct solution_t *solution;
 extern int call_counter[BUFSIZE];
-extern const int call_array_size;
+extern int call_array_size;
 
 void init_parameters(int argc, char **argv, int *solution_id, int *runner_id)
 {
@@ -167,7 +166,7 @@ int get_problem_info(struct problem_info_t *problem_info)
 	}
 	MYSQL_RES *result;
 	if (execute_sql("select spj, time_limit, memory_limit, "
-			"accepted, submit,ischa from problem where "
+			"accepted, submit,ischa from problem,cha where "
 			"problem.problem_id = %d and problem.problem_id"
 			"=cha.problem_id", problem_info->problem_id) < 0) {
 		return -1;
@@ -217,9 +216,8 @@ int get_problem_info(struct problem_info_t *problem_info)
 		problem_info->ojtype = atoi(row[0]);
 		problem_info->origin_id = atoi(row[1]);
 	} else {
-		mysql_free_result(result);
-		write_log("no problem %d.", problem_info->problem_id);
-		return -1;
+		problem_info->ojtype = -1;
+		problem_info->origin_id = 0;
 	}
 	mysql_free_result(result);
 	// never bigger than judged set value
@@ -245,6 +243,7 @@ int get_problem_info(struct problem_info_t *problem_info)
 
 int update_user(void)
 {
+	write_log("update user %s statistics.\n", solution->user_id);
 	if (execute_sql("update users set solved=(select count(distinct "
 			"problem_id) from solution where user_id=\'%s\' "
 			"and result=\'4\') where user_id=\'%s\'",
@@ -262,6 +261,7 @@ int update_user(void)
 int update_problem(void)
 {
 	int pid = solution->problem_info.problem_id;
+	write_log("update problem %d statistics.\n", pid);
 	if (execute_sql("update problem set accepted=(select count(*) from "
 			"solution where problem_id=\'%d\' and result=\'4\') "
 			"where `problem_id`=\'%d\'", pid, pid) < 0) {
@@ -353,7 +353,7 @@ struct solution_t *get_solution(int sid)
 
 int addceinfo(int solution_id, const char *filename)
 {
-	write_log("add solution %d compile error info.\n", solution_id);
+	write_log("add solution %d compile error info from file %s.\n", solution_id, filename);
 	char *end;
 	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (sql == NULL) {
@@ -390,7 +390,7 @@ int addceinfo(int solution_id, const char *filename)
 
 int addreinfo(int solution_id, const char *filename)
 {
-	write_log("add solution %d runtime error info.\n", solution_id);
+	write_log("add solution %d runtime error info from file %s.\n", solution_id, filename);
 	char *end;
 	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (sql == NULL) {
@@ -421,7 +421,7 @@ int addreinfo(int solution_id, const char *filename)
 		free(sql);
 		return -1;
 	}
-	free(sql)
+	free(sql);
 	return 0;
 }
 

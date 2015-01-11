@@ -22,7 +22,6 @@
 #include <assert.h>
 #include <features.h>
 
-#include "okcalls.h"
 #include "judge_client.h"
 
 extern int DEBUG;
@@ -41,6 +40,7 @@ extern char db_host[BUFSIZE];
 extern char db_user[BUFSIZE];
 extern char db_passwd[BUFSIZE];
 extern char db_name[BUFSIZE];
+extern char work_dir[BUFSIZE];
 extern char oj_home[BUFSIZE];
 extern char java_xms[BUFSIZE];
 extern char java_xmx[BUFSIZE];
@@ -49,7 +49,7 @@ extern char lang_ext[15][8];
 extern MYSQL *conn;
 extern struct solution_t *solution;
 extern int call_counter[BUFSIZE];
-extern const int call_array_size;
+extern int call_array_size;
 
 void run_solution(void)
 {
@@ -102,7 +102,7 @@ void run_solution(void)
 	setrlimit(RLIMIT_FSIZE, &LIM);
 
 	// proc limit
-	switch (lang) {
+	switch (solution->language) {
 		// java
 		case 3:
 		case 12: LIM.rlim_cur = LIM.rlim_max = 50; break;
@@ -122,11 +122,11 @@ void run_solution(void)
 	// set the memory
 	LIM.rlim_cur = STD_MB * solution->problem_info.memory_limit / 2 * 3;
 	LIM.rlim_max = STD_MB * solution->problem_info.memory_limit * 2;
-	if (lang < 3) {
+	if (solution->language < 3) {
 		setrlimit(RLIMIT_AS, &LIM);
 	}
 
-	switch (lang) {
+	switch (solution->language) {
 		case 0:
 		case 1:
 		case 2:

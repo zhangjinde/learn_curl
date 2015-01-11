@@ -117,9 +117,10 @@ extern int vjudge(void);
 extern void init_syscalls_limits(int lang);
 extern void run_solution(void);
 extern int addcustomout(int solution_id);
-extern void watch_solution(pid_t pid);
+extern void watch_solution(pid_t pid, char *outfile, char *userfile);
 extern void test_run(void);
 extern int compare(const char *file1, const char *file2);
 extern void judge_solution(char *infile, char *outfile, char *userfile, double num_of_test);
+extern int special_judge(char *infile, char *outfile, char *userfile);
 
 #endif	// _JUDGE_CLIENT_H
