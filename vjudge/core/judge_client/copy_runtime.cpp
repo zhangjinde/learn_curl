@@ -280,6 +280,7 @@ void copy_runtime(void)
 {
 	//create chroot for ruby bash python
 	int lang = solution->language;
+	write_log("copy runtime lib.\n");
 	switch (lang) {
 		case 4: copy_ruby_runtime(); break;
 		case 5: copy_bash_runtime(); break;

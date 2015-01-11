@@ -75,6 +75,15 @@ void cleanup_mysql(void)
 	}
 }
 
+void ping(void)
+{
+	if (mysql_ping(conn)) {
+		cleanup_mysql();
+		write_log("reconnect mysql server.\n");
+		conn = prepare_mysql();
+	}
+}
+
 int execute_sql(const char *fmt, ...)
 {
 	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
@@ -89,6 +98,7 @@ int execute_sql(const char *fmt, ...)
 	va_end(ap);
 
 	write_log("execute sql：%s.\n", sql);
+	ping();
 	if (mysql_real_query(conn, sql, strlen(sql))) {
 		write_log("execute sql error:%s.\n", mysql_error(conn));
 		free(sql);
@@ -96,11 +106,5 @@ int execute_sql(const char *fmt, ...)
 	} else {
 		free(sql);
 		return 0;
-	}
-}
-
-void ping(void)
-{
-	if (!mysql_ping(conn)) {
 	}
 }

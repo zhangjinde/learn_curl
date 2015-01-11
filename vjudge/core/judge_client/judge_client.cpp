@@ -130,6 +130,7 @@ int adddiffinfo(int solution_id)
 void prepare_files(char *filename, int namelen, char *infile, char *outfile,
 		char *userfile, int runner_id)
 {
+	write_log("prepare necessary files.\n");
 	int p_id = solution->problem_info.problem_id;
 	char fname[BUFSIZE];
 	memset(fname, 0, sizeof(fname));
@@ -209,9 +210,7 @@ int main(int argc, char **argv)
 	//set work directory to start running & judging
 	sprintf(work_dir, "%s/run%d/", oj_home, runner_id);
 
-	if (DEBUG) {
-		write_log("work_dir = %s\n", work_dir);
-	}
+	write_log("work_dir = %s\n", work_dir);
 
 	//如果使用了/dev/shm的共享内存虚拟磁盘来运行答案
 	//启用能提高判题速度，但需要较多内存。
@@ -220,10 +219,6 @@ int main(int argc, char **argv)
 	}
 
 	chdir(work_dir);
-
-	if (DEBUG) {
-		execute_cmd("pwd");
-	}
 
 	if (!DEBUG) {
 		clean_workdir();
@@ -240,8 +235,6 @@ int main(int argc, char **argv)
 
 	//将提交的源代码存放在work_dir的Main.*文件中
 	save_solution_src();
-
-	solution->result = OJ_AC;
 
 	//编译源文件
 	solution->isce = compile();
@@ -260,7 +253,7 @@ int main(int argc, char **argv)
 		exit(EXIT_SUCCESS);
 	} else {
 		//如果编译成功就设置为正在运行
-		write_log("solution %d running.\n");
+		write_log("solution %d running.\n", solution->solution_id);
 		solution->result = OJ_RI;
 		update_solution();
 	}
@@ -274,7 +267,7 @@ int main(int argc, char **argv)
 	}
 
 	// virtual judge
-	if (solution->problem_info.problem_id >= 0) {
+	if (solution->problem_info.ojtype >= 0) {
 		vjudge();
 		cleanup_mysql();
 		free(solution);
@@ -294,6 +287,8 @@ int main(int argc, char **argv)
 	// the fullpath of data dir
 	sprintf(fullpath, "%s/data/%d", oj_home, solution->problem_info.problem_id);
 
+	write_log("fullpath = %s\n", fullpath);
+
 	// open DIRs
 	DIR *dp;
 	struct dirent *dirp;
@@ -309,6 +304,7 @@ int main(int argc, char **argv)
 	// 为某些语言拷贝运行时库
 	copy_runtime();
 
+	solution->result = OJ_AC;
 	while ((oi_mode || solution->result == OJ_AC) && (dirp = readdir(dp)) != NULL) {
 		// check if the file is *.in or not
 		int namelen = isinfile(dirp->d_name);
@@ -321,7 +317,9 @@ int main(int argc, char **argv)
 		init_syscalls_limits(solution->language);
 
 		pid_t pid = fork();
-		if (pid == 0) {		// son run solution
+		if (pid < 0) {
+			write_log("fork error:%s.\n", strerror(errno));
+		} else if (pid == 0) {		// son run solution
 			run_solution();
 		} else {
 			num_of_test++;
@@ -341,23 +339,27 @@ int main(int argc, char **argv)
 			}
 			solution->result = OJ_AC;
 		}
+		write_log("judge test data %d done.\n", num_of_test);
 	}
 
 	if (solution->result == OJ_AC && solution->ispe == OJ_PE) {
 		solution->result = OJ_PE;
 	}
 
-	if (DEBUG) {
-		switch (solution->result) {
-			case OJ_AC: write_log("solution %d accepted.\n"); break;
-			case OJ_PE: write_log("solution %d persentation error.\n"); break;
-			case OJ_WA: write_log("solution %d wrong answer.\n"); break;
-			case OJ_TL: write_log("solution %d time limit exceeded.\n"); break;
-			case OJ_ML: write_log("solution %d memory limit exceeded.\n"); break;
-			case OJ_OL: write_log("solution %d output limit exceeded.\n"); break;
-			case OJ_RE: write_log("solution %d runtime error.\n"); break;
-			case OJ_CE: write_log("solution %d complie error.\n"); break;
-		}
+	switch (solution->result) {
+		case OJ_WT0: write_log("solution %d pending.\n", solution_id); break;
+		case OJ_WT1: write_log("solution %d pending rejudge.\n", solution_id); break;
+		case OJ_CI: write_log("solution %d compiling.\n", solution_id); break;
+		case OJ_RI: write_log("solution %d running and judging.\n", solution_id); break;
+		case OJ_AC: write_log("solution %d accepted.\n", solution_id); break;
+		case OJ_PE: write_log("solution %d persentation error.\n", solution_id); break;
+		case OJ_WA: write_log("solution %d wrong answer.\n", solution_id); break;
+		case OJ_TL: write_log("solution %d time limit exceeded.\n", solution_id); break;
+		case OJ_ML: write_log("solution %d memory limit exceeded.\n", solution_id); break;
+		case OJ_OL: write_log("solution %d output limit exceeded.\n", solution_id); break;
+		case OJ_RE: write_log("solution %d runtime error.\n", solution_id); break;
+		case OJ_CE: write_log("solution %d complie error.\n", solution_id); break;
+		default: write_log("solution %d result is %d.\n", solution_id, solution->result);
 	}
 
 	if (solution->result == OJ_AC) {
