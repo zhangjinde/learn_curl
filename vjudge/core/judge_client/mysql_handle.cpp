@@ -99,3 +99,9 @@ int execute_sql(const char *fmt, ...)
 		return 0;
 	}
 }
+
+void ping(void)
+{
+	if (!mysql_ping(conn)) {
+	}
+}

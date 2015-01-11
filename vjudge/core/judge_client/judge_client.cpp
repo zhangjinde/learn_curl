@@ -161,65 +161,6 @@ void clean_workdir(void)
 
 }
 
-int get_sim(int solution_id, int lang, int pid)
-{
-	int sim_s_id;
-	char src_pth[BUFSIZE];
-	//char cmd[BUFSIZE];
-	sprintf(src_pth, "Main.%s", lang_ext[lang]);
-
-	int sim = 0;
-	sim = execute_cmd("/usr/bin/sim.sh %s %d", src_pth, pid);
-	if (DEBUG) {
-		write_log("get_sim : sim = %d", sim);
-	}
-	if (!sim) {
-		execute_cmd("/bin/mkdir ../data/%d/ac/", pid);
-		execute_cmd("/bin/cp %s ../data/%d/ac/%d.%s", src_pth, pid,
-			    solution_id, lang_ext[lang]);
-		//c cpp will
-		//c和cpp互相查重
-		if (lang == 0) {
-			execute_cmd
-			    ("/bin/ln ../data/%d/ac/%d.%s ../data/%d/ac/%d.%s",
-			     pid, solution_id, lang_ext[lang], pid, solution_id,
-			     lang_ext[lang + 1]);
-		}
-		if (lang == 1) {
-			execute_cmd
-			    ("/bin/ln ../data/%d/ac/%d.%s ../data/%d/ac/%d.%s",
-			     pid, solution_id, lang_ext[lang], pid, solution_id,
-			     lang_ext[lang - 1]);
-		}
-		//write_log("!sim");
-	} else {
-		FILE *pf;
-		pf = fopen("sim", "r");
-		//write_log("sim");
-		if (pf) {
-			//从sim文件中读取相似的运行号
-			//这里将重复的运行号都插入数据库
-			//因为后边还会进行一次插入，可能会产生一个
-			//数据库错误，因为插入了主键相同的元素。
-			while (fscanf(pf, "%d%d", &sim, &sim_s_id) != EOF) {
-				if (DEBUG) {
-					write_log("sim : sim_s_id = %d : %d",
-						  sim, sim_s_id);
-				}
-				if (sim_s_id > solution_id) {
-				}
-			}
-			fclose(pf);
-		} else {
-			write_log("open file sim error");
-		}
-
-	}
-	if (solution_id <= sim_s_id)
-		sim = 0;
-	return 0;
-}
-
 void mk_shm_workdir(void)
 {
 	char shm_path[BUFSIZE];
@@ -265,10 +206,12 @@ int main(int argc, char **argv)
 	//从judge.conf文件中读取各种字段
 	init_conf();
 
-	conn = prepare_mysql();
-
 	//set work directory to start running & judging
 	sprintf(work_dir, "%s/run%d/", oj_home, runner_id);
+
+	if (DEBUG) {
+		write_log("work_dir = %s\n", work_dir);
+	}
 
 	//如果使用了/dev/shm的共享内存虚拟磁盘来运行答案
 	//启用能提高判题速度，但需要较多内存。
@@ -278,12 +221,22 @@ int main(int argc, char **argv)
 
 	chdir(work_dir);
 
+	if (DEBUG) {
+		execute_cmd("pwd");
+	}
+
 	if (!DEBUG) {
 		clean_workdir();
 	}
 
+	conn = prepare_mysql();
+
 	// 获取solution的各种信息
 	solution = get_solution(solution_id);
+	if (solution == NULL) {
+		write_log("get solution %d error.\n", solution_id);
+		exit(EXIT_FAILURE);
+	}
 
 	//将提交的源代码存放在work_dir的Main.*文件中
 	save_solution_src();

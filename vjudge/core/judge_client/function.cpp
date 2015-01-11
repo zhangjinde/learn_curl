@@ -74,12 +74,12 @@ int write_log(const char *fmt, ...)
 	char buffer[BUFSIZE * 4];
 	sprintf(buffer, "%s/log/client.log", oj_home);
 	FILE *fp = fopen(buffer, "a+");
-	if (DEBUG) {
-		freopen("/dev/stdout", "w", fp);
-	}
 	if (fp == NULL) {
 		fprintf(stderr, "open log file error:%s.\n", strerror(errno));
 		return 0;
+	}
+	if (DEBUG) {
+		freopen("/dev/stdout", "w", fp);
 	}
 	va_start(ap, fmt);
 	vsprintf(buffer, fmt, ap);
@@ -326,7 +326,7 @@ struct solution_t *get_solution(int sid)
 			execute_cmd("/bin/cp %s/etc/java0.policy %s/java.policy",
 				    oj_home, work_dir);
 		}
-		if (DEBUG) {
+		if (!DEBUG) {
 			write_log("solution_id = %d\n", solution->solution_id);
 			write_log("user_id = %s\n", solution->user_id);
 			write_log("time = %d\n", solution->time);

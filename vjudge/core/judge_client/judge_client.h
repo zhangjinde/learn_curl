@@ -122,5 +122,6 @@ extern void test_run(void);
 extern int compare(const char *file1, const char *file2);
 extern void judge_solution(char *infile, char *outfile, char *userfile, double num_of_test);
 extern int special_judge(char *infile, char *outfile, char *userfile);
+extern int get_sim(int solution_id, int lang, int pid);
 
 #endif	// _JUDGE_CLIENT_H
