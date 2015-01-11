@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <mysql/mysql.h>
 
+#include "okcalls.h"
 #include "judge_client.h"
 
 extern int DEBUG;
@@ -36,6 +37,8 @@ extern char LANG_NAME[BUFSIZE];
 extern char lang_ext[15][8];
 extern MYSQL *conn;
 extern struct solution_t *solution;
+extern int call_counter[BUFSIZE];
+extern const int call_array_size;
 
 void init_parameters(int argc, char **argv, int *solution_id, int *runner_id)
 {
@@ -164,7 +167,7 @@ int get_problem_info(struct problem_info_t *problem_info)
 	}
 	MYSQL_RES *result;
 	if (execute_sql("select spj, time_limit, memory_limit, "
-			"accepted, submit, solved from problem where "
+			"accepted, submit from problem where "
 			"problem_id = %d", problem_info->problem_id) < 0) {
 		return -1;
 	}
@@ -177,6 +180,7 @@ int get_problem_info(struct problem_info_t *problem_info)
 	if (cnt > 0) {
 		MYSQL_ROW row = mysql_fetch_row(result);
 		if (row == NULL) {
+			mysql_free_result(result);
 			write_log("fetch mysql row error:%s.\n", mysql_error(conn));
 			return -1;
 		}
@@ -185,11 +189,12 @@ int get_problem_info(struct problem_info_t *problem_info)
 		problem_info->memory_limit += atoi(row[2]);
 		problem_info->accepted = atoi(row[3]);
 		problem_info->submit = atoi(row[4]);
-		problem_info->solved = atoi(row[5]);
 	} else {
+		mysql_free_result(result);
 		write_log("no problem %d.", problem_info->problem_id);
 		return -1;
 	}
+	free(result);
 	if (execute_sql("select ojtype, origin_id from vjudge where "
 			"problem_id = %d", problem_info->problem_id) < 0) {
 		return -1;
@@ -203,15 +208,18 @@ int get_problem_info(struct problem_info_t *problem_info)
 	if (cnt > 0) {
 		MYSQL_ROW row = mysql_fetch_row(result);
 		if (row == NULL) {
+			mysql_free_result(result);
 			write_log("fetch mysql row error:%s.\n", mysql_error(conn));
 			return -1;
 		}
 		problem_info->ojtype = atoi(row[0]);
 		problem_info->origin_id = atoi(row[1]);
 	} else {
+		mysql_free_result(result);
 		write_log("no problem %d.", problem_info->problem_id);
 		return -1;
 	}
+	mysql_free_result(result);
 	// never bigger than judged set value
 	if (problem_info->time_limit > 300 || problem_info->time_limit < 1) {
 		problem_info->time_limit = 300;
@@ -226,9 +234,40 @@ int get_problem_info(struct problem_info_t *problem_info)
 		write_log("memory_limit = %d\n", problem_info->memory_limit);
 		write_log("accepted = %d\n", problem_info->accepted);
 		write_log("submit = %d\n", problem_info->submit);
-		write_log("solved = %d\n", problem_info->solved);
 		write_log("ojtype = %d\n", problem_info->ojtype);
 		write_log("origin_id = %d\n", problem_info->origin_id);
+	}
+	return 0;
+}
+
+int update_user(void)
+{
+	if (execute_sql("update users set solved=(select count(distinct "
+			"problem_id) from solution where user_id=\'%s\' "
+			"and result=\'4\') where user_id=\'%s\'",
+		solution->user_id, solution->user_id) < 0) {
+		return -1;
+	}
+	if (execute_sql("update users set submit=(select count(*) from "
+			"solution where user_id=\'%s\') where user_id=\'%s\'",
+			solution->user_id, solution->user_id) < 0) {
+		return -1;
+	}
+	return 0;
+}
+
+int update_problem(void)
+{
+	int pid = solution->problem_info.problem_id;
+	if (execute_sql("update problem set accepted=(select count(*) from "
+			"solution where problem_id=\'%d\' and result=\'4\') "
+			"where `problem_id`=\'%d\'", pid, pid) < 0) {
+		return -1;
+	}
+	if (execute_sql("update problem set submit=(select count(*) from "
+			"solution where problem_id=\'%d\') where "
+			"problem_id=\'%d\'", pid, pid) < 0) {
+		return -1;
 	}
 	return 0;
 }
@@ -243,9 +282,8 @@ struct solution_t *get_solution(int sid)
 	}
 	memset(solution, 0, sizeof(struct solution_t));
 	if (execute_sql("select solution.solution_id, problem_id, "
-				"user_id, time, memory, in_date, result, "
-				"language, ip, contest_id, valid, num, "
-				"code_length, judgetime, pass_rate, source "
+				"user_id, time, memory, result, "
+				"language, code_length, pass_rate, source "
 				"from solution,source_code where "
 				"solution.solution_id = source_code.solution_id "
 				"and solution.solution_id = %d", sid) < 0) {
@@ -263,6 +301,7 @@ struct solution_t *get_solution(int sid)
 		MYSQL_ROW row = mysql_fetch_row(result);
 		if (row == NULL) {
 			free(solution);
+			mysql_free_result(result);
 			write_log("fetch mysql row error:%s\n", mysql_error(conn));
 			return NULL;
 		}
@@ -272,22 +311,10 @@ struct solution_t *get_solution(int sid)
 		solution->time = atoi(row[3]);
 		solution->memory = atoi(row[4]);
 		solution->result = atoi(row[5]);
-		strcpy(solution->in_date, row[6]);
-		solution->language = atoi(row[7]);
-		strcpy(solution->ip, row[8]);
-		if (row[9] != NULL) {
-			solution->contest_id = atoi(row[9]);
-		} else {
-			solution->contest_id = -1;
-		}
-		solution->valid = atoi(row[10]);
-		solution->num = atoi(row[11]);
-		solution->code_length = atoi(row[12]);
-		if (row[13] != NULL) {
-			strcpy(solution->judgetime, row[13]);
-		}
-		solution->pass_rate = atof(row[14]);
-		strcpy(solution->src, row[15]);
+		solution->language = atoi(row[6]);
+		solution->code_length = atoi(row[7]);
+		solution->pass_rate = atof(row[8]);
+		strcpy(solution->src, row[9]);
 		// java is luck
 		if (solution->language >= 3) {
 			solution->problem_info.time_limit = java_time_bonus;
@@ -302,14 +329,8 @@ struct solution_t *get_solution(int sid)
 			write_log("time = %d\n", solution->time);
 			write_log("memory = %d\n", solution->memory);
 			write_log("result = %d\n", solution->result);
-			write_log("in_date = %s\n", solution->in_date);
 			write_log("language = %d\n", solution->language);
-			write_log("ip = %s\n", solution->ip);
-			write_log("contest_id = %d\n", solution->contest_id);
-			write_log("valid = %d\n", solution->valid);
-			write_log("num = %d\n", solution->num);
 			write_log("code_length = %d\n", solution->code_length);
-			write_log("judgetime = %s\n", solution->judgetime);
 			write_log("pass_rate = %f\n", solution->pass_rate);
 			write_log("src = %s\n", solution->src);
 		}
@@ -319,30 +340,23 @@ struct solution_t *get_solution(int sid)
 		}
 	} else {
 		write_log("no solution %d.\n", sid);
+		mysql_free_result(result);
 		free(solution);
 		return NULL;
 	}
+	mysql_free_result(result);
 	return solution;
 }
 
-int update_solution(void)
+int addceinfo(int solution_id, const char *filename)
 {
-	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
-	if (sql == NULL) {
-		write_log("alloc memory error!\n");
-		return -1;
-	}
-	memset(sql, 0, BUFSIZE * BUFSIZE);
-	if (execute_sql("update solution set time=%d, memory=%d, "
-			"result=%d, pass_rate=%f, judgetime=now() where "
-			"solution_id = %d", solution->time, solution->memory,
-			solution->result, solution->pass_rate,
-			solution->solution_id) < 0) {
-		free(sql);
-		return -1;
-	}
-	char *end;
 	if (solution->isce) {
+		char *end;
+		char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
+		if (sql == NULL) {
+			write_log("alloc memory error!\n");
+			return -1;
+		}
 		if (execute_sql("delete from compileinfo where "
 					"solution_id = %d",
 					solution->solution_id) < 0) {
@@ -350,7 +364,7 @@ int update_solution(void)
 			return -1;
 		}
 		memset(sql, 0, BUFSIZE * BUFSIZE);
-		load_file("ce.txt", solution->compileinfo);
+		load_file(filename, solution->compileinfo);
 		strcpy(sql, "insert into compileinfo (solution_id, error) values(");
 		end = sql + strlen(sql);
 		*end++ = '\'';
@@ -367,8 +381,20 @@ int update_solution(void)
 			free(sql);
 			return -1;
 		}
+		free(sql);
 	}
+	return 0;
+}
+
+int addreinfo(int solution_id, const char *filename)
+{
 	if (solution->isre) {
+		char *end;
+		char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
+		if (sql == NULL) {
+			write_log("alloc memory error!\n");
+			return -1;
+		}
 		if (execute_sql("delete from runtimeinfo where "
 					"solution_id = %d",
 					solution->solution_id) < 0) {
@@ -393,6 +419,25 @@ int update_solution(void)
 			free(sql);
 			return -1;
 		}
+		free(sql)
+	}
+	return 0;
+}
+
+int update_solution(void)
+{
+	if (execute_sql("update solution set time=%d, memory=%d, "
+			"result=%d, pass_rate=%f, judgetime=now() where "
+			"solution_id = %d", solution->time, solution->memory,
+			solution->result, solution->pass_rate,
+			solution->solution_id) < 0) {
+		return -1;
+	}
+	if (addceinfo(solution->solution_id, "ce.txt") < 0) {
+		return -1;
+	}
+	if (addreinfo(solution->solution_id, "error.out") < 0) {
+		return -1;
 	}
 	return 0;
 }

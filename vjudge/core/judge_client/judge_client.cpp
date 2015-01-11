@@ -87,65 +87,13 @@ char db_name[BUFSIZE];
 char oj_home[BUFSIZE];
 char java_xms[BUFSIZE];
 char java_xmx[BUFSIZE];
-int call_counter[BUFSIZE] = { 0 };
+int call_counter[BUFSIZE] = {0};
 char LANG_NAME[BUFSIZE];
 const int call_array_size = 512;
 char lang_ext[15][8] = {"c", "cc", "pas", "java", "rb", "sh", "py",
 	"php", "pl", "cs", "m", "bas", "scm", "c", "cc"};
 MYSQL *conn;
 struct solution_t *solution;
-
-void init_syscalls_limits(int lang)
-{
-	int i;
-	memset(call_counter, 0, sizeof(call_counter));
-	if (DEBUG)
-		write_log("init_call_counter:%d", lang);
-	if (record_call) {	// C & C++
-		for (i = 0; i < call_array_size; i++) {
-			call_counter[i] = 0;
-		}
-	} else if (lang <= 1 || lang == 13 || lang == 14) {	// C & C++
-		for (i = 0; i == 0 || LANG_CV[i]; i++) {
-			call_counter[LANG_CV[i]] = HOJ_MAX_LIMIT;
-		}
-	} else if (lang == 2) {	// Pascal
-		for (i = 0; i == 0 || LANG_PV[i]; i++)
-			call_counter[LANG_PV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 3) {	// Java
-		for (i = 0; i == 0 || LANG_JV[i]; i++)
-			call_counter[LANG_JV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 4) {	// Ruby
-		for (i = 0; i == 0 || LANG_RV[i]; i++)
-			call_counter[LANG_RV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 5) {	// Bash
-		for (i = 0; i == 0 || LANG_BV[i]; i++)
-			call_counter[LANG_BV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 6) {	// Python
-		for (i = 0; i == 0 || LANG_YV[i]; i++)
-			call_counter[LANG_YV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 7) {	// php
-		for (i = 0; i == 0 || LANG_PHV[i]; i++)
-			call_counter[LANG_PHV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 8) {	// perl
-		for (i = 0; i == 0 || LANG_PLV[i]; i++)
-			call_counter[LANG_PLV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 9) {	// mono c#
-		for (i = 0; i == 0 || LANG_CSV[i]; i++)
-			call_counter[LANG_CSV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 10) {	//objective c
-		for (i = 0; i == 0 || LANG_OV[i]; i++)
-			call_counter[LANG_OV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 11) {	//free basic
-		for (i = 0; i == 0 || LANG_BASICV[i]; i++)
-			call_counter[LANG_BASICV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 12) {	//scheme guile
-		for (i = 0; i == 0 || LANG_SV[i]; i++)
-			call_counter[LANG_SV[i]] = HOJ_MAX_LIMIT;
-	}
-
-}
-
 
 // read the configue file
 void init_conf()
@@ -430,292 +378,14 @@ void update_solution1(int solution_id, int result, int time, int memory, int sim
 	}
 }
 
-/* write compile error message back to database */
-void addceinfo(int solution_id)
+int adddiffinfo(int solution_id)
 {
-	char sql[(1 << 16)], *end;
-	char ceinfo[(1 << 16)], *cend;
-	FILE *fp = fopen("ce.txt", "r");
-	snprintf(sql, (1 << 16) - 1,
-		 "DELETE FROM compileinfo WHERE solution_id=%d", solution_id);
-	mysql_real_query(conn, sql, strlen(sql));
-	cend = ceinfo;
-	while (fgets(cend, 1024, fp)) {
-		cend += strlen(cend);
-		if (cend - ceinfo > 40000)
-			break;
-	}
-	cend = 0;
-	end = sql;
-	strcpy(end, "INSERT INTO compileinfo VALUES(");
-	end += strlen(sql);
-	*end++ = '\'';
-	end += sprintf(end, "%d", solution_id);
-	*end++ = '\'';
-	*end++ = ',';
-	*end++ = '\'';
-	end += mysql_real_escape_string(conn, end, ceinfo, strlen(ceinfo));
-	*end++ = '\'';
-	*end++ = ')';
-	*end = 0;
-	//      printf("%s\n",ceinfo);
-	if (mysql_real_query(conn, sql, end - sql))
-		printf("%s\n", mysql_error(conn));
-	fclose(fp);
+	return addreinfo(solution_id, "diff.out");
 }
 
-// urlencoded function copied from http://www.geekhideout.com/urlcode.shtml
-/* Converts a hex character to its integer value */
-char from_hex(char ch)
+int addcustomout(int solution_id)
 {
-	return isdigit(ch) ? ch - '0' : tolower(ch) - 'a' + 10;
-}
-
-/* Converts an integer value to its hex character*/
-char to_hex(char code)
-{
-	static char hex[] = "0123456789abcdef";
-	return hex[code & 15];
-}
-
-/* Returns a url-encoded version of str */
-/* IMPORTANT: be sure to free() the returned string after use */
-char *url_encode(char *str)
-{
-	char *pstr = str, *buf = (char *)malloc(strlen(str) * 3 + 1), *pbuf =
-	    buf;
-	while (*pstr) {
-		if (isalnum(*pstr) || *pstr == '-' || *pstr == '_'
-		    || *pstr == '.' || *pstr == '~')
-			*pbuf++ = *pstr;
-		else if (*pstr == ' ')
-			*pbuf++ = '+';
-		else
-			*pbuf++ = '%', *pbuf++ = to_hex(*pstr >> 4), *pbuf++ =
-			    to_hex(*pstr & 15);
-		pstr++;
-	}
-	*pbuf = '\0';
-	return buf;
-}
-
-/* write runtime error message back to database */
-void addreinfo(int solution_id, const char *filename)
-{
-	char sql[(1 << 16)], *end;
-	char reinfo[(1 << 16)], *rend;
-	FILE *fp = fopen(filename, "r");
-	snprintf(sql, (1 << 16) - 1,
-		 "DELETE FROM runtimeinfo WHERE solution_id=%d", solution_id);
-	mysql_real_query(conn, sql, strlen(sql));
-	rend = reinfo;
-	while (fgets(rend, 1024, fp)) {
-		rend += strlen(rend);
-		if (rend - reinfo > 40000)
-			break;
-	}
-	rend = 0;
-	end = sql;
-	strcpy(end, "INSERT INTO runtimeinfo VALUES(");
-	end += strlen(sql);
-	*end++ = '\'';
-	end += sprintf(end, "%d", solution_id);
-	*end++ = '\'';
-	*end++ = ',';
-	*end++ = '\'';
-	end += mysql_real_escape_string(conn, end, reinfo, strlen(reinfo));
-	*end++ = '\'';
-	*end++ = ')';
-	*end = 0;
-	//      printf("%s\n",ceinfo);
-	if (mysql_real_query(conn, sql, end - sql))
-		printf("%s\n", mysql_error(conn));
-	fclose(fp);
-}
-
-void adddiffinfo(int solution_id)
-{
-	addreinfo(solution_id, "diff.out");
-}
-
-void addcustomout(int solution_id)
-{
-
-	addreinfo(solution_id, "user.out");
-}
-
-void update_user(char *user_id)
-{
-	char sql[BUFSIZE];
-	sprintf(sql,
-		"UPDATE `users` SET `solved`=(SELECT count(DISTINCT `problem_id`) FROM `solution` WHERE `user_id`=\'%s\' AND `result`=\'4\') WHERE `user_id`=\'%s\'",
-		user_id, user_id);
-	if (mysql_real_query(conn, sql, strlen(sql)))
-		write_log(mysql_error(conn));
-	sprintf(sql,
-		"UPDATE `users` SET `submit`=(SELECT count(*) FROM `solution` WHERE `user_id`=\'%s\') WHERE `user_id`=\'%s\'",
-		user_id, user_id);
-	if (mysql_real_query(conn, sql, strlen(sql)))
-		write_log(mysql_error(conn));
-}
-
-void update_problem(int pid)
-{
-	char sql[BUFSIZE];
-	sprintf(sql,
-		"UPDATE `problem` SET `accepted`=(SELECT count(*) FROM `solution` WHERE `problem_id`=\'%d\' AND `result`=\'4\') WHERE `problem_id`=\'%d\'",
-		pid, pid);
-	if (mysql_real_query(conn, sql, strlen(sql)))
-		write_log(mysql_error(conn));
-	sprintf(sql,
-		"UPDATE `problem` SET `submit`=(SELECT count(*) FROM `solution` WHERE `problem_id`=\'%d\') WHERE `problem_id`=\'%d\'",
-		pid, pid);
-	if (mysql_real_query(conn, sql, strlen(sql)))
-		write_log(mysql_error(conn));
-}
-
-int compile(void)
-{
-	int lang = solution->language;
-	const char *CP_C[] = { "gcc", "Main.c", "-o", "Main", "-fno-asm", "-Wall",
-		"-lm", "--static", "-std=c99", "-DONLINE_JUDGE", NULL
-	};
-	const char *CP_X[] =
-	    { "g++", "Main.cc", "-o", "Main", "-fno-asm", "-Wall",
-		"-lm", "--static", "-std=c++0x", "-DONLINE_JUDGE", NULL
-	};
-	const char *CP_P[] = { "fpc", "Main.pas", "-O2", "-Co", "-Ct", "-Ci", NULL };
-	const char *CP_R[] = { "ruby", "-c", "Main.rb", NULL };
-	const char *CP_B[] = { "chmod", "+rx", "Main.sh", NULL };
-	const char *CP_Y[] = { "python", "-c", "import py_compile; py_compile.compile(r'Main.py')", NULL };
-	const char *CP_PH[] = { "php", "-l", "Main.php", NULL };
-	const char *CP_PL[] = { "perl", "-c", "Main.pl", NULL };
-	const char *CP_CS[] = { "gmcs", "-warn:0", "Main.cs", NULL };
-	const char *CP_OC[] = { "gcc", "-o", "Main", "Main.m",
-		"-fconstant-string-class=NSConstantString", "-I",
-		"/usr/include/GNUstep/", "-L", "/usr/lib/GNUstep/Libraries/",
-		"-lobjc", "-lgnustep-base", NULL
-	};
-	const char *CP_BS[] = { "fbc", "Main.bas", NULL };
-	const char *CP_CLANG[] = { "clang", "Main.c", "-o", "Main", "-fno-asm", "-Wall",
-		"-lm", "--static", "-std=c99", "-DONLINE_JUDGE", NULL
-	};
-	const char *CP_CLANG_CPP[] = { "clang++", "Main.cc", "-o", "Main", "-fno-asm", "-Wall",
-		"-lm", "--static", "-std=c++0x", "-DONLINE_JUDGE", NULL
-	};
-
-	char javac_buf[7][16];
-	char *CP_J[7];
-
-	int i = 0;
-	for (i = 0; i < 7; i++) {
-		CP_J[i] = javac_buf[i];
-	}
-	sprintf(CP_J[0], "javac");
-	sprintf(CP_J[1], "-J%s", java_xms);
-	sprintf(CP_J[2], "-J%s", java_xmx);
-	sprintf(CP_J[3], "-encoding");
-	sprintf(CP_J[4], "UTF-8");
-	sprintf(CP_J[5], "Main.java");
-	CP_J[6] = (char *)NULL;
-
-	pid_t pid = fork();
-	if (pid < 0) {
-		write_log("fork error:%s.\n", strerror(errno));
-	} else if (pid == 0) {
-		struct rlimit LIM;
-		LIM.rlim_max = 60;
-		LIM.rlim_cur = 60;
-		setrlimit(RLIMIT_CPU, &LIM);
-		alarm(60);
-		LIM.rlim_max = 100 * STD_MB;
-		LIM.rlim_cur = 100 * STD_MB;
-		setrlimit(RLIMIT_FSIZE, &LIM);
-
-		if (lang == 3) {
-			LIM.rlim_max = STD_MB << 11;
-			LIM.rlim_cur = STD_MB << 11;
-		} else {
-			LIM.rlim_max = STD_MB << 10;
-			LIM.rlim_cur = STD_MB << 10;
-		}
-		setrlimit(RLIMIT_AS, &LIM);
-		if (lang != 2 && lang != 11) {
-			freopen("ce.txt", "w", stderr);
-		} else {
-			freopen("ce.txt", "w", stdout);
-		}
-		execute_cmd("chown judge *");
-		while (setgid(1536) != 0) {
-			sleep(1);
-		}
-		while (setuid(1536) != 0) {
-			sleep(1);
-		}
-		while (setresuid(1536, 1536, 1536) != 0) {
-			sleep(1);
-		}
-		switch (lang) {
-		case 0:
-			execvp(CP_C[0], (char *const *)CP_C);
-			break;
-		case 1:
-			execvp(CP_X[0], (char *const *)CP_X);
-			break;
-		case 2:
-			execvp(CP_P[0], (char *const *)CP_P);
-			break;
-		case 3:
-			execvp(CP_J[0], (char *const *)CP_J);
-			break;
-		case 4:
-			execvp(CP_R[0], (char *const *)CP_R);
-			break;
-		case 5:
-			execvp(CP_B[0], (char *const *)CP_B);
-			break;
-		case 6:
-			execvp(CP_Y[0], (char *const *)CP_Y);
-			break;
-		case 7:
-			execvp(CP_PH[0], (char *const *)CP_PH);
-			break;
-		case 8:
-			execvp(CP_PL[0], (char *const *)CP_PL);
-			break;
-		case 9:
-			execvp(CP_CS[0], (char *const *)CP_CS);
-			break;
-
-		case 10:
-			execvp(CP_OC[0], (char *const *)CP_OC);
-			break;
-		case 11:
-			execvp(CP_BS[0], (char *const *)CP_BS);
-			break;
-		case 13:
-			execvp(CP_CLANG[0], (char *const *)CP_CLANG);
-			break;
-		case 14:
-			execvp(CP_CLANG_CPP[0], (char *const *)CP_CLANG_CPP);
-			break;
-		default:
-			printf("nothing to do!\n");
-		}
-		if (DEBUG)
-			printf("compile end!\n");
-		exit(0);
-	} else {
-		int status = 0;
-		waitpid(pid, &status, 0);
-		if (lang > 3 && lang < 7) {
-			status = get_file_size("ce.txt");
-		}
-		if (DEBUG) {
-			printf("status=%d\n", status);
-		}
-		return status;
-	}
+	return addreinfo(solution_id, "user.out");
 }
 
 /*
@@ -748,29 +418,6 @@ int get_proc_status(int pid, const char *mark)
 	if (pf)
 		fclose(pf);
 	return ret;
-}
-
-void get_custominput(int solution_id, char *work_dir)
-{
-	char sql[BUFSIZE], src_pth[BUFSIZE];
-	// get the source code
-	MYSQL_RES *res;
-	MYSQL_ROW row;
-	sprintf(sql, "SELECT input_text FROM custominput WHERE solution_id=%d",
-		solution_id);
-	mysql_real_query(conn, sql, strlen(sql));
-	res = mysql_store_result(conn);
-	row = mysql_fetch_row(res);
-	if (row != NULL) {
-
-		// create the src file
-		sprintf(src_pth, "data.in");
-		FILE *fp_src = fopen(src_pth, "w");
-		fprintf(fp_src, "%s", row[0]);
-		fclose(fp_src);
-
-	}
-	mysql_free_result(res);
 }
 
 void get_solution_info(int solution_id, int *p_id, char *user_id,
@@ -1366,15 +1013,8 @@ void print_call_array()
 
 int main(int argc, char **argv)
 {
-	char user_id[BUFSIZE];
 	int solution_id = 1000;
 	int runner_id = 0;
-	int p_id = 0;
-	int time_lmt = 1;
-	int mem_lmt  = 128;
-	int lang = 0;
-	int isspj = 0;
-	int max_case_time = 0;
 
 	//获取参数,得到solution_id,runner_id,如果指定了oj_home就设置oj_home
 	init_parameters(argc, argv, &solution_id, &runner_id);
@@ -1409,41 +1049,63 @@ int main(int argc, char **argv)
 	solution->isce = compile();
 	//编译不成功,将信息更新回数据库
 	if (solution->isce) {
-		write_log("compile error");
+		write_log("solution %d compile error.\n", solution_id);
 		solution->result = OJ_CE;
 		update_solution();
-		update_user(user_id);
-		update_problem(p_id);
-		mysql_close(conn);
+		update_user();
+		update_problem();
 		if (!DEBUG) {
 			clean_workdir();
 		}
-		exit(0);
+		cleanup_mysql();
+		free(solution);
+		exit(EXIT_SUCCESS);
 	} else {
 		//如果编译成功就设置为正在运行
-		update_solution(solution_id, OJ_RI, 0, 0, 0, 0, 0.0);
+		write_log("solution %d running.\n");
+		solution->result = OJ_RI;
+		update_solution();
 	}
-	//exit(0);
+
+	// virtual judge
+	if (solution->problem_info.problem_id >= 0) {
+		vjudge();
+		cleanup_mysql();
+		free(solution);
+		exit(EXIT_SUCCESS);
+	}
+
 	// run
+	int p_id = 0;
+	int time_lmt = 1;
+	int mem_lmt  = 128;
+	int lang = 0;
+	int isspj = 0;
+	int max_case_time = 0;
+	char user_id[BUFSIZE];
 	char fullpath[BUFSIZE];
 	char infile[BUFSIZE];
 	char outfile[BUFSIZE];
 	char userfile[BUFSIZE];
-	sprintf(fullpath, "%s/data/%d", oj_home, p_id);	// the fullpath of data dir
+
+	// the fullpath of data dir
+	sprintf(fullpath, "%s/data/%d", oj_home,
+			solution->problem_info.problem_id);
 
 	// open DIRs
 	DIR *dp;
 	struct dirent *dirp;
 	//打开存放测试数据的目录,如果失败,则返回
-	if (p_id > 0 && (dp = opendir(fullpath)) == NULL) {
-
-		write_log("No such dir:%s!\n", fullpath);
-		mysql_close(conn);
-		exit(-1);
+	if (solution->problem_info.problem_id > 0
+			&& (dp = opendir(fullpath)) == NULL) {
+		write_log("no such dir: %s!\n", fullpath);
+		free(solution);
+		cleanup_mysql();
+		exit(EXIT_FAILURE);
 	}
 
-	int ACflg, PEflg;
-	ACflg = PEflg = OJ_AC;
+	int ACflg = OJ_AC;
+	int PEflg = OJ_AC;
 	int namelen;
 	int usedtime = 0, topmemory = 0;
 
