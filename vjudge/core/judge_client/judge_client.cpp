@@ -46,6 +46,7 @@
 #include <mysql/mysql.h>
 #include <assert.h>
 #include <features.h>
+#include <curl/curl.h>
 
 #include "judge_client.h"
 
@@ -60,6 +61,8 @@ int java_memory_bonus = 512;
 int sim_enable = 0;
 int oi_mode = 0;
 int use_max_time = 0;
+int vj_max_wait_time = 120;
+int islogin = 0;
 char record_call = 0;
 char db_host[BUFSIZE];
 char work_dir[BUFSIZE];
@@ -67,14 +70,21 @@ char db_user[BUFSIZE];
 char db_passwd[BUFSIZE];
 char db_name[BUFSIZE];
 char oj_home[BUFSIZE];
+char cefname[BUFSIZE];
+char refname[BUFSIZE];
+char vjudge_user[BUFSIZE];
+char vjudge_passwd[BUFSIZE];
 char java_xms[BUFSIZE];
 char java_xmx[BUFSIZE];
+char cookiename[BUFSIZE];
 int call_counter[BUFSIZE] = {0};
 char LANG_NAME[BUFSIZE];
 int call_array_size = 512;
 char lang_ext[15][8] = {"c", "cc", "pas", "java", "rb", "sh", "py",
 	"php", "pl", "cs", "m", "bas", "scm", "c", "cc"};
+char lang_table[20][20] = {{1, 0, 4, 5}};
 MYSQL *conn;
+CURL *curl;
 struct solution_t *solution;
 
 // read the configue file
@@ -94,8 +104,12 @@ void init_conf()
 			read_buf(buf, "DB_HOST", db_host);
 			read_buf(buf, "DB_USER", db_user);
 			read_buf(buf, "DB_PASSWD", db_passwd);
+			read_buf(buf, "COOKIENAME", cookiename);
+			read_buf(buf, "VJUDGE_USER", vjudge_user);
+			read_buf(buf, "VJUDGE_PASSWD", vjudge_passwd);
 			read_buf(buf, "DB_NAME", db_name);
 			read_int(buf, "DB_PORT", &db_port);
+			read_int(buf, "VJ_MAX_WAIT_TIME", &vj_max_wait_time);
 			read_int(buf, "DB_TIMEOUT", &db_timeout);
 			read_int(buf, "JAVA_TIME_BONUS", &java_time_bonus);
 			read_int(buf, "JAVA_MEMORY_BONUS", &java_memory_bonus);
@@ -269,6 +283,9 @@ int main(int argc, char **argv)
 	// virtual judge
 	if (solution->problem_info.ojtype >= 0) {
 		vjudge();
+		update_solution();
+		update_user();
+		update_problem();
 		cleanup_mysql();
 		free(solution);
 		exit(EXIT_SUCCESS);
@@ -372,7 +389,7 @@ int main(int argc, char **argv)
 		copy_ac_src();
 	}
 	if ((oi_mode && finalACflg == OJ_RE) || solution->result == OJ_RE) {
-		addreinfo(solution_id, "error.out");
+		addreinfo(solution_id, refname);
 	}
 	if (use_max_time) {
 		solution->time = max_case_time;

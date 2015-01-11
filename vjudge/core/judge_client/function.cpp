@@ -12,33 +12,6 @@
 
 #include "judge_client.h"
 
-extern int DEBUG;
-extern int db_port;
-extern int shm_run;
-extern int max_running;
-extern int db_timeout;
-extern int sleep_time;
-extern int java_time_bonus;
-extern int java_memory_bonus;
-extern int sim_enable;
-extern int oi_mode;
-extern int use_max_time;
-extern char record_call;
-extern char db_host[BUFSIZE];
-extern char db_user[BUFSIZE];
-extern char work_dir[BUFSIZE];
-extern char db_passwd[BUFSIZE];
-extern char db_name[BUFSIZE];
-extern char oj_home[BUFSIZE];
-extern char java_xms[BUFSIZE];
-extern char java_xmx[BUFSIZE];
-extern char LANG_NAME[BUFSIZE];
-extern char lang_ext[15][8];
-extern MYSQL *conn;
-extern struct solution_t *solution;
-extern int call_counter[BUFSIZE];
-extern int call_array_size;
-
 void init_parameters(int argc, char **argv, int *solution_id, int *runner_id)
 {
 	if (argc < 3) {
@@ -230,17 +203,15 @@ int get_problem_info(struct problem_info_t *problem_info)
 	if (problem_info->memory_limit > 1024 || problem_info->memory_limit < 1) {
 		problem_info->memory_limit = 1024;
 	}
-	if (DEBUG) {
-		write_log("problem_id = %d\n", problem_info->problem_id);
-		write_log("spj = %d\n", problem_info->spj);
-		write_log("time_limit = %d\n", problem_info->time_limit);
-		write_log("memory_limit = %d\n", problem_info->memory_limit);
-		write_log("accepted = %d\n", problem_info->accepted);
-		write_log("submit = %d\n", problem_info->submit);
-		write_log("ischa = %d\n", problem_info->ischa);
-		write_log("ojtype = %d\n", problem_info->ojtype);
-		write_log("origin_id = %d\n", problem_info->origin_id);
-	}
+	write_log("problem_id = %d\n", problem_info->problem_id);
+	write_log("spj = %d\n", problem_info->spj);
+	write_log("time_limit = %d\n", problem_info->time_limit);
+	write_log("memory_limit = %d\n", problem_info->memory_limit);
+	write_log("accepted = %d\n", problem_info->accepted);
+	write_log("submit = %d\n", problem_info->submit);
+	write_log("ischa = %d\n", problem_info->ischa);
+	write_log("ojtype = %d\n", problem_info->ojtype);
+	write_log("origin_id = %d\n", problem_info->origin_id);
 	return 0;
 }
 
@@ -437,10 +408,10 @@ int update_solution(void)
 			solution->solution_id) < 0) {
 		return -1;
 	}
-	if (solution->isce && addceinfo(solution->solution_id, "ce.txt") < 0) {
+	if (solution->isce && addceinfo(solution->solution_id, cefname) < 0) {
 		return -1;
 	}
-	if (solution->isre && addreinfo(solution->solution_id, "error.out") < 0) {
+	if (solution->isre && addreinfo(solution->solution_id, refname) < 0) {
 		return -1;
 	}
 	return 0;

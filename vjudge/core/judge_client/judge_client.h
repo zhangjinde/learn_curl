@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <mysql/mysql.h>
+#include <curl/curl.h>
 
 #define STD_MB 1048576		//1M
 #define STD_T_LIM 2
@@ -88,6 +89,43 @@ struct solution_t {
 	char compileinfo[BUFSIZE * BUFSIZE];
 };
 
+
+extern int DEBUG;
+extern int db_port;
+extern int shm_run;
+extern int max_running;
+extern int db_timeout;
+extern int sleep_time;
+extern int java_time_bonus;
+extern int java_memory_bonus;
+extern int sim_enable;
+extern int oi_mode;
+extern int use_max_time;
+extern int vj_max_wait_time;
+extern int islogin;
+extern char record_call;
+extern char db_host[BUFSIZE];
+extern char db_user[BUFSIZE];
+extern char db_passwd[BUFSIZE];
+extern char db_name[BUFSIZE];
+extern char vjudge_user[BUFSIZE];
+extern char cefname[BUFSIZE];
+extern char refname[BUFSIZE];
+extern char vjudge_passwd[BUFSIZE];
+extern char work_dir[BUFSIZE];
+extern char cookiename[BUFSIZE];
+extern char oj_home[BUFSIZE];
+extern char java_xms[BUFSIZE];
+extern char java_xmx[BUFSIZE];
+extern char LANG_NAME[BUFSIZE];
+extern char lang_ext[15][8];
+extern char lang_table[20][20];
+extern MYSQL *conn;
+extern CURL *curl;
+extern struct solution_t *solution;
+extern int call_counter[BUFSIZE];
+extern int call_array_size;
+
 extern void trim(char *c);
 extern int after_equal(char *c);
 extern MYSQL *prepare_mysql(void);
@@ -123,6 +161,20 @@ extern int compare(const char *file1, const char *file2);
 extern void judge_solution(char *infile, char *outfile, char *userfile, double num_of_test);
 extern int special_judge(char *infile, char *outfile, char *userfile);
 extern int get_sim(void);
-void copy_ac_src(void);
+extern void copy_ac_src(void);
+extern int perform_curl(const char *filename);
+extern CURL *prepare_curl(void);
+extern const char *curl_error(CURLcode errornum);
+extern void cleanup_curl(void);
+extern void clear_cookie(void);
+extern int submit(void);
+extern int login(void);
+extern int get_status(void);
+extern int submit_hduoj(void);
+extern int login_hduoj(void);
+extern int get_status_hduoj(void);
+extern int utf2gbk(char *buf, size_t len);
+extern int gbk2utf8(char *buf, size_t len);
+extern int convert(char *buf, size_t len, const char *from, const char *to);
 
 #endif	// _JUDGE_CLIENT_H
