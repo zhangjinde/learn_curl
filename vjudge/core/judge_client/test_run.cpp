@@ -40,56 +40,6 @@ extern struct solution_t *solution;
 extern int call_counter[BUFSIZE];
 extern const int call_array_size;
 
-void init_syscalls_limits(int lang)
-{
-	int i;
-	memset(call_counter, 0, sizeof(call_counter));
-	if (DEBUG)
-		write_log("init_call_counter:%d", lang);
-	if (record_call) {	// C & C++
-		for (i = 0; i < call_array_size; i++) {
-			call_counter[i] = 0;
-		}
-	} else if (lang <= 1 || lang == 13 || lang == 14) {	// C & C++
-		for (i = 0; i == 0 || LANG_CV[i]; i++) {
-			call_counter[LANG_CV[i]] = HOJ_MAX_LIMIT;
-		}
-	} else if (lang == 2) {	// Pascal
-		for (i = 0; i == 0 || LANG_PV[i]; i++)
-			call_counter[LANG_PV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 3) {	// Java
-		for (i = 0; i == 0 || LANG_JV[i]; i++)
-			call_counter[LANG_JV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 4) {	// Ruby
-		for (i = 0; i == 0 || LANG_RV[i]; i++)
-			call_counter[LANG_RV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 5) {	// Bash
-		for (i = 0; i == 0 || LANG_BV[i]; i++)
-			call_counter[LANG_BV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 6) {	// Python
-		for (i = 0; i == 0 || LANG_YV[i]; i++)
-			call_counter[LANG_YV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 7) {	// php
-		for (i = 0; i == 0 || LANG_PHV[i]; i++)
-			call_counter[LANG_PHV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 8) {	// perl
-		for (i = 0; i == 0 || LANG_PLV[i]; i++)
-			call_counter[LANG_PLV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 9) {	// mono c#
-		for (i = 0; i == 0 || LANG_CSV[i]; i++)
-			call_counter[LANG_CSV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 10) {	//objective c
-		for (i = 0; i == 0 || LANG_OV[i]; i++)
-			call_counter[LANG_OV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 11) {	//free basic
-		for (i = 0; i == 0 || LANG_BASICV[i]; i++)
-			call_counter[LANG_BASICV[i]] = HOJ_MAX_LIMIT;
-	} else if (lang == 12) {	//scheme guile
-		for (i = 0; i == 0 || LANG_SV[i]; i++)
-			call_counter[LANG_SV[i]] = HOJ_MAX_LIMIT;
-	}
-}
-
 int save_custom_input(void)
 {
 	char src_path[BUFSIZE];
@@ -132,34 +82,31 @@ int save_custom_input(void)
 	return 0;
 }
 
+int addcustomout(int solution_id)
+{
+	return addreinfo(solution_id, "user.out");
+}
+
 void test_run(void)
 {
-		printf("running a custom input...\n");
-		get_custominput(solution_id, work_dir);
-		init_syscalls_limits(lang);
-		pid_t pidApp = fork();
+	save_custom_input();
+	init_syscalls_limits(lang);
 
-		if (pidApp == 0) {	//在子进程中
-			//运行编译后的程序,生成用户产生的结果user.out文件
-			run_solution(lang, work_dir, time_lmt, usedtime,
-				     mem_lmt);
-		} else {	//父进程中
-			watch_solution(pidApp, infile, &ACflg, isspj, userfile,
-				       outfile, solution_id, lang, &topmemory,
-				       mem_lmt, &usedtime, time_lmt, p_id, PEflg,
-				       work_dir);
-		}
-		if (ACflg == OJ_TL) {
-			usedtime = time_lmt * 1000;
-		}
-		if (ACflg == OJ_RE) {
-			if (DEBUG)
-				printf("add RE info of %d..... \n",
-				       solution_id);
-			addreinfo(solution_id, "error.out");
-		} else {
-			addcustomout(solution_id);
-		}
-		update_solution(solution_id, OJ_TR, usedtime, topmemory >> 10,
-				0, 0, 0);
+	pid_t pid = fork();
+	if (pid == 0) {		//在子进程中
+		//运行编译后的程序,生成用户产生的结果user.out文件
+		run_solution();
+	} else {		//父进程中
+		watch_solution(pid);
+	}
+	if (solution->result == OJ_TL) {
+		solution->time = solution->problem_info.time_limit * 1000;
+	}
+	if (solution->result == OJ_RE) {
+		addreinfo(solution->solution_id, "error.out");
+	} else {
+		addcustomout(solution->solution_id);
+	}
+	solution->result = OJ_TR;
+	update_solution();
 }

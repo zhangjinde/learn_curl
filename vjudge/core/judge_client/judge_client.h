@@ -96,5 +96,9 @@ extern int save_custom_input(void);
 extern int compile(void);
 extern int vjudge(void);
 extern void init_syscalls_limits(int lang);
+extern void run_solution(void);
+extern int addcustomout(int solution_id);
+extern void watch_solution(pid_t pid);
+extern void test_run(void);
 
 #endif	// _JUDGE_CLIENT_H

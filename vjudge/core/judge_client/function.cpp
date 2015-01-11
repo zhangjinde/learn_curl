@@ -350,77 +350,75 @@ struct solution_t *get_solution(int sid)
 
 int addceinfo(int solution_id, const char *filename)
 {
-	if (solution->isce) {
-		char *end;
-		char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
-		if (sql == NULL) {
-			write_log("alloc memory error!\n");
-			return -1;
-		}
-		if (execute_sql("delete from compileinfo where "
-					"solution_id = %d",
-					solution->solution_id) < 0) {
-			free(sql);
-			return -1;
-		}
-		memset(sql, 0, BUFSIZE * BUFSIZE);
-		load_file(filename, solution->compileinfo);
-		strcpy(sql, "insert into compileinfo (solution_id, error) values(");
-		end = sql + strlen(sql);
-		*end++ = '\'';
-		end += sprintf(end, "%d", solution->solution_id);
-		*end++ = '\'';
-		*end++ = ',';
-		*end++ = '\'';
-		end += mysql_real_escape_string(conn, end, solution->compileinfo,
-				strlen(solution->compileinfo));
-		*end++ = '\'';
-		*end++ = ')';
-		*end++ = '\0';
-		if (execute_sql(sql) < 0) {
-			free(sql);
-			return -1;
-		}
-		free(sql);
+	write_log("add solution %d compile error info.\n", solution_id);
+	char *end;
+	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (sql == NULL) {
+		write_log("alloc memory error!\n");
+		return -1;
 	}
+	if (execute_sql("delete from compileinfo where "
+				"solution_id = %d",
+				solution->solution_id) < 0) {
+		free(sql);
+		return -1;
+	}
+	memset(sql, 0, BUFSIZE * BUFSIZE);
+	load_file(filename, solution->compileinfo);
+	strcpy(sql, "insert into compileinfo (solution_id, error) values(");
+	end = sql + strlen(sql);
+	*end++ = '\'';
+	end += sprintf(end, "%d", solution->solution_id);
+	*end++ = '\'';
+	*end++ = ',';
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, solution->compileinfo,
+			strlen(solution->compileinfo));
+	*end++ = '\'';
+	*end++ = ')';
+	*end++ = '\0';
+	if (execute_sql(sql) < 0) {
+		free(sql);
+		return -1;
+	}
+	free(sql);
 	return 0;
 }
 
 int addreinfo(int solution_id, const char *filename)
 {
-	if (solution->isre) {
-		char *end;
-		char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
-		if (sql == NULL) {
-			write_log("alloc memory error!\n");
-			return -1;
-		}
-		if (execute_sql("delete from runtimeinfo where "
-					"solution_id = %d",
-					solution->solution_id) < 0) {
-			free(sql);
-			return -1;
-		};
-		memset(sql, 0, BUFSIZE * BUFSIZE);
-		load_file("error.out", solution->runtimeinfo);
-		strcpy(sql, "insert into runtimeinfo (solution_id, error) values(");
-		end = sql + strlen(sql);
-		*end++ = '\'';
-		end += sprintf(end, "%d", solution->solution_id);
-		*end++ = '\'';
-		*end++ = ',';
-		*end++ = '\'';
-		end += mysql_real_escape_string(conn, end, solution->runtimeinfo,
-				strlen(solution->runtimeinfo));
-		*end++ = '\'';
-		*end++ = ')';
-		*end++ = '\0';
-		if (execute_sql(sql) < 0) {
-			free(sql);
-			return -1;
-		}
-		free(sql)
+	write_log("add solution %d runtime error info.\n", solution_id);
+	char *end;
+	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (sql == NULL) {
+		write_log("alloc memory error!\n");
+		return -1;
 	}
+	if (execute_sql("delete from runtimeinfo where "
+				"solution_id = %d",
+				solution->solution_id) < 0) {
+		free(sql);
+		return -1;
+	};
+	memset(sql, 0, BUFSIZE * BUFSIZE);
+	load_file(filename, solution->runtimeinfo);
+	strcpy(sql, "insert into runtimeinfo (solution_id, error) values(");
+	end = sql + strlen(sql);
+	*end++ = '\'';
+	end += sprintf(end, "%d", solution->solution_id);
+	*end++ = '\'';
+	*end++ = ',';
+	*end++ = '\'';
+	end += mysql_real_escape_string(conn, end, solution->runtimeinfo,
+			strlen(solution->runtimeinfo));
+	*end++ = '\'';
+	*end++ = ')';
+	*end++ = '\0';
+	if (execute_sql(sql) < 0) {
+		free(sql);
+		return -1;
+	}
+	free(sql)
 	return 0;
 }
 
@@ -433,10 +431,10 @@ int update_solution(void)
 			solution->solution_id) < 0) {
 		return -1;
 	}
-	if (addceinfo(solution->solution_id, "ce.txt") < 0) {
+	if (solution->isce && addceinfo(solution->solution_id, "ce.txt") < 0) {
 		return -1;
 	}
-	if (addreinfo(solution->solution_id, "error.out") < 0) {
+	if (solution->isre && addreinfo(solution->solution_id, "error.out") < 0) {
 		return -1;
 	}
 	return 0;

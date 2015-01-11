@@ -130,7 +130,7 @@ void init_conf()
 	}
 }
 
-int isInFile(const char fname[])
+int isinfile(const char fname[])
 {
 	int l = strlen(fname);
 	if (l <= 3 || strcmp(fname + l - 3, ".in") != 0) {
@@ -383,10 +383,6 @@ int adddiffinfo(int solution_id)
 	return addreinfo(solution_id, "diff.out");
 }
 
-int addcustomout(int solution_id)
-{
-	return addreinfo(solution_id, "user.out");
-}
 
 /*
  int read_proc_statm(int pid){
@@ -420,162 +416,18 @@ int get_proc_status(int pid, const char *mark)
 	return ret;
 }
 
-void get_solution_info(int solution_id, int *p_id, char *user_id,
-			      int *lang)
+void prepare_files(char *filename, int namelen, char *infile, char *outfile,
+		char *userfile, int runner_id)
 {
-
-	MYSQL_RES *res;
-	MYSQL_ROW row;
-
-	char sql[BUFSIZE];
-	// get the problem id and user id from Table:solution
-	sprintf(sql,
-		"SELECT problem_id, user_id, language FROM solution where solution_id=%d",
-		solution_id);
-	//printf("%s\n",sql);
-	mysql_real_query(conn, sql, strlen(sql));
-	res = mysql_store_result(conn);
-	row = mysql_fetch_row(res);
-	*p_id = atoi(row[0]);
-	strcpy(user_id, row[1]);
-	*lang = atoi(row[2]);
-	mysql_free_result(res);
-}
-
-void prepare_files(char *filename, int namelen, char *infile, int p_id,
-		   char *work_dir, char *outfile, char *userfile, int runner_id)
-{
-	//              printf("ACflg=%d %d check a file!\n",ACflg,solution_id);
-
+	int p_id = solution->problem_info.problem_id;
 	char fname[BUFSIZE];
+	memset(fname, 0, sizeof(fname));
 	strncpy(fname, filename, namelen);
-	fname[namelen] = 0;
 	sprintf(infile, "%s/data/%d/%s.in", oj_home, p_id, fname);
 	execute_cmd("/bin/cp %s %s/data.in", infile, work_dir);
 	execute_cmd("/bin/cp %s/data/%d/*.dic %s/", oj_home, p_id, work_dir);
-
 	sprintf(outfile, "%s/data/%d/%s.out", oj_home, p_id, fname);
 	sprintf(userfile, "%s/run%d/user.out", oj_home, runner_id);
-}
-
-void run_solution(int lang, char *work_dir, int time_lmt, int usedtime,
-		  int mem_lmt)
-{
-	//将优先级调成19(最低级)
-	//优先级数为-20到19,数字越小优先级越高
-	nice(19);
-	// now the user is "judger"
-	chdir(work_dir);
-	// open the files
-	freopen("data.in", "r", stdin);
-	freopen("user.out", "w", stdout);
-	freopen("error.out", "a+", stderr);
-	// trace me
-	// 本进程被其父进程所跟踪。
-	ptrace(PTRACE_TRACEME, 0, NULL, NULL);
-	// run me
-	if (lang != 3)
-		chroot(work_dir);
-
-	while (setgid(1536) != 0)
-		sleep(1);
-	while (setuid(1536) != 0)
-		sleep(1);
-	while (setresuid(1536, 1536, 1536) != 0)
-		sleep(1);
-
-//      char java_p1[BUFSIZE], java_p2[BUFSIZE];
-	// child
-	// set the limit
-	struct rlimit LIM;	// time limit, file limit& memory limit
-	// time limit
-	if (oi_mode)		//oi模式
-		LIM.rlim_cur = time_lmt + 1;
-	else
-		LIM.rlim_cur = (time_lmt - usedtime / 1000) + 1;
-	LIM.rlim_max = LIM.rlim_cur;
-	//if(DEBUG) printf("LIM_CPU=%d",(int)(LIM.rlim_cur));
-	setrlimit(RLIMIT_CPU, &LIM);
-	alarm(0);
-	alarm(time_lmt * 10);
-
-	// file limit
-	LIM.rlim_max = STD_F_LIM + STD_MB;
-	LIM.rlim_cur = STD_F_LIM;
-	setrlimit(RLIMIT_FSIZE, &LIM);
-	// proc limit
-	switch (lang) {
-	case 3:		//java
-	case 12:
-		LIM.rlim_cur = LIM.rlim_max = 50;
-		break;
-	case 5:		//bash
-		LIM.rlim_cur = LIM.rlim_max = 3;
-		break;
-	case 9:		//C#
-		LIM.rlim_cur = LIM.rlim_max = 50;
-		break;
-	default:
-		LIM.rlim_cur = LIM.rlim_max = 1;
-	}
-
-	setrlimit(RLIMIT_NPROC, &LIM);
-
-	// set the stack
-	LIM.rlim_cur = STD_MB << 6;
-	LIM.rlim_max = STD_MB << 6;
-	setrlimit(RLIMIT_STACK, &LIM);
-	// set the memory
-	LIM.rlim_cur = STD_MB * mem_lmt / 2 * 3;
-	LIM.rlim_max = STD_MB * mem_lmt * 2;
-	if (lang < 3)
-		setrlimit(RLIMIT_AS, &LIM);
-
-	switch (lang) {
-	case 0:
-	case 1:
-	case 2:
-	case 10:
-	case 11:
-	case 13:
-	case 14:
-		execl("./Main", "./Main", (char *)NULL);
-		break;
-	case 3:
-//              sprintf(java_p1, "-Xms%dM", mem_lmt / 2);
-//              sprintf(java_p2, "-Xmx%dM", mem_lmt);
-
-		execl("/usr/bin/java", "/usr/bin/java", java_xms, java_xmx,
-		      "-Djava.security.manager",
-		      "-Djava.security.policy=./java.policy", "Main",
-		      (char *)NULL);
-		break;
-	case 4:
-		//system("/ruby Main.rb<data.in");
-		execl("/ruby", "/ruby", "Main.rb", (char *)NULL);
-		break;
-	case 5:		//bash
-		execl("/bin/bash", "/bin/bash", "Main.sh", (char *)NULL);
-		break;
-	case 6:		//Python
-		execl("/python", "/python", "Main.py", (char *)NULL);
-		break;
-	case 7:		//php
-		execl("/php", "/php", "Main.php", (char *)NULL);
-		break;
-	case 8:		//perl
-		execl("/perl", "/perl", "Main.pl", (char *)NULL);
-		break;
-	case 9:		//Mono C#
-		execl("/mono", "/mono", "--debug", "Main.exe", (char *)NULL);
-		break;
-	case 12:		//guile
-		execl("/guile", "/guile", "Main.scm", (char *)NULL);
-		break;
-
-	}
-	//sleep(1);
-	exit(0);
 }
 
 int fix_java_mis_judge(char *work_dir, int *ACflg, int *topmemory, int mem_lmt)
@@ -621,7 +473,6 @@ int fix_java_mis_judge(char *work_dir, int *ACflg, int *topmemory, int mem_lmt)
 int special_judge(char *oj_home, int problem_id, char *infile, char *outfile,
 		  char *userfile)
 {
-
 	pid_t pid;
 	printf("pid=%d\n", problem_id);
 	pid = fork();
@@ -743,164 +594,6 @@ void clean_session(pid_t p)
 	const char *post = " | awk \'{ print $1  }\'|xargs kill -9";
 	execute_cmd("%s %d %s", pre, p, post);
 	execute_cmd("ps aux |grep \\^judge|awk '{print $2}'|xargs kill");
-}
-
-void watch_solution(pid_t pidApp, char *infile, int *ACflg, int isspj,
-		    char *userfile, char *outfile, int solution_id, int lang,
-		    int *topmemory, int mem_lmt, int *usedtime, int time_lmt,
-		    int p_id, int PEflg, char *work_dir)
-{
-	// parent
-	int tempmemory;
-
-	if (DEBUG)
-		printf("pid=%d judging %s\n", pidApp, infile);
-
-	int status, sig, exitcode;
-	struct user_regs_struct reg;
-	struct rusage ruse;
-	while (1) {
-		// check the usage
-
-		wait4(pidApp, &status, 0, &ruse);
-
-//jvm gc ask VM before need,so used kernel page fault times and page size
-		if (lang == 3) {
-			tempmemory = get_page_fault_mem(ruse, pidApp);
-		} else {	//other use VmPeak
-			tempmemory = get_proc_status(pidApp, "VmPeak:") << 10;
-		}
-		if (tempmemory > *topmemory)
-			*topmemory = tempmemory;
-		if (*topmemory > mem_lmt * STD_MB) {
-			if (DEBUG)
-				printf("out of memory %d\n", *topmemory);
-			if (*ACflg == OJ_AC)
-				*ACflg = OJ_ML;
-			ptrace(PTRACE_KILL, pidApp, NULL, NULL);
-			break;
-		}
-		//sig = status >> 8;/*status >> 8 Ã¥Â·Â®Ã¤Â¸ÂÃ¥Â¤Å¡Ã¦ËÂ¯EXITCODE*/
-
-		//如果子进程正常返回,则退出
-		if (WIFEXITED(status))
-			break;
-		//出现了错误RE
-		if ((lang < 4 || lang == 9) && get_file_size("error.out")
-		    && !oi_mode) {
-			*ACflg = OJ_RE;
-			//addreinfo(solution_id, "error.out");
-			ptrace(PTRACE_KILL, pidApp, NULL, NULL);
-			break;
-		}
-
-		if (!isspj &&
-		    get_file_size(userfile) >
-		    get_file_size(outfile) * 2 + 1024) {
-			*ACflg = OJ_OL;
-			ptrace(PTRACE_KILL, pidApp, NULL, NULL);
-			break;
-		}
-		//返回子进程的返回状态
-		//前面设置了时钟中断
-		exitcode = WEXITSTATUS(status);
-		/*exitcode == 5 waiting for next CPU allocation          * ruby using system to run,exit 17 ok
-		 *  */
-		if ((lang >= 3 && exitcode == 17) || exitcode == 0x05
-		    || exitcode == 0) {
-			//go on and on
-			;
-		} else {
-			if (DEBUG) {
-				printf("status>>8=%d\n", exitcode);
-			}
-			//psignal(exitcode, NULL);
-			if (*ACflg == OJ_AC) {
-				switch (exitcode) {
-				case SIGCHLD:
-				case SIGALRM:
-					alarm(0);
-				case SIGKILL:
-				case SIGXCPU:
-					*ACflg = OJ_TL;
-					break;
-				case SIGXFSZ:
-					*ACflg = OJ_OL;
-					break;
-				default:
-					*ACflg = OJ_RE;
-				}
-				print_runtimeerror(strsignal(exitcode));
-			}
-			ptrace(PTRACE_KILL, pidApp, NULL, NULL);
-			break;
-		}
-		if (WIFSIGNALED(status)) {
-			/*  WIFSIGNALED: if the process is terminated by signal
-			 *
-			 *  psignal(int sig, char *s)，like perror(char *s)，print out s, with error msg from system of sig  
-			 * sig = 5 means Trace/breakpoint trap
-			 * sig = 11 means Segmentation fault
-			 * sig = 25 means File size limit exceeded
-			 */
-			sig = WTERMSIG(status);
-
-			if (DEBUG) {
-				printf("WTERMSIG=%d\n", sig);
-				psignal(sig, NULL);
-			}
-			if (*ACflg == OJ_AC) {
-				switch (sig) {
-				case SIGCHLD:
-				case SIGALRM:	//前面设置了足够长时间的时钟中断,被时钟中断终止说明超时了
-					alarm(0);
-				case SIGKILL:
-				case SIGXCPU:
-					*ACflg = OJ_TL;
-					break;
-				case SIGXFSZ:
-					*ACflg = OJ_OL;
-					break;
-
-				default:
-					*ACflg = OJ_RE;
-				}
-				print_runtimeerror(strsignal(sig));
-			}
-			break;
-		}
-		/*     comment from http://www.felix021.com/blog/read.php?1662
-
-		   WIFSTOPPED: return true if the process is paused or stopped while ptrace is watching on it
-		   WSTOPSIG: get the signal if it was stopped by signal
-		 */
-
-		// check the system calls
-		ptrace(PTRACE_GETREGS, pidApp, NULL, &reg);
-		if (call_counter[reg.REG_SYSCALL]) {
-			//call_counter[reg.REG_SYSCALL]--;
-		} else if (record_call) {
-			call_counter[reg.REG_SYSCALL] = 1;
-
-		} else {	//do not limit JVM syscall for using different JVM
-			*ACflg = OJ_RE;
-			char error[BUFSIZE];
-			sprintf(error,
-				"[ERROR] A Not allowed system call: runid:%d callid:%ld\n TO FIX THIS , ask admin to add the CALLID into corresponding LANG_XXV[] located at okcalls32/64.h ,and recompile judge_client",
-				solution_id, (long)reg.REG_SYSCALL);
-			write_log(error);
-			print_runtimeerror(error);
-			ptrace(PTRACE_KILL, pidApp, NULL, NULL);
-		}
-
-		ptrace(PTRACE_SYSCALL, pidApp, NULL, NULL);
-	}
-	*usedtime +=
-	    (ruse.ru_utime.tv_sec * 1000 + ruse.ru_utime.tv_usec / 1000);
-	*usedtime +=
-	    (ruse.ru_stime.tv_sec * 1000 + ruse.ru_stime.tv_usec / 1000);
-
-	//clean_session(pidApp);
 }
 
 void clean_workdir(void)
@@ -1045,6 +738,8 @@ int main(int argc, char **argv)
 	//将提交的源代码存放在work_dir的Main.*文件中
 	save_solution_src();
 
+	solution->result = OJ_AC;
+
 	//编译源文件
 	solution->isce = compile();
 	//编译不成功,将信息更新回数据库
@@ -1067,6 +762,14 @@ int main(int argc, char **argv)
 		update_solution();
 	}
 
+	// test run
+	if (p_id == 0) {
+		test_run();
+		free(solution);
+		cleanup_mysql();
+		exit(EXIT_SUCCESS);
+	}
+
 	// virtual judge
 	if (solution->problem_info.problem_id >= 0) {
 		vjudge();
@@ -1087,10 +790,15 @@ int main(int argc, char **argv)
 	char infile[BUFSIZE];
 	char outfile[BUFSIZE];
 	char userfile[BUFSIZE];
+	int ACflg = OJ_AC;
+	int PEflg = OJ_AC;
+	int usedtime = 0, topmemory = 0;
+	double pass_rate = 0.0;
+	int num_of_test = 0;
+	int finalACflg = ACflg;
 
 	// the fullpath of data dir
-	sprintf(fullpath, "%s/data/%d", oj_home,
-			solution->problem_info.problem_id);
+	sprintf(fullpath, "%s/data/%d", oj_home, solution->problem_info.problem_id);
 
 	// open DIRs
 	DIR *dp;
@@ -1104,64 +812,21 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	int ACflg = OJ_AC;
-	int PEflg = OJ_AC;
-	int namelen;
-	int usedtime = 0, topmemory = 0;
-
 	// 为某些语言拷贝运行时库
 	copy_runtime();
 
-	// read files and run
-	double pass_rate = 0.0;
-	int num_of_test = 0;
-	int finalACflg = ACflg;
-	//这个功能是在提交页面的最下边有一个test按钮
-	if (p_id == 0) {	//custom input running
-		printf("running a custom input...\n");
-		get_custominput(solution_id, work_dir);
-		init_syscalls_limits(lang);
-		pid_t pidApp = fork();
-
-		if (pidApp == 0) {	//在子进程中
-			//运行编译后的程序,生成用户产生的结果user.out文件
-			run_solution(lang, work_dir, time_lmt, usedtime,
-				     mem_lmt);
-		} else {	//父进程中
-			watch_solution(pidApp, infile, &ACflg, isspj, userfile,
-				       outfile, solution_id, lang, &topmemory,
-				       mem_lmt, &usedtime, time_lmt, p_id, PEflg,
-				       work_dir);
-
-		}
-		if (ACflg == OJ_TL) {
-			usedtime = time_lmt * 1000;
-		}
-		if (ACflg == OJ_RE) {
-			if (DEBUG)
-				printf("add RE info of %d..... \n",
-				       solution_id);
-			addreinfo(solution_id, "error.out");
-		} else {
-			addcustomout(solution_id);
-		}
-		update_solution(solution_id, OJ_TR, usedtime, topmemory >> 10,
-				0, 0, 0);
-		exit(0);
-	}
-	//这里貌似表示hustoj也支持和CF一样的单组测试
-	for (; (oi_mode || ACflg == OJ_AC) && (dirp = readdir(dp)) != NULL;) {
-
-		namelen = isInFile(dirp->d_name);	// check if the file is *.in or not
-		if (namelen == 0)
+	while ((oi_mode || ACflg == OJ_AC) && (dirp = readdir(dp)) != NULL) {
+		// check if the file is *.in or not
+		int namelen = isinfile(dirp->d_name);
+		if (namelen == 0) {
 			continue;
+		}
 
-		prepare_files(dirp->d_name, namelen, infile, p_id, work_dir,
-			      outfile, userfile, runner_id);
+		prepare_files(dirp->d_name, namelen, infile, outfile,
+				userfile, runner_id);
 		init_syscalls_limits(lang);
 
-		pid_t pidApp = fork();
-
+		pid_t pid = fork();
 		if (pidApp == 0) {
 			run_solution(lang, work_dir, time_lmt, usedtime,
 				     mem_lmt);
@@ -1194,6 +859,7 @@ int main(int argc, char **argv)
 			ACflg = OJ_AC;
 		}
 	}
+
 	if (ACflg == OJ_AC && PEflg == OJ_PE)
 		ACflg = OJ_PE;
 	MYSQL_RES *res;
@@ -1224,6 +890,7 @@ int main(int argc, char **argv)
 	    && lang < 5) {	//bash don't supported
 		get_sim(solution_id, lang, p_id);
 	}
+
 	//write_log("solution_id = %d", solution_id);
 	//write_log("sim_s_id = %d", sim_s_id);
 	//write_log("sim = %d", sim);
