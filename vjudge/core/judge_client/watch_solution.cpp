@@ -75,7 +75,6 @@ void watch_solution(pid_t pid)
 		if (solution->memory > solution->problem_info.memory_limit * STD_MB) {
 			if (solution->result == OJ_AC) {
 				solution->result = OJ_ML;
-				write_log("solution %d out of memory.\n", solution->solution_id);
 			}
 			ptrace(PTRACE_KILL, pid, NULL, NULL);
 			break;
@@ -90,14 +89,12 @@ void watch_solution(pid_t pid)
 		if ((lang < 4 || lang == 9) && get_file_size("error.out")
 				&& !oi_mode) {
 			solution->result = OJ_RE;
-			write_log("solution %d runtime error.\n", solution->solution_id);
 			ptrace(PTRACE_KILL, pid, NULL, NULL);
 			break;
 		}
 
 		if (!solution->problem_info.spj && get_file_size(userfile) > get_file_size(outfile) * 2 + 1024) {
 			solution->result = OJ_OL;
-			write_log("solution %d output limit.\n", solution->solution_id);
 			ptrace(PTRACE_KILL, pid, NULL, NULL);
 			break;
 		}
@@ -113,9 +110,6 @@ void watch_solution(pid_t pid)
 			//go on and on
 			;
 		} else {
-			if (DEBUG) {
-				printf("status>>8=%d\n", exitcode);
-			}
 			if (solution->result == OJ_AC) {
 				switch (exitcode) {
 					case SIGCHLD:
@@ -144,7 +138,7 @@ void watch_solution(pid_t pid)
 				printf("WTERMSIG=%d\n", sig);
 				psignal(sig, NULL);
 			}
-			if (*ACflg == OJ_AC) {
+			if (solution->result == OJ_AC) {
 				switch (sig) {
 					case SIGCHLD:
 					case SIGALRM: alarm(0);

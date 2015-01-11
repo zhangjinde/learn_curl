@@ -50,23 +50,6 @@
 #include "okcalls.h"
 #include "judge_client.h"
 
-#define ZOJ_COM
-
-/*copy from ZOJ
- http://code.google.com/p/zoj/source/browse/trunk/judge_client/client/tracer.cc?spec=svn367&r=367#39
- */
-#ifdef __i386
-#define REG_SYSCALL orig_eax
-#define REG_RET eax
-#define REG_ARG0 ebx
-#define REG_ARG1 ecx
-#else
-#define REG_SYSCALL orig_rax
-#define REG_RET rax
-#define REG_ARG0 rdi
-#define REG_ARG1 rsi
-#endif
-
 int DEBUG = 1;
 int db_port;
 int shm_run = 0;
@@ -140,262 +123,12 @@ int isinfile(const char fname[])
 	}
 }
 
-void find_next_nonspace(int *c1, int *c2, FILE **f1, FILE **f2, int *ret)
-{
-	// Find the next non-space character or \n.
-	while ((isspace(*c1)) || (isspace(*c2))) {
-		if (*c1 != *c2) {
-			if (*c2 == EOF) {
-				do {
-					*c1 = fgetc(*f1);
-				} while (isspace(*c1));
-				continue;
-			} else if (*c1 == EOF) {
-				do {
-					*c2 = fgetc(*f2);
-				} while (isspace(*c2));
-				continue;
-			} else if ((*c1 == '\r' && *c2 == '\n')) {
-				*c1 = fgetc(*f1);
-			} else if ((*c2 == '\r' && *c1 == '\n')) {
-				*c2 = fgetc(*f2);
-			} else {
-				if (DEBUG)
-					printf("%d=%c\t%d=%c", *c1, *c1, *c2, *c2);
-				;
-				*ret = OJ_PE;
-			}
-		}
-		if (isspace(*c1)) {
-			*c1 = fgetc(*f1);
-		}
-		if (isspace(*c2)) {
-			*c2 = fgetc(*f2);
-		}
-	}
-}
-
-/***
- int compare_diff(const char *file1,const char *file2){
- char diff[1024];
- sprintf(diff,"diff -q -B -b -w --strip-trailing-cr %s %s",file1,file2);
- int d=system(diff);
- if (d) return OJ_WA;
- sprintf(diff,"diff -q -B --strip-trailing-cr %s %s",file1,file2);
- int p=system(diff);
- if (p) return OJ_PE;
- else return OJ_AC;
-
- }
- */
-const char *getFileNameFromPath(const char *path)
-{
-	int i = 0;
-	for (i = strlen(path); i >= 0; i--) {
-		if (path[i] == '/')
-			return &path[i];
-	}
-	return path;
-}
-
-void make_diff_out(FILE * f1, FILE * f2, int c1, int c2, const char *path)
-{
-	FILE *out;
-	char buf[45];
-	out = fopen("diff.out", "a+");
-	fprintf(out, "=================%s\n", getFileNameFromPath(path));
-	fprintf(out, "Right:\n%c", c1);
-	if (fgets(buf, 44, f1)) {
-		fprintf(out, "%s", buf);
-	}
-	fprintf(out, "\n-----------------\n");
-	fprintf(out, "Your:\n%c", c2);
-	if (fgets(buf, 44, f2)) {
-		fprintf(out, "%s", buf);
-	}
-	fprintf(out, "\n=================\n");
-	fclose(out);
-}
-
-/*
- * translated from ZOJ judger r367
- * http://code.google.com/p/zoj/source/browse/trunk/judge_client/client/text_checker.cc#25
- *
- */
-int compare_zoj(const char *file1, const char *file2)
-{
-	int ret = OJ_AC;
-	int c1, c2;
-	FILE *f1, *f2;
-	f1 = fopen(file1, "r");
-	f2 = fopen(file2, "r");
-	if (!f1 || !f2) {
-		ret = OJ_RE;
-	} else {
-		for (;;) {
-			// Find the first non-space character at the beginning of line.
-			// Blank lines are skipped.
-			c1 = fgetc(f1);
-			c2 = fgetc(f2);
-			find_next_nonspace(&c1, &c2, &f1, &f2, &ret);
-			// Compare the current line.
-			for (;;) {
-				// Read until 2 files return a space or 0 together.
-				while ((!isspace(c1) && c1)
-				       || (!isspace(c2) && c2)) {
-					if (c1 == EOF && c2 == EOF) {
-						goto end;
-					}
-					if (c1 == EOF || c2 == EOF) {
-						break;
-					}
-					if (c1 != c2) {
-						// Consecutive non-space characters should be all exactly the same
-						ret = OJ_WA;
-						goto end;
-					}
-					c1 = fgetc(f1);
-					c2 = fgetc(f2);
-				}
-				find_next_nonspace(&c1, &c2, &f1, &f2, &ret);
-				if (c1 == EOF && c2 == EOF) {
-					goto end;
-				}
-				if (c1 == EOF || c2 == EOF) {
-					ret = OJ_WA;
-					goto end;
-				}
-
-				if ((c1 == '\n' || !c1) && (c2 == '\n' || !c2)) {
-					break;
-				}
-			}
-		}
-	}
-end:	if (ret == OJ_WA)
-		make_diff_out(f1, f2, c1, c2, file1);
-	if (f1)
-		fclose(f1);
-	if (f2)
-		fclose(f2);
-	return ret;
-}
-
-void delnextline(char s[])
-{
-	int L;
-	L = strlen(s);
-	while (L > 0 && (s[L - 1] == '\n' || s[L - 1] == '\r'))
-		s[--L] = 0;
-}
-
-int compare(const char *file1, const char *file2)
-{
-#ifdef ZOJ_COM
-	//compare ported and improved from zoj don't limit file size
-	return compare_zoj(file1, file2);
-#endif
-#ifndef ZOJ_COM
-	//the original compare from the first version of hustoj has file size limit
-	//and waste memory
-	FILE *f1, *f2;
-	char *s1, *s2, *p1, *p2;
-	int PEflg;
-	s1 = new char[STD_F_LIM + 512];
-	s2 = new char[STD_F_LIM + 512];
-	if (!(f1 = fopen(file1, "r")))
-		return OJ_AC;
-	for (p1 = s1; EOF != fscanf(f1, "%s", p1);)
-		while (*p1)
-			p1++;
-	fclose(f1);
-	if (!(f2 = fopen(file2, "r")))
-		return OJ_RE;
-	for (p2 = s2; EOF != fscanf(f2, "%s", p2);)
-		while (*p2)
-			p2++;
-	fclose(f2);
-	if (strcmp(s1, s2) != 0) {
-		//              printf("A:%s\nB:%s\n",s1,s2);
-		delete[]s1;
-		delete[]s2;
-
-		return OJ_WA;
-	} else {
-		f1 = fopen(file1, "r");
-		f2 = fopen(file2, "r");
-		PEflg = 0;
-		while (PEflg == 0 && fgets(s1, STD_F_LIM, f1)
-		       && fgets(s2, STD_F_LIM, f2)) {
-			delnextline(s1);
-			delnextline(s2);
-			if (strcmp(s1, s2) == 0)
-				continue;
-			else
-				PEflg = 1;
-		}
-		delete[]s1;
-		delete[]s2;
-		fclose(f1);
-		fclose(f2);
-		if (PEflg)
-			return OJ_PE;
-		else
-			return OJ_AC;
-	}
-#endif
-}
-
-void update_solution1(int solution_id, int result, int time, int memory, int sim,
-		     int sim_s_id, double pass_rate)
-{
-	if (result == OJ_TL && memory == 0) {
-		result = OJ_ML;
-	}
-	char sql[BUFSIZE];
-	if (oi_mode) {
-		sprintf(sql,
-			"UPDATE solution SET result=%d,time=%d,memory=%d,judgetime=NOW(),pass_rate=%f WHERE solution_id=%d LIMIT 1%c",
-			result, time, memory, pass_rate, solution_id, 0);
-	} else {
-		sprintf(sql,
-			"UPDATE solution SET result=%d,time=%d,memory=%d,judgetime=NOW() WHERE solution_id=%d LIMIT 1%c",
-			result, time, memory, solution_id, 0);
-	}
-	//      printf("sql= %s\n",sql);
-	if (mysql_real_query(conn, sql, strlen(sql))) {
-		//              printf("..update failed! %s\n",mysql_error(conn));
-	}
-	if (sim) {
-		sprintf(sql,
-			"insert into sim(s_id,sim_s_id,sim) values(%d,%d,%d) on duplicate key update  sim_s_id=%d,sim=%d",
-			solution_id, sim_s_id, sim, sim_s_id, sim);
-		//      printf("sql= %s\n",sql);
-		if (mysql_real_query(conn, sql, strlen(sql))) {
-			//              printf("..update failed! %s\n",mysql_error(conn));
-		}
-
-	}
-}
-
 int adddiffinfo(int solution_id)
 {
 	return addreinfo(solution_id, "diff.out");
 }
 
 
-/*
- int read_proc_statm(int pid){
- FILE * pf;
- char fn[4096];
- int ret;
- sprintf(fn,"/proc/%d/statm",pid);
- pf=fopen(fn,"r");
- fscanf(pf,"%d",&ret);
- fclose(pf);
- return ret;
- }
- */
 int get_proc_status(int pid, const char *mark)
 {
 	FILE *pf;
@@ -428,46 +161,6 @@ void prepare_files(char *filename, int namelen, char *infile, char *outfile,
 	execute_cmd("/bin/cp %s/data/%d/*.dic %s/", oj_home, p_id, work_dir);
 	sprintf(outfile, "%s/data/%d/%s.out", oj_home, p_id, fname);
 	sprintf(userfile, "%s/run%d/user.out", oj_home, runner_id);
-}
-
-int fix_java_mis_judge(char *work_dir, int *ACflg, int *topmemory, int mem_lmt)
-{
-	int comp_res = OJ_AC;
-	if (DEBUG)
-		execute_cmd("cat %s/error.out", work_dir);
-	comp_res = execute_cmd("/bin/grep 'Exception'  %s/error.out", work_dir);
-	if (!comp_res) {
-		printf("Exception reported\n");
-		*ACflg = OJ_RE;
-	}
-
-	comp_res =
-	    execute_cmd("/bin/grep 'java.lang.OutOfMemoryError'  %s/error.out",
-			work_dir);
-
-	if (!comp_res) {
-		printf("JVM need more Memory!");
-		*ACflg = OJ_ML;
-		*topmemory = mem_lmt * STD_MB;
-	}
-	comp_res =
-	    execute_cmd("/bin/grep 'java.lang.OutOfMemoryError'  %s/user.out",
-			work_dir);
-
-	if (!comp_res) {
-		printf("JVM need more Memory or Threads!");
-		*ACflg = OJ_ML;
-		*topmemory = mem_lmt * STD_MB;
-	}
-	comp_res = execute_cmd("/bin/grep 'Could not create'  %s/error.out",
-			       work_dir);
-	if (!comp_res) {
-		printf
-		    ("jvm need more resource,tweak -Xmx(OJ_JAVA_BONUS) Settings");
-		*ACflg = OJ_RE;
-		//topmemory=0;
-	}
-	return comp_res;
 }
 
 int special_judge(char *oj_home, int problem_id, char *infile, char *outfile,
@@ -518,52 +211,6 @@ int special_judge(char *oj_home, int problem_id, char *infile, char *outfile,
 	}
 	return ret;
 
-}
-
-void judge_solution(int *ACflg, int usedtime, int time_lmt, int isspj,
-		    int p_id, char *infile, char *outfile, char *userfile,
-		    int *PEflg, int lang, char *work_dir, int *topmemory,
-		    int mem_lmt, int solution_id, double num_of_test)
-{
-	//usedtime-=1000;
-	int comp_res;
-	if (!oi_mode)
-		num_of_test = 1.0;
-	if (*ACflg == OJ_AC
-	    && usedtime > time_lmt * 1000 * (use_max_time ? 1 : num_of_test))
-		*ACflg = OJ_TL;
-	if (*topmemory > mem_lmt * STD_MB)
-		*ACflg = OJ_ML;	//issues79
-	// compare
-	if (*ACflg == OJ_AC) {
-		if (isspj) {
-			comp_res =
-			    special_judge(oj_home, p_id, infile, outfile,
-					  userfile);
-
-			if (comp_res == 0)
-				comp_res = OJ_AC;
-			else {
-				if (DEBUG)
-					printf("fail test %s\n", infile);
-				comp_res = OJ_WA;
-			}
-		} else {
-			comp_res = compare(outfile, userfile);
-		}
-		if (comp_res == OJ_WA) {
-			*ACflg = OJ_WA;
-			if (DEBUG)
-				printf("fail test %s\n", infile);
-		} else if (comp_res == OJ_PE)
-			*PEflg = OJ_PE;
-		*ACflg = comp_res;
-	}
-	//jvm popup messages, if don't consider them will get miss-WrongAnswer
-	if (lang == 3) {
-		comp_res =
-		    fix_java_mis_judge(work_dir, ACflg, topmemory, mem_lmt);
-	}
 }
 
 int get_page_fault_mem(struct rusage ruse, pid_t pidApp)
@@ -779,23 +426,14 @@ int main(int argc, char **argv)
 	}
 
 	// run
-	int p_id = 0;
-	int time_lmt = 1;
-	int mem_lmt  = 128;
-	int lang = 0;
-	int isspj = 0;
-	int max_case_time = 0;
-	char user_id[BUFSIZE];
 	char fullpath[BUFSIZE];
 	char infile[BUFSIZE];
 	char outfile[BUFSIZE];
 	char userfile[BUFSIZE];
-	int ACflg = OJ_AC;
-	int PEflg = OJ_AC;
-	int usedtime = 0, topmemory = 0;
 	double pass_rate = 0.0;
+	int max_case_time = 0;
 	int num_of_test = 0;
-	int finalACflg = ACflg;
+	int finalACflg = OJ_AC;
 
 	// the fullpath of data dir
 	sprintf(fullpath, "%s/data/%d", oj_home, solution->problem_info.problem_id);
@@ -827,41 +465,45 @@ int main(int argc, char **argv)
 		init_syscalls_limits(lang);
 
 		pid_t pid = fork();
-		if (pidApp == 0) {
-			run_solution(lang, work_dir, time_lmt, usedtime,
-				     mem_lmt);
-		} else {	//父进程等待子进程判题结束,获取结果
+		if (pid == 0) {		// son run solution
+			run_solution();
+		} else {
 			num_of_test++;
-			watch_solution(pidApp, infile, &ACflg, isspj, userfile,
-				       outfile, solution_id, lang, &topmemory,
-				       mem_lmt, &usedtime, time_lmt, p_id, PEflg,
-				       work_dir);
-			judge_solution(&ACflg, usedtime, time_lmt, isspj, p_id,
-				       infile, outfile, userfile, &PEflg, lang,
-				       work_dir, &topmemory, mem_lmt,
-				       solution_id, num_of_test);
+			watch_solution(pid);
+			judge_solution(infile, outfile, userfile, num_of_test);
 			if (use_max_time) {
-				max_case_time =
-				    usedtime >
-				    max_case_time ? usedtime : max_case_time;
-				usedtime = 0;
+				max_case_time = solution->time > max_case_time ? solution->time : max_case_time;
+				solution->time = 0;
 			}
-			//clean_session(pidApp);
 		}
 		if (oi_mode) {
-			if (ACflg == OJ_AC) {
+			if (solution->result == OJ_AC) {
 				++pass_rate;
 			}
-			if (finalACflg < ACflg) {
-				finalACflg = ACflg;
+			if (finalACflg < solution->result) {
+				finalACflg = solution->result;
 			}
-
-			ACflg = OJ_AC;
+			solution->result = OJ_AC;
 		}
 	}
 
-	if (ACflg == OJ_AC && PEflg == OJ_PE)
-		ACflg = OJ_PE;
+	if (solution->result == OJ_AC && solution->ispe == OJ_PE) {
+		solution->result = OJ_PE;
+	}
+
+	if (DEBUG) {
+		switch (solution->result) {
+			case OJ_AC: write_log("solution %d accepted.\n"); break;
+			case OJ_PE: write_log("solution %d persentation error.\n"); break;
+			case OJ_WA: write_log("solution %d wrong answer.\n"); break;
+			case OJ_TL: write_log("solution %d time limit exceeded.\n"); break;
+			case OJ_ML: write_log("solution %d memory limit exceeded.\n"); break;
+			case OJ_OL: write_log("solution %d output limit exceeded.\n"); break;
+			case OJ_RE: write_log("solution %d runtime error.\n"); break;
+			case OJ_CE: write_log("solution %d complie error.\n"); break;
+		}
+	}
+
 	MYSQL_RES *res;
 	MYSQL_ROW row;
 	char sql[BUFSIZE];

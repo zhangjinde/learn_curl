@@ -38,6 +38,7 @@ struct problem_info_t {
 	int memory_limit;		// 内存限制（兆）
 	int ojtype;			// oj的类型
 	int spj;			// 是否是spj
+	int ischa;			// 是否查重
 	int accepted;			// 通过的提交次数
 	int submit;			// 总提交次数
 	int solved;			// 未用
@@ -266,7 +267,8 @@ int get_problem_info(MYSQL *conn, struct problem_info_t *problem_info)
 	MYSQL_RES *result;
 	memset(sql, 0, sizeof(sql));
 	sprintf(sql, "select spj, time_limit, memory_limit, accepted, submit, "
-			"solved from problem where problem_id = %d",
+			"solved, ischa from problem,cha where problem.problem_id "
+			"= %d and problem.problem_id=cha.problem_id",
 			problem_info->problem_id);
 	if (mysql_real_query(conn, sql, strlen(sql))) {
 		fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
@@ -290,6 +292,7 @@ int get_problem_info(MYSQL *conn, struct problem_info_t *problem_info)
 		problem_info->accepted = atoi(row[3]);
 		problem_info->submit = atoi(row[4]);
 		problem_info->solved = atoi(row[5]);
+		problem_info->ischa = atoi(row[6]);
 		int i = 0;
 		int field_cnt = mysql_field_count(conn);
 		for (i = 0; i < field_cnt; ++i) {

@@ -167,8 +167,9 @@ int get_problem_info(struct problem_info_t *problem_info)
 	}
 	MYSQL_RES *result;
 	if (execute_sql("select spj, time_limit, memory_limit, "
-			"accepted, submit from problem where "
-			"problem_id = %d", problem_info->problem_id) < 0) {
+			"accepted, submit,ischa from problem where "
+			"problem.problem_id = %d and problem.problem_id"
+			"=cha.problem_id", problem_info->problem_id) < 0) {
 		return -1;
 	}
 	result = mysql_store_result(conn);
@@ -189,6 +190,7 @@ int get_problem_info(struct problem_info_t *problem_info)
 		problem_info->memory_limit += atoi(row[2]);
 		problem_info->accepted = atoi(row[3]);
 		problem_info->submit = atoi(row[4]);
+		problem_info->ischa = atoi(row[5]);
 	} else {
 		mysql_free_result(result);
 		write_log("no problem %d.", problem_info->problem_id);
@@ -234,6 +236,7 @@ int get_problem_info(struct problem_info_t *problem_info)
 		write_log("memory_limit = %d\n", problem_info->memory_limit);
 		write_log("accepted = %d\n", problem_info->accepted);
 		write_log("submit = %d\n", problem_info->submit);
+		write_log("ischa = %d\n", problem_info->ischa);
 		write_log("ojtype = %d\n", problem_info->ojtype);
 		write_log("origin_id = %d\n", problem_info->origin_id);
 	}

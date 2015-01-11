@@ -32,6 +32,23 @@
 #define OJ_CO 12
 #define OJ_TR 13		//Test Running
 
+
+#define ZOJ_COM
+/*copy from ZOJ
+ http://code.google.com/p/zoj/source/browse/trunk/judge_client/client/tracer.cc?spec=svn367&r=367#39
+ */
+#ifdef __i386
+#define REG_SYSCALL orig_eax
+#define REG_RET eax
+#define REG_ARG0 ebx
+#define REG_ARG1 ecx
+#else
+#define REG_SYSCALL orig_rax
+#define REG_RET rax
+#define REG_ARG0 rdi
+#define REG_ARG1 rsi
+#endif
+
 /*
  * 题目信息结构体
  */
@@ -43,6 +60,7 @@ struct problem_info_t {
 	int memory_limit;		// 内存限制（兆）
 	int ojtype;			// oj的类型
 	int spj;			// 是否是spj
+	int ischa;			// 是否查重
 	int accepted;			// 通过的提交次数
 	int submit;			// 总提交次数
 };
@@ -57,6 +75,7 @@ struct solution_t {
 	int time;			// 用时（秒）
 	int memory;			// 所用空间
 	int result;			// 结果（4：AC）
+	int ispe;			// PE
 	int language;			// 语言
 	int code_length;		// 代码长度
 	double pass_rate;		// 通过百分比（OI模式下可用）
@@ -100,5 +119,7 @@ extern void run_solution(void);
 extern int addcustomout(int solution_id);
 extern void watch_solution(pid_t pid);
 extern void test_run(void);
+extern int compare(const char *file1, const char *file2);
+extern void judge_solution(char *infile, char *outfile, char *userfile, double num_of_test);
 
 #endif	// _JUDGE_CLIENT_H
