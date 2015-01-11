@@ -85,10 +85,10 @@ void call_for_exit(int s)
 int write_log(const char *fmt, ...)
 {
 	va_list ap;
-	char buffer[BUFSIZE * 4];
+	char buffer[BUFFER_SIZE * 4];
 	time_t t = time(NULL);
 	struct tm *date = localtime(&t);
-	char timestr[BUFSIZE];
+	char timestr[BUFFER_SIZE];
 	sprintf(timestr, "%s", asctime(date));
 	int len = strlen(timestr);
 	sprintf(buffer, "%s/log/judged%d%d%d.log", oj_home, date->tm_year + 1900,
