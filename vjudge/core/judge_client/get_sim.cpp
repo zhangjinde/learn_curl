@@ -51,7 +51,7 @@ extern struct solution_t *solution;
 extern int call_counter[BUFSIZE];
 extern int call_array_size;
 
-int copy_ac_src(void)
+void copy_ac_src(void)
 {
 	int lang = solution->language;
 	int solution_id = solution->solution_id;
@@ -66,13 +66,13 @@ int copy_ac_src(void)
 	if (lang == 0) {
 		execute_cmd
 		    ("/bin/ln ../data/%d/ac/%d.%s ../data/%d/ac/%d.%s",
-		     pid, solution_id, lang_ext[lang], pid, solution_id,
+		     problem_id, solution_id, lang_ext[lang], problem_id, solution_id,
 		     lang_ext[lang + 1]);
 	}
 	if (lang == 1) {
 		execute_cmd
 		    ("/bin/ln ../data/%d/ac/%d.%s ../data/%d/ac/%d.%s",
-		     pid, solution_id, lang_ext[lang], pid, solution_id,
+		     problem_id, solution_id, lang_ext[lang], problem_id, solution_id,
 		     lang_ext[lang - 1]);
 	}
 }
@@ -86,7 +86,7 @@ int update_sim(void)
 	}
 	int s_id = solution->solution_id;
 	int sim_s_id, sim;
-	while (fscanf("%d%d", &sim_s_id, &sim) != EOF) {
+	while (fscanf(fp, "%d%d", &sim_s_id, &sim) != EOF) {
 		if (execute_sql("insert into sim(s_id, sim_s_id, sim) "
 				"values(%d,%d,%d) ", s_id, sim_s_id, sim) < 0) {
 			return -1;
@@ -98,6 +98,7 @@ int update_sim(void)
 
 int get_sim(void)
 {
+	int lang = solution->language;
 	int problem_id = solution->problem_info.problem_id;
 	char src_pth[BUFSIZE];
 
