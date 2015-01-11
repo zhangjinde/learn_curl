@@ -72,6 +72,10 @@ int write_log(const char *fmt, ...)
 {
 	va_list ap;
 	char buffer[BUFSIZE * 4];
+	time_t tm = time(NULL);
+	char timestr[BUFSIZE];
+	sprintf(timestr, "%s", ctime(&tm));
+	int len = strlen(timestr);
 	sprintf(buffer, "%s/log/client.log", oj_home);
 	FILE *fp = fopen(buffer, "a+");
 	if (fp == NULL) {
@@ -83,10 +87,6 @@ int write_log(const char *fmt, ...)
 	}
 	va_start(ap, fmt);
 	vsprintf(buffer, fmt, ap);
-	time_t tm = time(NULL);
-	char timestr[BUFSIZE];
-	sprintf(timestr, "%s", ctime(&tm));
-	int len = strlen(timestr);
 	timestr[len - 1] = '\0';
 	int ret = fprintf(fp, "[%s]:%s", timestr, buffer);
 	va_end(ap);
