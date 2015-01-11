@@ -77,7 +77,8 @@ int write_log(const char *fmt, ...)
 	char timestr[BUFSIZE];
 	sprintf(timestr, "%s", asctime(date));
 	int len = strlen(timestr);
-	sprintf(buffer, "%s/log/client%d%d%d.log", oj_home, date->tm_year, date->tm_mon, date->tm_mday);
+	sprintf(buffer, "%s/log/client%d%d%d.log", oj_home, date->tm_year + 1900,
+			date->tm_mon + 1, date->tm_mday);
 	FILE *fp = fopen(buffer, "a+");
 	if (fp == NULL) {
 		fprintf(stderr, "open log file error:%s.\n", strerror(errno));

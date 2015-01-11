@@ -85,22 +85,24 @@ void call_for_exit(int s)
 int write_log(const char *fmt, ...)
 {
 	va_list ap;
-	char buffer[BUFFER_SIZE * 4];
-	sprintf(buffer, "%s/log/judged.log", oj_home);
+	char buffer[BUFSIZE * 4];
+	time_t t = time(NULL);
+	struct tm *date = localtime(&t);
+	char timestr[BUFSIZE];
+	sprintf(timestr, "%s", asctime(date));
+	int len = strlen(timestr);
+	sprintf(buffer, "%s/log/judged%d%d%d.log", oj_home, date->tm_year + 1900,
+			date->tm_mon + 1, date->tm_mday);
 	FILE *fp = fopen(buffer, "a+");
-	if (DEBUG) {
-		freopen("/dev/stdout", "w", fp);
-	}
 	if (fp == NULL) {
 		fprintf(stderr, "open log file error:%s.\n", strerror(errno));
 		return 0;
 	}
+	if (DEBUG) {
+		freopen("/dev/stdout", "w", fp);
+	}
 	va_start(ap, fmt);
 	vsprintf(buffer, fmt, ap);
-	time_t tm = time(NULL);
-	char timestr[BUFFER_SIZE];
-	sprintf(timestr, "%s", ctime(&tm));
-	int len = strlen(timestr);
 	timestr[len - 1] = '\0';
 	int ret = fprintf(fp, "[%s]:%s", timestr, buffer);
 	va_end(ap);
