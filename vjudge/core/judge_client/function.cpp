@@ -103,6 +103,7 @@ int execute_cmd(const char *fmt, ...)
 	va_list ap;
 	va_start(ap, fmt);
 	vsprintf(cmd, fmt, ap);
+	write_log("execute cmd: %s.\n", cmd);
 	ret = system(cmd);
 	va_end(ap);
 	return ret;
@@ -442,25 +443,6 @@ int update_solution(void)
 	if (solution->isre && addreinfo(solution->solution_id, "error.out") < 0) {
 		return -1;
 	}
-	return 0;
-}
-
-int update_sim(void)
-{
-	FILE *fp = fopen("sim", "r");
-	if (fp == NULL) {
-		write_log("open file sim error:%s.\n", strerror(errno));
-		return -1;
-	}
-	int s_id = solution->solution_id;
-	int sim_s_id, sim;
-	while (fscanf("%d%d", &sim_s_id, &sim) != EOF) {
-		if (execute_sql("insert into sim(s_id, sim_s_id, sim) "
-				"values(%d,%d,%d) ", s_id, sim_s_id, sim) < 0) {
-			return -1;
-		}
-	}
-	fclose(fp);
 	return 0;
 }
 

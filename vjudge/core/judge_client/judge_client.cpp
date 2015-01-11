@@ -362,16 +362,15 @@ int main(int argc, char **argv)
 		default: write_log("solution %d result is %d.\n", solution_id, solution->result);
 	}
 
-	if (solution->result == OJ_AC) {
-	}
 	if (solution->problem_info.ischa && sim_enable
 			&& solution->result == OJ_AC
 			&& (!oi_mode || finalACflg == OJ_AC)
 			&& solution->language < 5) {	//bash don't supported
 		get_sim();
-		update_sim();
 	}
-
+	if (solution->result == OJ_AC) {
+		copy_ac_src();
+	}
 	if ((oi_mode && finalACflg == OJ_RE) || solution->result == OJ_RE) {
 		addreinfo(solution_id, "error.out");
 	}
