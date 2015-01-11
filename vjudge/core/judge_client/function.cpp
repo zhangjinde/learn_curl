@@ -72,11 +72,12 @@ int write_log(const char *fmt, ...)
 {
 	va_list ap;
 	char buffer[BUFSIZE * 4];
-	time_t tm = time(NULL);
+	time_t t = time(NULL);
+	struct tm *date = localtime(&t);
 	char timestr[BUFSIZE];
-	sprintf(timestr, "%s", ctime(&tm));
+	sprintf(timestr, "%s", asctime(date));
 	int len = strlen(timestr);
-	sprintf(buffer, "%s/log/client.log", oj_home);
+	sprintf(buffer, "%s/log/client%d%d%d.log", oj_home, date->tm_year, date->tm_mon, date->tm_mday);
 	FILE *fp = fopen(buffer, "a+");
 	if (fp == NULL) {
 		fprintf(stderr, "open log file error:%s.\n", strerror(errno));
