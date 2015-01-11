@@ -100,5 +100,6 @@ extern int update_solution(void);
 extern struct solution_t *get_solution(int sid);
 extern int get_problem_info(struct problem_info_t *problem_info);
 extern void save_solution_src(void);
+extern int load_file(const char *filename, char *buf);
 
 #endif	// _JUDGE_CLIENT_H

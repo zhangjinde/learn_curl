@@ -398,7 +398,7 @@ int compare(const char *file1, const char *file2)
 #endif
 }
 
-void update_solution(int solution_id, int result, int time, int memory, int sim,
+void update_solution1(int solution_id, int result, int time, int memory, int sim,
 		     int sim_s_id, double pass_rate)
 {
 	if (result == OJ_TL && memory == 0) {
@@ -574,27 +574,20 @@ void update_problem(int pid)
 		write_log(mysql_error(conn));
 }
 
-int compile(int lang)
+int compile(void)
 {
-	int pid;
-
-	const char *CP_C[] =
-	    { "gcc", "Main.c", "-o", "Main", "-fno-asm", "-Wall",
+	int lang = solution->language;
+	const char *CP_C[] = { "gcc", "Main.c", "-o", "Main", "-fno-asm", "-Wall",
 		"-lm", "--static", "-std=c99", "-DONLINE_JUDGE", NULL
 	};
 	const char *CP_X[] =
 	    { "g++", "Main.cc", "-o", "Main", "-fno-asm", "-Wall",
 		"-lm", "--static", "-std=c++0x", "-DONLINE_JUDGE", NULL
 	};
-	const char *CP_P[] =
-	    { "fpc", "Main.pas", "-O2", "-Co", "-Ct", "-Ci", NULL };
-//      const char * CP_J[] = { "javac", "-J-Xms32m", "-J-Xmx256m","-encoding","UTF-8", "Main.java",NULL };
-
+	const char *CP_P[] = { "fpc", "Main.pas", "-O2", "-Co", "-Ct", "-Ci", NULL };
 	const char *CP_R[] = { "ruby", "-c", "Main.rb", NULL };
 	const char *CP_B[] = { "chmod", "+rx", "Main.sh", NULL };
-	const char *CP_Y[] = { "python", "-c",
-		"import py_compile; py_compile.compile(r'Main.py')", NULL
-	};
+	const char *CP_Y[] = { "python", "-c", "import py_compile; py_compile.compile(r'Main.py')", NULL };
 	const char *CP_PH[] = { "php", "-l", "Main.php", NULL };
 	const char *CP_PL[] = { "perl", "-c", "Main.pl", NULL };
 	const char *CP_CS[] = { "gmcs", "-warn:0", "Main.cs", NULL };
@@ -604,12 +597,10 @@ int compile(int lang)
 		"-lobjc", "-lgnustep-base", NULL
 	};
 	const char *CP_BS[] = { "fbc", "Main.bas", NULL };
-	const char *CP_CLANG[] =
-	    { "clang", "Main.c", "-o", "Main", "-fno-asm", "-Wall",
+	const char *CP_CLANG[] = { "clang", "Main.c", "-o", "Main", "-fno-asm", "-Wall",
 		"-lm", "--static", "-std=c99", "-DONLINE_JUDGE", NULL
 	};
-	const char *CP_CLANG_CPP[] =
-	    { "clang++", "Main.cc", "-o", "Main", "-fno-asm", "-Wall",
+	const char *CP_CLANG_CPP[] = { "clang++", "Main.cc", "-o", "Main", "-fno-asm", "-Wall",
 		"-lm", "--static", "-std=c++0x", "-DONLINE_JUDGE", NULL
 	};
 
@@ -617,9 +608,9 @@ int compile(int lang)
 	char *CP_J[7];
 
 	int i = 0;
-	for (i = 0; i < 7; i++)
+	for (i = 0; i < 7; i++) {
 		CP_J[i] = javac_buf[i];
-
+	}
 	sprintf(CP_J[0], "javac");
 	sprintf(CP_J[1], "-J%s", java_xms);
 	sprintf(CP_J[2], "-J%s", java_xmx);
@@ -628,8 +619,10 @@ int compile(int lang)
 	sprintf(CP_J[5], "Main.java");
 	CP_J[6] = (char *)NULL;
 
-	pid = fork();
-	if (pid == 0) {
+	pid_t pid = fork();
+	if (pid < 0) {
+		write_log("fork error:%s.\n", strerror(errno));
+	} else if (pid == 0) {
 		struct rlimit LIM;
 		LIM.rlim_max = 60;
 		LIM.rlim_cur = 60;
@@ -649,7 +642,6 @@ int compile(int lang)
 		setrlimit(RLIMIT_AS, &LIM);
 		if (lang != 2 && lang != 11) {
 			freopen("ce.txt", "w", stderr);
-			//freopen("/dev/null", "w", stdout);
 		} else {
 			freopen("ce.txt", "w", stdout);
 		}
@@ -712,19 +704,18 @@ int compile(int lang)
 		}
 		if (DEBUG)
 			printf("compile end!\n");
-		//exit(!system("cat ce.txt"));
 		exit(0);
 	} else {
 		int status = 0;
-
 		waitpid(pid, &status, 0);
-		if (lang > 3 && lang < 7)
+		if (lang > 3 && lang < 7) {
 			status = get_file_size("ce.txt");
-		if (DEBUG)
+		}
+		if (DEBUG) {
 			printf("status=%d\n", status);
+		}
 		return status;
 	}
-
 }
 
 /*
@@ -1414,34 +1405,18 @@ int main(int argc, char **argv)
 	//将提交的源代码存放在work_dir的Main.*文件中
 	save_solution_src();
 
-	//java is lucky
-	if (lang >= 3) {
-		// the limit for java
-		time_lmt = time_lmt + java_time_bonus;
-		mem_lmt = mem_lmt + java_memory_bonus;
-		// copy java.policy
-		execute_cmd("/bin/cp %s/etc/java0.policy %s/java.policy",
-			    oj_home, work_dir);
-	}
-
-	// compile
-	//      printf("%s\n",cmd);
-	// set the result to compiling
-	int Compile_OK;
-
 	//编译源文件
-	Compile_OK = compile(lang);
+	solution->isce = compile();
 	//编译不成功,将信息更新回数据库
-	if (Compile_OK != 0) {
-		addceinfo(solution_id);
-		update_solution(solution_id, OJ_CE, 0, 0, 0, 0, 0.0);
+	if (solution->isce) {
+		write_log("compile error");
+		solution->result = OJ_CE;
+		update_solution();
 		update_user(user_id);
 		update_problem(p_id);
 		mysql_close(conn);
 		if (!DEBUG) {
 			clean_workdir();
-		} else {
-			write_log("compile error");
 		}
 		exit(0);
 	} else {

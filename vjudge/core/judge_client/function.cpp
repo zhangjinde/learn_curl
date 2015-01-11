@@ -292,6 +292,9 @@ struct solution_t *get_solution(int sid)
 		if (solution->language >= 3) {
 			solution->problem_info.time_limit = java_time_bonus;
 			solution->problem_info.memory_limit = java_memory_bonus;
+			// copy java.policy
+			execute_cmd("/bin/cp %s/etc/java0.policy %s/java.policy",
+				    oj_home, work_dir);
 		}
 		if (DEBUG) {
 			write_log("solution_id = %d\n", solution->solution_id);
@@ -347,6 +350,7 @@ int update_solution(void)
 			return -1;
 		}
 		memset(sql, 0, BUFSIZE * BUFSIZE);
+		load_file("ce.txt", solution->compileinfo);
 		strcpy(sql, "insert into compileinfo (solution_id, error) values(");
 		end = sql + strlen(sql);
 		*end++ = '\'';
@@ -372,6 +376,7 @@ int update_solution(void)
 			return -1;
 		};
 		memset(sql, 0, BUFSIZE * BUFSIZE);
+		load_file("error.out", solution->runtimeinfo);
 		strcpy(sql, "insert into runtimeinfo (solution_id, error) values(");
 		end = sql + strlen(sql);
 		*end++ = '\'';
@@ -405,4 +410,19 @@ void save_solution_src(void)
 	}
 	fprintf(fp_src, "%s", solution->src);
 	fclose(fp_src);
+}
+
+int load_file(const char *filename, char *buf)
+{
+	FILE *fp = fopen(filename, "r");
+	if (fp == NULL) {
+		write_log("cann't open file %s.\n", filename);
+		return -1;
+	}
+	char tmp[BUFSIZE];
+	buf[0] = '\0';
+	while (fgets(tmp, BUFSIZE, fp) != NULL) {
+		strcat(buf, tmp);
+	}
+	return 0;
 }
