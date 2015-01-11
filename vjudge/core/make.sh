@@ -18,6 +18,7 @@ sudo chmod +x sim*
 sudo cp sim_c /usr/bin
 sudo cp sim_java /usr/bin/sim_java
 sudo cp sim_pasc /usr/bin/sim_pas
+make clean
 cd ..
 sudo cp sim.sh /usr/bin
 sudo chmod +x /usr/bin/sim.sh
