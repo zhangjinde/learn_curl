@@ -92,7 +92,6 @@ int execute_sql(const char *fmt, ...)
 	if (mysql_real_query(conn, sql, strlen(sql))) {
 		write_log("execute sql error:%s.\n", mysql_error(conn));
 		free(sql);
-		sleep(db_timeout);
 		return -1;
 	} else {
 		free(sql);
