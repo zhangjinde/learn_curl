@@ -46,7 +46,7 @@ int compile(void)
 	write_log("compile solution %d.\n", solution->solution_id);
 	pid_t pid = fork();
 	if (pid < 0) {
-		write_log("fork error:%s.\n", strerror(errno));
+		write_log("compile fork error:%s.\n", strerror(errno));
 	} else if (pid == 0) {
 		struct rlimit LIM;
 		LIM.rlim_max = 60;
@@ -96,7 +96,7 @@ int compile(void)
 			case 11: execvp(CP_BS[0], (char *const *)CP_BS); break;
 			case 13: execvp(CP_CLANG[0], (char *const *)CP_CLANG); break;
 			case 14: execvp(CP_CLANG_CPP[0], (char *const *)CP_CLANG_CPP); break;
-			default: printf("nothing to do!\n"); break;
+			default: printf("compile nothing to do!\n"); break;
 		}
 		exit(EXIT_SUCCESS);
 	} else {
@@ -105,9 +105,7 @@ int compile(void)
 		if (lang > 3 && lang < 7) {
 			status = get_file_size("ce.txt");
 		}
-		if (DEBUG) {
-			write_log("status = %d.\n", status);
-		}
+		write_log("compile status = %d.\n", status);
 		return status;
 	}
 	return 0;

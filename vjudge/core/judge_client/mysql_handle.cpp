@@ -50,7 +50,7 @@ int execute_sql(const char *fmt, ...)
 {
 	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (sql == NULL) {
-		write_log("alloc sql memory error!\n");
+		write_log("alloc execute_sql sql buf memory error!\n");
 		return -1;
 	}
 	memset(sql, 0, BUFSIZE * BUFSIZE);

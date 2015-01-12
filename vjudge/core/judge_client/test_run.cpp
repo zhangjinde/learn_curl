@@ -52,7 +52,10 @@ void test_run(void)
 	init_syscalls_limits(solution->language);
 
 	pid_t pid = fork();
-	if (pid == 0) {		//在子进程中
+	if (pid < 0) {
+		write_log("test_run fork error:%s.\n", strerror(errno));
+		solution->result = OJ_JE;
+	} else if (pid == 0) {		//在子进程中
 		//运行编译后的程序,生成用户产生的结果user.out文件
 		run_solution();
 	} else {		//父进程中

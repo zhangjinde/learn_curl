@@ -327,7 +327,7 @@ int main(int argc, char **argv)
 
 		pid_t pid = fork();
 		if (pid < 0) {
-			write_log("fork error:%s.\n", strerror(errno));
+			write_log("main fork error:%s.\n", strerror(errno));
 		} else if (pid == 0) {		// son run solution
 			run_solution();
 		} else {

@@ -9,7 +9,7 @@ int login_hduoj(void)
 	char filename[BUFSIZE];
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (html == NULL) {
-		write_log("alloc memory error.\n");
+		write_log("alloc login_hduoj html buf memory error.\n");
 		return -1;
 	}
 	sprintf(filename, "%dlogin.txt", solution->solution_id);
@@ -24,6 +24,7 @@ int login_hduoj(void)
 		|| strstr(html, "<h2>The requested URL could not be retrieved</h2>") != NULL
 		|| strstr(html, "<H1 style=\"COLOR: #1A5CC8\" align=center>Sign In Your Account</H1>") != NULL
 		|| strstr(html, "PHP: Maximum execution time of") != NULL) {
+		write_log("login_hduoj remote server error.\n");
 		free(html);
 		return -1;
 	}
@@ -35,7 +36,7 @@ int submit_hduoj()
 {
 	char *post_str = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (post_str == NULL) {
-		write_log("alloc memory error.\n");
+		write_log("alloc submit_hduoj post_str buf memory error.\n");
 		return -1;
 	}
 
@@ -65,7 +66,7 @@ int submit_hduoj()
 
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (html == NULL) {
-		write_log("alloc memory error.\n");
+		write_log("alloc submit_hduoj html buf memory error.\n");
 		free(str);
 		free(post_str);
 		return -1;
@@ -79,6 +80,7 @@ int submit_hduoj()
 		|| strstr(html, "<H1 style=\"COLOR: #1A5CC8\" align=center>Sign In Your Account</H1>") != NULL
 		|| strstr(html, "PHP: Maximum execution time of") != NULL
 		|| strstr(html, "<DIV>Exercise Is Closed Now!</DIV>") != NULL) {
+		write_log("submit_hduoj remote server error.\n");
 		free(str);
 		free(html);
 		free(post_str);
@@ -115,7 +117,7 @@ int get_ceinfo_hduoj(void)
 	}
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (html == NULL) {
-		write_log("alloc memory error.\n");
+		write_log("alloc get_ceinfo_hduoj html buf memory error.\n");
 		regfree(&reg);
 		return -1;
 	}
@@ -129,6 +131,7 @@ int get_ceinfo_hduoj(void)
 			|| strstr(html, "<H1 style=\"COLOR: #1A5CC8\" align=center>Sign In Your Account</H1>") != NULL
 			|| strstr(html, "PHP: Maximum execution time of") != NULL
 			|| strstr(html, "<DIV>Exercise Is Closed Now!</DIV>") != NULL) {
+		write_log("get_ceinfo_hduoj remote server error.\n");
 		write_log("get solution %d compile error info error.\n", solution->solution_id);
 		free(html);
 		regfree(&reg);
@@ -136,6 +139,7 @@ int get_ceinfo_hduoj(void)
 	} else {
 		status = regexec(&reg, html, nmatch, pmatch, 0);
 		if (status == REG_NOMATCH) {
+			write_log("get_ceinfo_hduoj regex no match.\n", solution->solution_id);
 			write_log("get solution %d compile error info error.\n", solution->solution_id);
 			regfree(&reg);
 			free(html);
@@ -241,7 +245,7 @@ int get_status_hduoj(void)
 	}
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (html == NULL) {
-		write_log("alloc memory error.\n");
+		write_log("alloc get_status_hduoj html buf memory error.\n");
 		regfree(&reg);
 		return OJ_JE;
 	}
@@ -262,7 +266,7 @@ int get_status_hduoj(void)
 			|| strstr(html, "<H1 style=\"COLOR: #1A5CC8\" align=center>Sign In Your Account</H1>") != NULL
 			|| strstr(html, "PHP: Maximum execution time of") != NULL
 			|| strstr(html, "<DIV>Exercise Is Closed Now!</DIV>") != NULL) {
-			write_log("remote server error.\n");
+			write_log("get_status_hduoj remote server error.\n");
 			write_log("get solution %d status error.\n", solution->solution_id);
 			free(html);
 			regfree(&reg);

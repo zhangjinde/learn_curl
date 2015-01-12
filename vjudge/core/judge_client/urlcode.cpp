@@ -23,7 +23,7 @@ char *url_encode(char *str)
 	char *buf = (char *)malloc(strlen(str) * 3 + 1);
 	char *pbuf = buf;
 	if (buf == NULL) {
-		write_log("alloc memory error!\n");
+		write_log("alloc url_encode buf memory error!\n");
 		return NULL;
 	}
 	while (*pstr) {
@@ -51,7 +51,7 @@ char *url_decode(char *str)
 	char *buf = (char *)malloc(strlen(str) + 1);
 	char *pbuf = buf;
 	if (buf == NULL) {
-		write_log("alloc memory error!\n");
+		write_log("alloc url_decode buf memory error!\n");
 		return NULL;
 	}
 	while (*pstr) {

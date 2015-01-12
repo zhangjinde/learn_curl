@@ -7,7 +7,7 @@ int special_judge(char *infile, char *outfile, char *userfile)
 	pid = fork();
 	int ret = 0;
 	if (pid < 0) {
-		write_log("fork error.\n");
+		write_log("special_judge fork error.\n");
 	} else if (pid == 0) {
 		while (setgid(1536) != 0) {
 			sleep(1);

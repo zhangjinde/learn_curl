@@ -62,7 +62,7 @@ int execute_cmd(const char *fmt, ...)
 {
 	char *cmd = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (cmd == NULL) {
-		write_log("alloc memory error.\n");
+		write_log("alloc execute_cmd cmd buf memory error.\n");
 		return 1;
 	}
 	int ret = 0;
@@ -87,7 +87,7 @@ void trim(char *c)
 {
 	char *buf = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (buf == NULL) {
-		write_log("alloc memory error.\n");
+		write_log("alloc trim buf memory error.\n");
 		return;
 	}
 	char *start, *end;
@@ -361,7 +361,7 @@ int addceinfo(int solution_id, const char *filename)
 	char *end;
 	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (sql == NULL) {
-		write_log("alloc memory error!\n");
+		write_log("alloc addceinfo sql buf memory error!\n");
 		return -1;
 	}
 	if (execute_sql("delete from compileinfo where "
@@ -398,7 +398,7 @@ int addreinfo(int solution_id, const char *filename)
 	char *end;
 	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (sql == NULL) {
-		write_log("alloc memory error!\n");
+		write_log("alloc addreinfo sql buf memory error!\n");
 		return -1;
 	}
 	if (execute_sql("delete from runtimeinfo where "
@@ -471,7 +471,7 @@ int load_file(const char *filename, char *buf)
 	}
 	char *tmp = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (tmp == NULL) {
-		write_log("alloc memory error.\n");
+		write_log("alloc load_file tmp buf memory error.\n");
 		fclose(fp);
 		return -1;
 	}

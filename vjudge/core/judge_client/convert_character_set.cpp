@@ -11,7 +11,7 @@ int convert(char *buf, size_t len, const char *from, const char *to)
 	char *tmp_str = (char *)malloc(sz);
 	if (tmp_str == NULL) {
 		iconv_close(cd);
-		write_log("alloc memory error.\n");
+		write_log("alloc convert tmp_str buf memory error.\n");
 		return -1;
 	}
 	// 传进去的一定得是别的东西，原来的地址不能被改变

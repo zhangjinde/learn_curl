@@ -7,6 +7,7 @@ void copy_ac_src(void)
 	int problem_id = solution->problem_info.problem_id;
 	char src_pth[20];
 
+	write_log("copy solution %d ac src.\n", solution_id);
 	sprintf(src_pth, "Main.%s", lang_ext[lang]);
 	execute_cmd("/bin/mkdir -p ../data/%d/ac/", problem_id);
 	execute_cmd("/bin/cp %s ../data/%d/ac/%d.%s", src_pth, problem_id,
@@ -28,6 +29,7 @@ void copy_ac_src(void)
 
 int update_sim(void)
 {
+	write_log("update solution %d sim.\n", solution->solution_id);
 	FILE *fp = fopen("sim", "r");
 	if (fp == NULL) {
 		write_log("open file sim error:%s.\n", strerror(errno));
@@ -51,6 +53,7 @@ int get_sim(void)
 	int problem_id = solution->problem_info.problem_id;
 	char src_pth[20];
 
+	write_log("get solution %d sim.\n", solution->solution_id);
 	sprintf(src_pth, "Main.%s", lang_ext[lang]);
 
 	int sim = execute_cmd("/usr/bin/sim.sh %s %d", src_pth, problem_id);
