@@ -12,6 +12,59 @@
 
 #include "judge_client.h"
 
+/**
+ * copy from bunoj
+ * Check whether the result is final
+ * @param result        Current result
+ * @return Is final one or not
+ */
+int is_final_result(char *result)
+{
+	trim(result);
+	to_lowercase(result);
+
+	// Minimum length result is "Accept"
+	if (strlen(result) < 6) {
+		return 0;
+	}
+	if (strstr(result, "waiting") != NULL) {
+		return 0;
+	}
+	if (strstr(result, "running") != NULL) {
+		return 0;
+	}
+	if (strstr(result, "judging") != NULL) {
+		return 0;
+	}
+	if (strstr(result, "presentation") == NULL
+	    && strstr(result, "sent") != NULL) {
+		return 0;
+	}
+	if (strstr(result, "queu") != NULL) {
+		return 0;
+	}
+	if (strstr(result, "compiling") != NULL) {
+		return 0;
+	}
+	if (strstr(result, "linking") != NULL) {
+		return 0;
+	}
+	if (strstr(result, "received") != NULL) {
+		return false;
+	}
+	if (strstr(result, "pending") != NULL) {
+		return false;
+	}
+	if (strstr(result, "not judged yet") != NULL) {
+		return false;
+	}
+	if (strstr(result, "being judged") != NULL) {
+		return 0;
+	}
+
+	return 1;
+}
+
 int login(void)
 {
 	write_log("try to log in %d.\n", solution->problem_info.ojtype);
@@ -95,6 +148,8 @@ int vjudge(void)
 	}
 
 	solution->result = get_status();
+
+	cleanup_curl();
 
 	return 0;
 }

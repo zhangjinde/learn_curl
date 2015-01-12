@@ -104,6 +104,15 @@ void trim(char *c)
 	strcpy(c, start);
 }
 
+void to_lowercase(char *c)
+{
+	int i = 0;
+	int len = strlen(c);
+	for (i = 0; i < len; ++i) {
+		c[i] = tolower(c[i]);
+	}
+}
+
 int read_buf(char *buf, const char *key, char *value)
 {
 	if (strncmp(buf, key, strlen(key)) == 0) {
@@ -439,10 +448,15 @@ int load_file(const char *filename, char *buf)
 		write_log("cann't open file %s.\n", filename);
 		return -1;
 	}
-	char tmp[BUFSIZE];
+	char *tmp = (char *)malloc(BUFFIZE * BUFSIZE);
+	if (tmp == NULL) {
+		write_log("alloc memory error.\n");
+		return -1;
+	}
 	buf[0] = '\0';
 	while (fgets(tmp, BUFSIZE, fp) != NULL) {
 		strcat(buf, tmp);
 	}
+	free(tmp);
 	return 0;
 }

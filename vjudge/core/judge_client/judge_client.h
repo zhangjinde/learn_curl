@@ -127,6 +127,7 @@ extern int call_counter[BUFSIZE];
 extern int call_array_size;
 
 extern void trim(char *c);
+extern void to_lowercase(char *c);
 extern int after_equal(char *c);
 extern MYSQL *prepare_mysql(void);
 extern void cleanup_mysql(void);
@@ -176,5 +177,8 @@ extern int get_status_hduoj(void);
 extern int utf2gbk(char *buf, size_t len);
 extern int gbk2utf8(char *buf, size_t len);
 extern int convert(char *buf, size_t len, const char *from, const char *to);
+extern void cleanup_ekhtml(ekhtml_parser_t *ekparser);
+extern ekhtml_parser_t *prepare_ekhtml(void *cbdata);
+extern int parse_result_hduoj(char *buf, struct problem_info_t *problem_info, int type, int pid);
 
 #endif	// _JUDGE_CLIENT_H
