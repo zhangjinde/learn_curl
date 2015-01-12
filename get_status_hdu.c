@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
 	// 设置提交地址
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 
-	perform_curl(filename);
+	//perform_curl(filename);
 	memset(buf, 0, BUFSIZE * BUFSIZE);
 	load_file(filename, buf);
 	gbk2utf8(buf, strlen(buf));

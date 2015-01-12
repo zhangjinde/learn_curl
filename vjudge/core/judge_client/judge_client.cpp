@@ -222,7 +222,7 @@ int main(int argc, char **argv)
 	init_conf();
 
 	//set work directory to start running & judging
-	sprintf(work_dir, "%s/run%d/", oj_home, runner_id);
+	sprintf(work_dir, "%s/run%d", oj_home, runner_id);
 
 	write_log("work_dir = %s\n", work_dir);
 
@@ -286,7 +286,14 @@ int main(int argc, char **argv)
 		update_solution();
 		update_user();
 		update_problem();
+		copy_ac_src();
 		cleanup_mysql();
+		if (!DEBUG) {
+			clean_workdir();
+		}
+		if (record_call) {
+			print_call_array();
+		}
 		free(solution);
 		exit(EXIT_SUCCESS);
 	}
@@ -376,6 +383,7 @@ int main(int argc, char **argv)
 		case OJ_OL: write_log("solution %d output limit exceeded.\n", solution_id); break;
 		case OJ_RE: write_log("solution %d runtime error.\n", solution_id); break;
 		case OJ_CE: write_log("solution %d complie error.\n", solution_id); break;
+		case OJ_JE: write_log("solution %d judge error.\n", solution_id); break;
 		default: write_log("solution %d result is %d.\n", solution_id, solution->result);
 	}
 

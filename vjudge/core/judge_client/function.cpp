@@ -94,13 +94,14 @@ void trim(char *c)
 	char buf[BUFSIZE];
 	char *start, *end;
 	strcpy(buf, c);
+	int len = strlen(buf);
 	start = buf;
 	while (isspace(*start))
 		start++;
-	end = start;
-	while (!isspace(*end))
-		end++;
-	*end = '\0';
+	end = start + len - 1;
+	while (isspace(*end))
+		end--;
+	*(end + 1) = '\0';
 	strcpy(c, start);
 }
 
@@ -148,12 +149,12 @@ int get_problem_info(struct problem_info_t *problem_info)
 		problem_info->spj = 0;
 		problem_info->time_limit = 5;
 		problem_info->memory_limit = 128;
+		return 0;
 	}
 	MYSQL_RES *result;
 	if (execute_sql("select spj, time_limit, memory_limit, "
-			"accepted, submit,ischa from problem,cha where "
-			"problem.problem_id = %d and problem.problem_id"
-			"=cha.problem_id", problem_info->problem_id) < 0) {
+			"accepted, submit from problem where "
+			"problem_id = %d", problem_info->problem_id) < 0) {
 		return -1;
 	}
 	result = mysql_store_result(conn);
@@ -174,7 +175,6 @@ int get_problem_info(struct problem_info_t *problem_info)
 		problem_info->memory_limit += atoi(row[2]);
 		problem_info->accepted = atoi(row[3]);
 		problem_info->submit = atoi(row[4]);
-		problem_info->ischa = atoi(row[5]);
 	} else {
 		mysql_free_result(result);
 		write_log("no problem %d.", problem_info->problem_id);
@@ -203,6 +203,27 @@ int get_problem_info(struct problem_info_t *problem_info)
 	} else {
 		problem_info->ojtype = -1;
 		problem_info->origin_id = 0;
+	}
+	if (execute_sql("select ischa from cha where "
+			"problem_id = %d", problem_info->problem_id) < 0) {
+		return -1;
+	}
+	result = mysql_store_result(conn);
+	if (result == NULL) {
+		write_log("read mysql result error:%s.\n", mysql_error(conn));
+		return -1;
+	}
+	cnt = mysql_num_rows(result);
+	if (cnt > 0) {
+		MYSQL_ROW row = mysql_fetch_row(result);
+		if (row == NULL) {
+			mysql_free_result(result);
+			write_log("fetch mysql row error:%s.\n", mysql_error(conn));
+			return -1;
+		}
+		problem_info->ischa = atoi(row[0]);
+	} else {
+		problem_info->ischa = 0;
 	}
 	mysql_free_result(result);
 	// never bigger than judged set value

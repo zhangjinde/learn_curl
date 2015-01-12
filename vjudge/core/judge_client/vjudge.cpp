@@ -21,56 +21,59 @@
 int is_final_result(char *buf)
 {
 	char result[BUFSIZE];
-	strcpy(result, result);
+	strcpy(result, buf);
 	trim(result);
 	to_lowercase(result);
 
+	write_log("test result %s is or not final result.\n", result);
 	// Minimum length result is "Accept"
+	int ret = 1;
 	if (strlen(result) < 6) {
-		return 0;
+		ret = 0;
 	}
 	if (strstr(result, "waiting") != NULL) {
-		return 0;
+		ret = 0;
 	}
 	if (strstr(result, "running") != NULL) {
-		return 0;
+		ret = 0;
 	}
 	if (strstr(result, "judging") != NULL) {
-		return 0;
+		ret = 0;
 	}
 	if (strstr(result, "presentation") == NULL
 	    && strstr(result, "sent") != NULL) {
-		return 0;
+		ret = 0;
 	}
 	if (strstr(result, "queu") != NULL) {
-		return 0;
+		ret = 0;
 	}
 	if (strstr(result, "compiling") != NULL) {
-		return 0;
+		ret = 0;
 	}
 	if (strstr(result, "linking") != NULL) {
-		return 0;
+		ret = 0;
 	}
 	if (strstr(result, "received") != NULL) {
-		return false;
+		ret = 0;
 	}
 	if (strstr(result, "pending") != NULL) {
-		return false;
+		ret = 0;
 	}
 	if (strstr(result, "not judged yet") != NULL) {
-		return false;
+		ret = 0;
 	}
 	if (strstr(result, "being judged") != NULL) {
-		return 0;
+		ret = 0;
 	}
 
-	return 1;
+	write_log("test result %s is final result.\n", result);
+	return ret;
 }
 
 int convert_result(char *buf)
 {
-	write_log("try to convert %d oj's result.\n", solution->problem_info.ojtype);
-	int ret = OJ_WT0;
+	write_log("try to convert %d oj's result %s.\n", solution->problem_info.ojtype, buf);
+	int ret = OJ_JE;
 	switch (solution->problem_info.ojtype) {
 		case 0: ret = convert_result_hduoj(buf); break;
 	}
@@ -174,9 +177,12 @@ int vjudge(void)
 		}
 	}
 	if (ret == 0) {
-		write_log("solution %d submited.\n", solution->solution_id);
+		solution->result = OJ_RI;
+		update_solution();
 	}
 
+	// wait for judge
+	sleep(1);
 	solution->result = get_status();
 	if (solution->result == OJ_CE) {
 		solution->isce = 1;
@@ -184,6 +190,23 @@ int vjudge(void)
 	} else if (solution->result == OJ_RE) {
 		solution->isre = 1;
 		get_reinfo();
+	}
+	int solution_id = solution->solution_id;
+	switch (solution->result) {
+		case OJ_WT0: write_log("solution %d pending.\n", solution_id); break;
+		case OJ_WT1: write_log("solution %d pending rejudge.\n", solution_id); break;
+		case OJ_CI: write_log("solution %d compiling.\n", solution_id); break;
+		case OJ_RI: write_log("solution %d running and judging.\n", solution_id); break;
+		case OJ_AC: write_log("solution %d accepted.\n", solution_id); break;
+		case OJ_PE: write_log("solution %d persentation error.\n", solution_id); break;
+		case OJ_WA: write_log("solution %d wrong answer.\n", solution_id); break;
+		case OJ_TL: write_log("solution %d time limit exceeded.\n", solution_id); break;
+		case OJ_ML: write_log("solution %d memory limit exceeded.\n", solution_id); break;
+		case OJ_OL: write_log("solution %d output limit exceeded.\n", solution_id); break;
+		case OJ_RE: write_log("solution %d runtime error.\n", solution_id); break;
+		case OJ_CE: write_log("solution %d complie error.\n", solution_id); break;
+		case OJ_JE: write_log("solution %d judge error.\n", solution_id); break;
+		default: write_log("solution %d result is %d.\n", solution_id, solution->result);
 	}
 
 	cleanup_curl();

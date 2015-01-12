@@ -133,10 +133,10 @@ int convert_result_hduoj(char *buf)
 	} else if (strcmp("Compilation Error", buf) == 0) {
 		return OJ_CE;
 	} else {
-		return OJ_WT0;
+		return OJ_JE;
 	}
 
-	return OJ_WT0;
+	return OJ_JE;
 }
 
 int get_status_hduoj(void)
@@ -169,22 +169,23 @@ int get_status_hduoj(void)
 	int memory = 0;
 	char result[BUFSIZE];
 	char err[BUFSIZE];
+	char match_str[BUFSIZE];
 	int ret = regcomp(&reg, pattern, REG_EXTENDED);
 	if (ret) {
 		regerror(ret, &reg, err, BUFSIZE);
 		write_log("compile regex error: %s.\n", err);
-		return OJ_WT0;
+		return OJ_JE;
 	}
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (html == NULL) {
 		write_log("alloc memory error.\n");
-		return OJ_WT0;
+		return OJ_JE;
 	}
 	while (1) {
 		if (time(NULL) - begin_time > vj_max_wait_time) {
 			write_log("judge time out.\n");
 			free(html);
-			return OJ_WT0;
+			return OJ_JE;
 		}
 		perform_curl(filename);
 
@@ -199,7 +200,7 @@ int get_status_hduoj(void)
 			|| strstr(html, "<DIV>Exercise Is Closed Now!</DIV>") != NULL) {
 			write_log("get solution %d status error.\n", solution->solution_id);
 			free(html);
-			return OJ_WT0;
+			return OJ_JE;
 		} else {
 			status = regexec(&reg, html, nmatch, pmatch, 0);
 			if (status == REG_NOMATCH) {
@@ -215,12 +216,18 @@ int get_status_hduoj(void)
 					}
 					buf[cnt] = '\0';
 					switch (i) {
-						case 0: rid = atoi(buf); break;
-						case 1: usedtime = atoi(buf); break;
-						case 2: memory = atoi(buf); break;
-						case 3: strcpy(result, buf); break;
+						case 0: strcpy(match_str, buf); break;
+						case 1: rid = atoi(buf); break;
+						case 2: strcpy(result, buf); break;
+						case 3: usedtime = atoi(buf); break;
+						case 4: memory = atoi(buf); break;
 					}
 				}
+				write_log("match_str = %s\n", match_str);
+				write_log("rid = %d\n", rid);
+				write_log("usedtime = %d\n", usedtime);
+				write_log("memory = %d\n", memory);
+				write_log("result = %s\n", result);
 				if (is_final_result(result)) {
 					solution->time = rid;
 					solution->time = usedtime;
@@ -234,5 +241,5 @@ int get_status_hduoj(void)
 
 	free(html);
 
-	return OJ_WT0;
+	return OJ_JE;
 }
