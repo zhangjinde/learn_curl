@@ -13,7 +13,6 @@ sudo rm -rf /usr/bin/sim_java
 sudo rm -rf /usr/bin/sim_pas
 sudo chmod +x judged
 sudo cp judged /usr/bin
-sudo /etc/init.d/judged start
 make clean
 cd ../judge_client
 make
@@ -36,3 +35,4 @@ sudo chmod +x /usr/bin/sim.sh
 sudo ln -s /usr/bin/sim_c /usr/bin/sim_cc
 sudo ln -s /usr/bin/sim_c /usr/bin/sim_rb
 sudo ln -s /usr/bin/sim_c /usr/bin/sim_sh
+sudo /etc/init.d/judged start

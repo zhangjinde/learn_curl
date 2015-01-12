@@ -168,12 +168,12 @@ void cleanup_curl(void)
 int main(int argc, char *argv[])
 {
 	int status, i, j;
-	regmatch_t pmatch[8];
-	const size_t nmatch = 8;
+	regmatch_t pmatch[10];
+	const size_t nmatch = 10;
 	regex_t reg;
 	const char *pattern = "<td height=22px>([0-9]*)</td>"
 		"<td>([: 0-9-]*)</td>"
-		"<td><font color=[ a-zA-Z]*>([ a-zA-Z]*)</font></td>"
+		"<td><font color=[ a-zA-Z]*>([^/]*)</font></td>"
 		"<td><a[ 0-9a-zA-Z\\./\\?\\\"=]*>([0-9]*)</a></td>"
 		"<td>([0-9]*)MS</td>"
 		"<td>([0-9]*)K</td>"
@@ -199,12 +199,12 @@ int main(int argc, char *argv[])
 	}
 
 	char url[BUFSIZE];
-	sprintf(url, "http://acm.hdu.edu.cn/status.php?first=&pid=1000&user=zzuvjudge"
+	sprintf(url, "http://acm.hdu.edu.cn/status.php?first=&pid=1403&user=zzuvjudge"
 			"&lang=0&status=0");
 	// 设置提交地址
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 
-	//perform_curl(filename);
+	perform_curl(filename);
 	memset(buf, 0, BUFSIZE * BUFSIZE);
 	load_file(filename, buf);
 	gbk2utf8(buf, strlen(buf));

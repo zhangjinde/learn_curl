@@ -177,21 +177,21 @@ int get_reinfo_hduoj(void)
 }
 int convert_result_hduoj(char *buf)
 {
-	if (strstr("Accepted", buf) == 0) {
+	if (strstr("Accepted", buf) != NULL) {
 		return OJ_AC;
-	} else if (strstr("Presentation Error", buf) == 0) {
+	} else if (strstr("Presentation Error", buf) != NULL) {
 		return OJ_PE;
-	} else if (strstr("Runtime Error", buf) == 0) {
+	} else if (strstr("Runtime Error", buf) != NULL) {
 		return OJ_RE;
-	} else if (strstr("Wrong Answer", buf) == 0) {
+	} else if (strstr("Wrong Answer", buf) != NULL) {
 		return OJ_WA;
-	} else if (strstr("Time Limit Exceeded", buf) == 0) {
+	} else if (strstr("Time Limit Exceeded", buf) != NULL) {
 		return OJ_TL;
-	} else if (strstr("Memory Limit Exceeded", buf) == 0) {
+	} else if (strstr("Memory Limit Exceeded", buf) != NULL) {
 		return OJ_ML;
-	} else if (strstr("Output Limit Exceeded", buf) == 0) {
+	} else if (strstr("Output Limit Exceeded", buf) != NULL) {
 		return OJ_OL;
-	} else if (strstr("Compilation Error", buf) == 0) {
+	} else if (strstr("Compilation Error", buf) != NULL) {
 		return OJ_CE;
 	} else {
 		return OJ_JE;
@@ -208,7 +208,7 @@ int get_status_hduoj(void)
 	regex_t reg;
 	const char *pattern = "<td height=22px>([0-9]*)</td>"
 		"<td>[: 0-9-]*</td>"
-		"<td><font color=[ a-zA-Z]*>([ a-zA-Z]*)</font></td>"
+		"<td><font color=[ a-zA-Z]*>([^/]*)</font></td>"
 		"<td><a[ 0-9a-zA-Z\\./\\?\\\"=]*>[0-9]*</a></td>"
 		"<td>([0-9]*)MS</td>"
 		"<td>([0-9]*)K</td>"
@@ -260,6 +260,7 @@ int get_status_hduoj(void)
 			|| strstr(html, "<H1 style=\"COLOR: #1A5CC8\" align=center>Sign In Your Account</H1>") != NULL
 			|| strstr(html, "PHP: Maximum execution time of") != NULL
 			|| strstr(html, "<DIV>Exercise Is Closed Now!</DIV>") != NULL) {
+			write_log("remote server error.\n");
 			write_log("get solution %d status error.\n", solution->solution_id);
 			free(html);
 			regfree(&reg);
@@ -267,6 +268,7 @@ int get_status_hduoj(void)
 		} else {
 			status = regexec(&reg, html, nmatch, pmatch, 0);
 			if (status == REG_NOMATCH) {
+				write_log("no match regex: %s.\n", pattern);
 				write_log("get solution %d status error.\n", solution->solution_id);
 				free(html);
 				regfree(&reg);
