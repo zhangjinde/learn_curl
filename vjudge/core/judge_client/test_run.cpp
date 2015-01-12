@@ -14,7 +14,7 @@
 
 int save_custom_input(void)
 {
-	char src_path[BUFSIZE];
+	char src_path[20];
 	// get the source code
 	if (execute_sql("SELECT input_text FROM custominput WHERE "
 			"solution_id=%d", solution->solution_id) < 0) {
@@ -38,13 +38,12 @@ int save_custom_input(void)
 		FILE *fp_src = fopen(src_path, "w");
 		if (fp_src == NULL) {
 			write_log("can't create file %s.\n", src_path);
+			mysql_free_result(result);
 			return -1;
 		}
 		fprintf(fp_src, "%s", row[0]);
 		fclose(fp_src);
-		if (DEBUG) {
-			write_log("solution_id = %d\n", solution->solution_id);
-		}
+		write_log("solution_id = %d\n", solution->solution_id);
 	} else {
 		write_log("no custom intput %d.\n", solution->solution_id);
 		mysql_free_result(result);

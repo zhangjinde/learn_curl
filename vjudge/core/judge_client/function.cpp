@@ -10,7 +10,11 @@
 #include <unistd.h>
 #include <mysql/mysql.h>
 
+#include <string>
+
 #include "judge_client.h"
+
+using namespace std;
 
 void init_parameters(int argc, char **argv, int *solution_id, int *runner_id)
 {
@@ -44,34 +48,39 @@ void init_parameters(int argc, char **argv, int *solution_id, int *runner_id)
 int write_log(const char *fmt, ...)
 {
 	va_list ap;
-	char buffer[BUFSIZE * 4];
+	char *buffer = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (buffer == NULL) {
+		fprintf(stderr, "alloc memory error.\n");
+		return 0;
+	}
 	time_t t = time(NULL);
 	struct tm *date = localtime(&t);
-	char timestr[BUFSIZE];
-	sprintf(timestr, "%s", asctime(date));
-	int len = strlen(timestr);
+	sprintf(buffer, "%s", asctime(date));
+	string timestr(buffer, strlen(buffer) - 1);
 	sprintf(buffer, "%s/log/client%04d%02d%02d.log", oj_home, date->tm_year + 1900,
 			date->tm_mon + 1, date->tm_mday);
 	FILE *fp = fopen(buffer, "a+");
 	if (fp == NULL) {
 		fprintf(stderr, "open log file error:%s.\n", strerror(errno));
+		free(buffer);
 		return 0;
-	}
-	if (DEBUG) {
-		freopen("/dev/stdout", "w", fp);
 	}
 	va_start(ap, fmt);
 	vsprintf(buffer, fmt, ap);
-	timestr[len - 1] = '\0';
-	int ret = fprintf(fp, "[%s]:%s", timestr, buffer);
+	int ret = fprintf(fp, "[%s]:%s", timestr.c_str(), buffer);
 	va_end(ap);
 	fclose(fp);
+	free(buffer);
 	return ret;
 }
 
 int execute_cmd(const char *fmt, ...)
 {
-	char cmd[BUFSIZE];
+	char *cmd = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (cmd == NULL) {
+		write_log("alloc memory error.\n");
+		return 1;
+	}
 	int ret = 0;
 	va_list ap;
 	va_start(ap, fmt);
@@ -79,6 +88,7 @@ int execute_cmd(const char *fmt, ...)
 	write_log("execute cmd: %s.\n", cmd);
 	ret = system(cmd);
 	va_end(ap);
+	free(cmd);
 	return ret;
 }
 
@@ -91,7 +101,11 @@ int after_equal(char *c)
 
 void trim(char *c)
 {
-	char buf[BUFSIZE];
+	char *buf = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (buf == NULL) {
+		write_log("alloc memory error.\n");
+		return;
+	}
 	char *start, *end;
 	strcpy(buf, c);
 	int len = strlen(buf);
@@ -127,7 +141,7 @@ int read_buf(char *buf, const char *key, char *value)
 
 void read_int(char *buf, const char *key, int *value)
 {
-	char buf2[BUFSIZE];
+	char buf2[10];
 	if (read_buf(buf, key, buf2)) {
 		sscanf(buf2, "%d", value);
 	}
@@ -180,9 +194,10 @@ int get_problem_info(struct problem_info_t *problem_info)
 		write_log("no problem %d.", problem_info->problem_id);
 		return -1;
 	}
-	free(result);
+	mysql_free_result(result);
 	if (execute_sql("select ojtype, origin_id from vjudge where "
 			"problem_id = %d", problem_info->problem_id) < 0) {
+		mysql_free_result(result);
 		return -1;
 	}
 	result = mysql_store_result(conn);
@@ -206,6 +221,7 @@ int get_problem_info(struct problem_info_t *problem_info)
 	}
 	if (execute_sql("select ischa from cha where "
 			"problem_id = %d", problem_info->problem_id) < 0) {
+		mysql_free_result(result);
 		return -1;
 	}
 	result = mysql_store_result(conn);
@@ -330,19 +346,19 @@ struct solution_t *get_solution(int sid)
 			execute_cmd("/bin/cp %s/etc/java0.policy %s/java.policy",
 				    oj_home, work_dir);
 		}
-		if (!DEBUG) {
-			write_log("solution_id = %d\n", solution->solution_id);
-			write_log("user_id = %s\n", solution->user_id);
-			write_log("time = %d\n", solution->time);
-			write_log("memory = %d\n", solution->memory);
-			write_log("result = %d\n", solution->result);
-			write_log("language = %d\n", solution->language);
-			write_log("code_length = %d\n", solution->code_length);
-			write_log("pass_rate = %f\n", solution->pass_rate);
-			write_log("src = %s\n", solution->src);
-		}
+		write_log("solution_id = %d\n", solution->solution_id);
+		write_log("user_id = %s\n", solution->user_id);
+		write_log("time = %d\n", solution->time);
+		write_log("memory = %d\n", solution->memory);
+		write_log("result = %d\n", solution->result);
+		write_log("language = %d\n", solution->language);
+		write_log("code_length = %d\n", solution->code_length);
+		write_log("pass_rate = %f\n", solution->pass_rate);
+		write_log("src = %s\n", solution->src);
 		if (get_problem_info(&solution->problem_info) < 0) {
+			write_log("get probelm %d info error.\n", solution->problem_info.problem_id);
 			free(solution);
+			mysql_free_result(result);
 			return NULL;
 		}
 	} else {
@@ -450,13 +466,13 @@ int update_solution(void)
 void save_solution_src(void)
 {
 	int lang = solution->language;
-	char src_path[BUFSIZE];
+	char src_path[10];
 	sprintf(src_path, "Main.%s", lang_ext[lang]);
 	write_log("save solution source code in %s.\n", src_path);
 	// create the src file
 	FILE *fp_src = fopen(src_path, "w");
 	if (fp_src == NULL) {
-		write_log("create file error!\n");
+		write_log("create file %s error!\n", src_path);
 	}
 	fprintf(fp_src, "%s", solution->src);
 	fclose(fp_src);

@@ -171,6 +171,21 @@ int get_ceinfo_hduoj(void)
 
 int get_reinfo_hduoj(void)
 {
+	char buf[BUFSIZE];
+	char *start = solution->runtimeinfo;
+	int len = 0;
+	while (*start != '<') {
+		buf[len++] = *start++;
+	}
+	while (*start != '>') {
+		start++;
+	}
+	start++;
+	while (*start != '\0') {
+		buf[len++] = *start++;
+	}
+	buf[len] = '\0';
+	strcpy(solution->runtimeinfo, buf);
 	save_file(refname, solution->runtimeinfo);
 	write_log("get runtime error info: %s.\n", solution->runtimeinfo);
 	return 0;

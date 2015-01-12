@@ -1,5 +1,6 @@
 //
 // File:   judge_client.c
+// rewrite by gwq <gwq5210@qq.com>
 /*
  * Copyright 2008 sempr <iamsempr@gmail.com>
  *
@@ -150,7 +151,7 @@ void prepare_files(char *filename, int namelen, char *infile, char *outfile,
 {
 	write_log("prepare necessary files.\n");
 	int p_id = solution->problem_info.problem_id;
-	char fname[BUFSIZE];
+	char fname[20];
 	memset(fname, 0, sizeof(fname));
 	strncpy(fname, filename, namelen);
 	sprintf(infile, "%s/data/%d/%s.in", oj_home, p_id, fname);
@@ -162,7 +163,6 @@ void prepare_files(char *filename, int namelen, char *infile, char *outfile,
 
 void clean_session(pid_t p)
 {
-	//char cmd[BUFSIZE];
 	const char *pre = "ps awx -o \"\%p \%P\"|grep -w ";
 	const char *post = " | awk \'{ print $1  }\'|xargs kill -9";
 	execute_cmd("%s %d %s", pre, p, post);
@@ -290,7 +290,9 @@ int main(int argc, char **argv)
 		update_solution();
 		update_user();
 		update_problem();
-		copy_ac_src();
+		if (solution->result == OJ_AC) {
+			copy_ac_src();
+		}
 		cleanup_mysql();
 		if (!DEBUG) {
 			clean_workdir();

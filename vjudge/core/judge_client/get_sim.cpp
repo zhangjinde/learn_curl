@@ -29,7 +29,7 @@ void copy_ac_src(void)
 	int lang = solution->language;
 	int solution_id = solution->solution_id;
 	int problem_id = solution->problem_info.problem_id;
-	char src_pth[BUFSIZE];
+	char src_pth[20];
 
 	sprintf(src_pth, "Main.%s", lang_ext[lang]);
 	execute_cmd("/bin/mkdir -p ../data/%d/ac/", problem_id);
@@ -73,7 +73,7 @@ int get_sim(void)
 {
 	int lang = solution->language;
 	int problem_id = solution->problem_info.problem_id;
-	char src_pth[BUFSIZE];
+	char src_pth[20];
 
 	sprintf(src_pth, "Main.%s", lang_ext[lang]);
 
