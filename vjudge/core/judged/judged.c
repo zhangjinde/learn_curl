@@ -53,7 +53,9 @@
 #define OJ_OL 9				//Output Limit Exceeded
 #define OJ_RE 10			//Runtime Error
 #define OJ_CE 11			//Compile Error
-#define OJ_CO 12
+#define OJ_CO 12			//Compile OK
+#define OJ_TR 13			//Test Running
+#define OJ_JE 14			//Judge Error
 
 int db_port;
 int max_running;
