@@ -177,8 +177,6 @@ extern int get_status_hduoj(void);
 extern int utf2gbk(char *buf, size_t len);
 extern int gbk2utf8(char *buf, size_t len);
 extern int convert(char *buf, size_t len, const char *from, const char *to);
-extern void cleanup_ekhtml(ekhtml_parser_t *ekparser);
-extern ekhtml_parser_t *prepare_ekhtml(void *cbdata);
 extern int parse_result_hduoj(char *buf, struct problem_info_t *problem_info, int type, int pid);
 
 #endif	// _JUDGE_CLIENT_H

@@ -454,7 +454,7 @@ int load_file(const char *filename, char *buf)
 		return -1;
 	}
 	buf[0] = '\0';
-	while (fgets(tmp, BUFSIZE, fp) != NULL) {
+	while (fgets(tmp, BUFSIZE * BUFSIZE, fp) != NULL) {
 		strcat(buf, tmp);
 	}
 	free(tmp);

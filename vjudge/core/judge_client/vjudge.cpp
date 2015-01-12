@@ -18,8 +18,10 @@
  * @param result        Current result
  * @return Is final one or not
  */
-int is_final_result(char *result)
+int is_final_result(char *buf)
 {
+	char result[BUFSIZE];
+	strcpy(result, result);
 	trim(result);
 	to_lowercase(result);
 

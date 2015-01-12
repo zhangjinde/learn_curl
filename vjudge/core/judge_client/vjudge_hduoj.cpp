@@ -11,7 +11,6 @@
 #include <mysql/mysql.h>
 
 #include "judge_client.h"
-#include "ekhtml.h"
 
 int login_hduoj(void)
 {
@@ -107,6 +106,17 @@ int submit_hduoj()
 
 int get_result_hduoj(void)
 {
+	int status, i, j;
+	regmatch_t pmatch[5];
+	const size_t nmatch = 5;
+	regex_t reg;
+	const char *pattern = "<td height=22px>([0-9]*)</td>"
+		"<td>[: 0-9-]*</td>"
+		"<td><font color=[ a-zA-Z]*>([ a-zA-Z]*)</font></td>"
+		"<td><a[ 0-9a-zA-Z\\./\\?\\\"=]*>[0-9]*</a></td>"
+		"<td>([0-9]*)MS</td>"
+		"<td>([0-9]*)K</td>"
+		;
 	char url[BUFSIZE];
 	sprintf("http://acm.hdu.edu.cn/status.php?first=&pid=%d&user=%s"
 			"&lang=0&status=0", vjudge_user,
@@ -120,6 +130,15 @@ int get_result_hduoj(void)
 
 	time_t begin_time = time(NULL);
 	int rid = 0;
+	int time = 0;
+	int memory = 0;
+	char result[BUFSIZE];
+	int ret = regcomp(&reg, pattern, REG_EXTENDED);
+	if (ret) {
+		regerror(ret, &reg, err, BUFSIZE);
+		write_log("compile regex error: %s.\n", err);
+		return OJ_WT0;
+	}
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (html == NULL) {
 		write_log("alloc memory error.\n");
@@ -134,6 +153,7 @@ int get_result_hduoj(void)
 		perform_curl(filename);
 
 		load_file(filename, html);
+		gbk2utf8(html, strlen(html));
 		// modified form bnuoj
 		if (strstr(html, "Connect(0) to MySQL Server failed.") != NULL
 			|| strstr(html, "<b>One or more following ERROR(s) occurred.") != NULL
@@ -145,21 +165,37 @@ int get_result_hduoj(void)
 			free(html);
 			return OJ_WT0;
 		} else {
-			<tr align=center >
-				<td height=22px>12684021</td>
-				<td>2015-01-12 02:32:30</td>
-				<td><font color=green>Wrong Answer</font></td>
-				<td><a href="/showproblem.php?pid=1000">1000</a></td>
-				<td>0MS</td>
-				<td>1052K</td>
-				<td><a href="/viewcode.php?rid=12684021"  target=_blank>136 B</td>
-				<td>GCC</td>
-				<td class=fixedsize><a href="/userstatus.php?user=zzuvjudge">zzuvjudge</a></td>
-			</tr>
+			status = regexec(&reg, html, nmatch, pmatch, 0);
+			if (status == REG_NOMATCH) {
+				write_log("get solution %d status error.\n", solution->solution_id);
+				free(html);
+				return OJ_WT0;
+			} else if (status == 0) {
+				char buf[BUFSIZE];
+				for (i = 0; i < nmatch; ++i) {
+					int cnt = 0;
+					for (j = pmatch[i].rm_so; j < pmatch[i].rm_eo; ++j) {
+						buf[cnt++] = html[j];
+					}
+					buf[cnt] = '\0';
+					switch (i) {
+						case 0: rid = atoi(buf); break;
+						case 1: time = atoi(buf); break;
+						case 2: memory = atoi(buf); break;
+						case 3: strcpy(result, buf); break;
+					}
+				}
+				if (is_final_result(result)) {
+					solution->time = time;
+					solution->memory = time;
+					free(html);
+					return convert_result(result);
+				}
+			}
 		}
 	}
 
 	free(html);
 
-	return OJ_AC;
+	return OJ_WT0;
 }

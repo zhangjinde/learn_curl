@@ -62,7 +62,7 @@ int perform_curl(const char *filename)
 	CURLcode ret = curl_easy_perform(curl);
 	if (ret != CURLE_OK) {
 		write_log("curl perform error:%s.\n", curl_error(ret));
-		write_log("try again 5 seconds later.\n", curl_error(ret));
+		write_log("try again 5 seconds later.\n");
 		sleep(5);
 		ret = curl_easy_perform(curl);
 		if (ret != CURLE_OK) {
