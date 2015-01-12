@@ -66,7 +66,11 @@ int is_final_result(char *buf)
 		ret = 0;
 	}
 
-	write_log("test result %s is final result.\n", result);
+	if (ret) {
+		write_log("test result %s is final result.\n", result);
+	} else {
+		write_log("test result %s is not final result.\n", result);
+	}
 	return ret;
 }
 
