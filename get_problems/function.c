@@ -179,7 +179,7 @@ char *get_problem_url(void)
 
 int get_problem(void)
 {
-	write_log("try to get %s problem %d.\n", oj_name, oj_type);
+	write_log("try to get %s problem %d.\n", oj_name, pid);
 
 	char *url = get_problem_url();
 	char filename[BUFSIZE];
