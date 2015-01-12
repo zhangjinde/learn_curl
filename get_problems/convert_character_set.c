@@ -1,17 +1,13 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <time.h>
-#include <errno.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <mysql/mysql.h>
-#include <iconv.h>
+/*************************************************************************
+	> File Name: convert_character_set.c
+	> Author: gwq
+	> Mail: gwq5210@qq.com 
+	> Created Time: 2015年01月12日 星期一 22时39分14秒
+ ************************************************************************/
 
-#include "judge_client.h"
+#include <stdio.h>
+#include <error.h>
+#include <errno.h>
 
 int convert(char *buf, size_t len, const char *from, const char *to)
 {
