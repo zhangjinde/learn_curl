@@ -1,5 +1,5 @@
 /*************************************************************************
-	> File Name: main.h
+	> File Name: get_problem.h
 	> Author: gwq
 	> Mail: gwq5210@qq.com 
 	> Created Time: 2014年12月27日 星期六 14时18分21秒
@@ -7,11 +7,24 @@
 #ifndef _MAIN_H
 #define _MAIN_H
 
-#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <string.h>
+#include <unistd.h>
+#include <curl/curl.h>
+#include <mysql/mysql.h>
+#include <iconv.h>
+#include <curl/curl.h>
+#include <mysql/mysql.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <error.h>
+#include <ctype.h>
 
 #include "ekhtml.h"
 
-#define DEBUG 1
 #define BUFSIZE 512
 #define OJMAX 20
 
@@ -57,22 +70,55 @@ struct html_state_t {
 	struct problem_info_t *problem_info;
 };
 
-extern void init(void);
+extern int DEBUG;
+extern int pid;
+extern int oj_cnt;
+extern int oj_type;
+extern int db_port;
+extern int sleep_time;
+extern int db_timeout;
+extern char db_user[BUFSIZE];
+extern char db_passwd[BUFSIZE];
+extern char db_host[BUFSIZE];
+extern char db_name[BUFSIZE];
+extern char oj_str[OJMAX][BUFSIZE];
+extern char oj_url[OJMAX][BUFSIZE];
+extern char oj_name[BUFSIZE];
+extern CURL *curl;
+extern MYSQL *conn;
+extern struct problem_info_t *problem_info;
+
+extern void init_conf(void);
 extern int gbk2utf8(char *buf, size_t len);
 extern CURL *prepare_curl(void);
-extern void cleanup_curl(CURL *curl);
-extern int perform_curl(CURL *curl);
-extern void cleanup_mysql(MYSQL *conn);
+extern void cleanup_curl(void);
+extern int perform_curl(const char *filename);
+extern void cleanup_mysql(void);
 extern MYSQL *prepare_mysql(void);
-extern int load_file(FILE *fp, char *buf);
 extern ekhtml_parser_t *prepare_ekhtml(void *cbdata);
 extern int execute_cmd(const char * fmt, ...);
 extern FILE *get_file(CURL *curl, int type, int pid);
 extern void cleanup_ekhtml(ekhtml_parser_t *ekparser);
-extern int add_problem(MYSQL *conn, struct problem_info_t *problem_info);
+extern int add_problem(void);
 extern size_t save_data(void *buffer, size_t size, size_t nmenb, void *userp);
-extern int parse_html(char *buf, struct problem_info_t *problem_info, int type, int pid);
-extern int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int pid);
-extern int parse_html_hdu(char *buf, struct problem_info_t *problem_info, int type, int pid);
+extern int parse_html(char *buf);
+extern int get_problem(void);
+extern int parse_html_hdu(char *buf);
+extern int write_log(const char *fmt, ...);
+extern int execute_cmd(const char *fmt, ...);
+extern int after_equal(char *c);
+extern void trim(char *c);
+extern void to_lowercase(char *c);
+extern int read_buf(char *buf, const char *key, char *value);
+extern void read_int(char *buf, const char *key, int *value);
+extern int load_file(const char *filename, char *buf);
+extern int save_file(const char *filename, char *buf);
+extern int parse_html(char *buf);
+extern char *get_problem_url(void);
+extern int get_problem(void);
+extern int isexist(void);
+extern int add_problem(void);
+extern void ping(void);
+extern int execute_sql(const char *fmt, ...);
 
 #endif	// _MAIN_H

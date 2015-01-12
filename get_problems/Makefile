@@ -12,7 +12,7 @@ ALL = get_problem
 .PHONY: all clean
 all: $(ALL)
 
-get_problem: $(OBJS) main.h
+get_problem: $(OBJS)
 	$(CC) $(CFLAGS) -o get_problem $(OBJS) $(LDFLAGS)
 $(OBJS): %.o: %.c
 	$(CC) $(CFLAGS) -c $<

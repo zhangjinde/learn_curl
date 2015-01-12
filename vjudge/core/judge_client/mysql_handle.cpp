@@ -16,14 +16,14 @@ MYSQL *prepare_mysql(void)
 {
 	MYSQL *conn = mysql_init(NULL);
 	if (conn == NULL) {
-		write_log("init mysql error.\n");
-		exit(EXIT_FAILURE);
+		write_log("init mysql error:%s.\n", mysql_error(conn));
+		return NULL;
 	}
 	int ret = mysql_options(conn, MYSQL_OPT_CONNECT_TIMEOUT,
 			&db_timeout);
 	if (ret) {
 		write_log("set mysql timeout error:%s.\n", mysql_error(conn));
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 
 	write_log("try to connect database\n");
@@ -31,11 +31,12 @@ MYSQL *prepare_mysql(void)
 			db_name, db_port, NULL, 0);
 	if (conn == NULL) {
 		write_log("connect database error:%s.\n", mysql_error(conn));
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	if (mysql_set_character_set(conn, "utf8")) {
 		write_log("set mysql character set error:%s.\n", mysql_error(conn));
-		exit(EXIT_FAILURE);
+		cleanup_mysql();
+		return NULL;
 	}
 	return conn;
 }
@@ -61,7 +62,7 @@ int execute_sql(const char *fmt, ...)
 {
 	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (sql == NULL) {
-		write_log("alloc memory error!\n");
+		write_log("alloc sql memory error!\n");
 		return -1;
 	}
 	memset(sql, 0, BUFSIZE * BUFSIZE);

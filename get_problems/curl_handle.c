@@ -5,7 +5,7 @@
 	> Created Time: 2015年01月12日 星期一 22时32分53秒
  ************************************************************************/
 
-#include <stdio.h>
+#include "get_problem.h"
 
 const char *curl_error(CURLcode errornum)
 {
@@ -33,13 +33,8 @@ CURL *prepare_curl(void)
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
 	// 跟踪重定向的信息
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
-	// 设置cookie信息，否则就不能保存登陆信息
-	// 设置读取cookie的文件名
-	curl_easy_setopt(curl, CURLOPT_COOKIEFILE, cookiename);
-	// 设置写入cookie的文件名
-	curl_easy_setopt(curl, CURLOPT_COOKIEJAR, cookiename);
 	if (DEBUG) {
-		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+		curl_easy_setopt(curl, CURLOPT_HEADER, 1);
 	}
 
 	return curl;
@@ -79,15 +74,12 @@ int perform_curl(const char *filename)
 	return 0;
 }
 
-void clear_cookie(void)
-{
-	FILE *fp = fopen(cookiename, "w");
-	fclose(fp);
-}
-
 void cleanup_curl(void)
 {
-	// 释放资源
-	curl_easy_cleanup(curl);
-	curl_global_cleanup();
+	if (curl != NULL) {
+		// 释放资源
+		curl_easy_cleanup(curl);
+		curl_global_cleanup();
+		write_log("close curl connection.\n");
+	}
 }

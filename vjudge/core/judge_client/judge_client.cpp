@@ -243,6 +243,10 @@ int main(int argc, char **argv)
 	}
 
 	conn = prepare_mysql();
+	if (conn == NULL) {
+		write_log("prepare mysql handle error.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	// 获取solution的各种信息
 	solution = get_solution(solution_id);

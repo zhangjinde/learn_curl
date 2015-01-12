@@ -45,7 +45,7 @@ CURL *prepare_curl(void)
 	// 设置写入cookie的文件名
 	curl_easy_setopt(curl, CURLOPT_COOKIEJAR, cookiename);
 	if (DEBUG) {
-		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+		curl_easy_setopt(curl, CURLOPT_HEADER, 1);
 	}
 
 	return curl;
@@ -93,7 +93,10 @@ void clear_cookie(void)
 
 void cleanup_curl(void)
 {
-	// 释放资源
-	curl_easy_cleanup(curl);
-	curl_global_cleanup();
+	if (curl != NULL) {
+		// 释放资源
+		curl_easy_cleanup(curl);
+		curl_global_cleanup();
+		write_log("close curl connection.\n");
+	}
 }

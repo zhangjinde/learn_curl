@@ -5,374 +5,316 @@
 	> Created Time: 2014年12月27日 星期六 14时22分35秒
  ************************************************************************/
 
-#include <iconv.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <string.h>
-#include <unistd.h>
-#include <curl/curl.h>
-#include <mysql/mysql.h>
-#include <sys/stat.h>
-#include <sys/types.h>
+#include "get_problem.h"
 
-#include "main.h"
-#include "ekhtml.h"
-
-extern int ojcnt;
-extern char dbuser[BUFSIZE];
-extern char dbpasswd[BUFSIZE];
-extern char dbhost[BUFSIZE];
-extern char dbname[BUFSIZE];
-extern char ojstr[OJMAX][BUFSIZE];
-extern char ojurl[OJMAX][BUFSIZE];
-
-/*
- * 回调函数
- * buffer，接收到的数据所在缓冲区
- * size，数据长度
- * nmenb，数据片数量
- * user_p，用户自定义指针
- */
-size_t save_data(void *buffer, size_t size, size_t nmenb, void *userp)
+int write_log(const char *fmt, ...)
 {
-	FILE *fp = (FILE *)userp;
-	size_t ret = fwrite(buffer, size, nmenb, fp);
+	va_list ap;
+	char *buffer = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (buffer == NULL) {
+		fprintf(stderr, "alloc log buf memory error.\n");
+		return 0;
+	}
+	time_t t = time(NULL);
+	struct tm *date = localtime(&t);
+	char timestr[BUFSIZE];
+	sprintf(timestr, "%s", asctime(date));
+	sprintf(buffer, "get_problem%04d%02d%02d.log", date->tm_year + 1900,
+			date->tm_mon + 1, date->tm_mday);
+	FILE *fp = fopen(buffer, "a+");
+	if (fp == NULL) {
+		fprintf(stderr, "open log file error:%s.\n", strerror(errno));
+		free(buffer);
+		return 0;
+	}
+	if (DEBUG) {
+		freopen("/dev/stdout", "w", fp);
+	}
+	va_start(ap, fmt);
+	vsprintf(buffer, fmt, ap);
+	int len = strlen(timestr);
+	timestr[len - 1] = '\0';
+	int ret = fprintf(fp, "[%s]:%s", timestr, buffer);
+	va_end(ap);
+	fclose(fp);
+	free(buffer);
 	return ret;
 }
 
-void init(void)
+int execute_cmd(const char *fmt, ...)
 {
-	FILE *fp = fopen("ojstr.conf", "r");
-	if (fp == NULL) {
-		fprintf(stderr, "打开文件ojstr.conf失败！\n");
-		exit(EXIT_FAILURE);
+	char *cmd = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (cmd == NULL) {
+		write_log("alloc cmd memory error.\n");
+		return 1;
 	}
-	int type;
-	int cnt = 0;
-	while (fscanf(fp, "%d%s", &type, ojstr[cnt]) != EOF) {
-		++cnt;
-	}
-	fclose(fp);
-
-	fp = fopen("ojurl.conf", "r");
-	if (fp == NULL) {
-		fprintf(stderr, "打开文件ojurl.conf失败！\n");
-		exit(EXIT_FAILURE);
-	}
-	cnt = 0;
-	while (fscanf(fp, "%d%s", &type, ojurl[cnt]) != EOF) {
-		++cnt;
-	}
-	ojcnt = cnt;
-	fclose(fp);
-
-	fp = fopen("db.conf", "r");
-	if (fp == NULL) {
-		fprintf(stderr, "打开文件db.conf失败！\n");
-		exit(EXIT_FAILURE);
-	}
-	fscanf(fp, "%s%s%s%s", dbuser, dbpasswd, dbhost, dbname);
-	fclose(fp);
-}
-
-int execute_cmd(const char * fmt, ...) {
-	char cmd[BUFSIZE];
-
 	int ret = 0;
 	va_list ap;
-
 	va_start(ap, fmt);
 	vsprintf(cmd, fmt, ap);
+	write_log("execute cmd: %s.\n", cmd);
 	ret = system(cmd);
 	va_end(ap);
+	free(cmd);
 	return ret;
 }
 
-CURL *prepare_curl(void)
+int after_equal(char *c)
 {
-	CURLcode ret = curl_global_init(CURL_GLOBAL_ALL);
-	if (ret != CURLE_OK) {
-		fprintf(stderr, "初始化curl失败！\n");
-		exit(EXIT_FAILURE);
-	}
-	CURL *curl = curl_easy_init();
-	if (curl == NULL) {
-		curl_global_cleanup();
-		fprintf(stderr, "获取curl对象失败！\n");
-		exit(EXIT_FAILURE);
-	}
-	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 120);
-	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 120);
-	return curl;
+	int i = 0;
+	for (; c[i] != '\0' && c[i] != '='; i++) ;
+	return ++i;
 }
 
-int perform_curl(CURL *curl)
+void trim(char *c)
 {
-	CURLcode ret = curl_easy_perform(curl);
-	if (ret != CURLE_OK) {
-		printf("执行失败！5秒后重试。。。\n");
-		sleep(5);
-		ret = curl_easy_perform(curl);
-		if (ret != CURLE_OK) {
-			fprintf(stderr, "执行失败！\n");
-			return -1;
-		}
+	char *buf = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (buf == NULL) {
+		write_log("alloc trim buf memory error.\n");
+		return;
 	}
+	char *start, *end;
+	strcpy(buf, c);
+	int len = strlen(buf);
+	start = buf;
+	while (isspace(*start))
+		start++;
+	end = start + len - 1;
+	while (isspace(*end))
+		end--;
+	*(end + 1) = '\0';
+	strcpy(c, start);
+}
 
-	int http_code = 0;
-	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-	if (DEBUG) {
-		printf("http_code = %d\n", http_code);
+void to_lowercase(char *c)
+{
+	int i = 0;
+	int len = strlen(c);
+	for (i = 0; i < len; ++i) {
+		c[i] = tolower(c[i]);
 	}
-	if (http_code >= 400) {
-		fprintf(stderr, "服务器错误！\n");
+}
+
+int read_buf(char *buf, const char *key, char *value)
+{
+	if (strncmp(buf, key, strlen(key)) == 0) {
+		strcpy(value, buf + after_equal(buf));
+		trim(value);
+		write_log("%s = %s\n", key, value);
+		return 1;
+	}
+	return 0;
+}
+
+void read_int(char *buf, const char *key, int *value)
+{
+	char buf2[10];
+	if (read_buf(buf, key, buf2)) {
+		sscanf(buf2, "%d", value);
+	}
+}
+
+int load_file(const char *filename, char *buf)
+{
+	FILE *fp = fopen(filename, "r");
+	if (fp == NULL) {
+		write_log("cann't open file %s.\n", filename);
 		return -1;
 	}
-
-	return 0;
-}
-
-void cleanup_curl(CURL *curl)
-{
-	// 释放资源
-	curl_easy_cleanup(curl);
-	curl_global_cleanup();
-}
-
-FILE *get_file(CURL *curl, int type, int pid)
-{
-	char tmp_url[BUFSIZE];
-	char tmp_filename[BUFSIZE];
-	sprintf(tmp_url, "%s%d", ojurl[type], pid);
-	sprintf(tmp_filename, "%d", pid);
-	FILE *fp = fopen(tmp_filename, "w+");
-
-	// 设置网址
-	curl_easy_setopt(curl, CURLOPT_URL, tmp_url);
-	// 设置回调函数
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, save_data);
-	// 回调函数参数
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-
-	if (DEBUG) {
-		// 输出通信过程中的一些细节，这可以用来调试
-		// 如果使用的是http协议，请求头/响应头也会被输出
-		curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-	}
-
-	// 执行数据请求
-	if (perform_curl(curl) < 0) {
+	char *tmp = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (tmp == NULL) {
+		write_log("alloc load_file buf memory error.\n");
 		fclose(fp);
-		fp = NULL;
-		execute_cmd("rm -f %s", pid);
+		return -1;
 	}
-
-	return fp;
-}
-
-int load_file(FILE *fp, char *buf)
-{
-	char tmp[BUFSIZE];
 	buf[0] = '\0';
-	while (fgets(tmp, BUFSIZE, fp) != NULL) {
+	while (fgets(tmp, BUFSIZE * BUFSIZE, fp) != NULL) {
 		strcat(buf, tmp);
 	}
+	free(tmp);
+	fclose(fp);
 	return 0;
 }
 
-int parse_html(char *buf, struct problem_info_t *problem_info, int type, int pid)
+int save_file(const char *filename, char *buf)
+{
+	FILE *fp = fopen(filename, "w");
+	if (fp == NULL) {
+		write_log("cann't open file %s.\n", filename);
+		return -1;
+	}
+	int len = strlen(buf);
+	fwrite(buf, len, 1, fp);
+	fclose(fp);
+	return 0;
+}
+
+int parse_html(char *buf)
 {
 	// 已知的题目描述
 	problem_info->origin_id = pid;
-	problem_info->ojtype = type;
-	strcpy(problem_info->source, ojstr[type]);
+	problem_info->ojtype = oj_type;
+	strcpy(problem_info->source, oj_str[oj_type]);
 
 	int ret = -1;
-	switch (type) {
+	switch (oj_type) {
 		case 0:
-			ret = parse_html_hdu(buf, problem_info, type, pid);
+			ret = parse_html_hdu(buf);
 			break;
 	}
 	return ret;
 }
 
-ekhtml_parser_t *prepare_ekhtml(void *cbdata)
+// memory should be free
+char *get_problem_url(void)
 {
-	ekhtml_parser_t *ekparser = ekhtml_parser_new(NULL);
-	ekhtml_parser_cbdata_set(ekparser, cbdata);
-	return ekparser;
+	char *url = (char *)malloc(BUFSIZE);
+	if (url == NULL) {
+		write_log("alloc url buf memory error.\n");
+		return NULL;
+	}
+	sprintf(url, "%s%d", oj_url[oj_type], pid);
+	return url;
 }
 
-void cleanup_ekhtml(ekhtml_parser_t *ekparser)
+int get_problem(void)
 {
-	ekhtml_parser_flush(ekparser, 1);
-	ekhtml_parser_destroy(ekparser);
-}
+	write_log("try to get %s problem %d.\n", oj_name, oj_type);
 
-int get_problem(CURL *curl, struct problem_info_t *problem_info, int type, int pid)
-{
-	FILE *fp = NULL;
-	fp = get_file(curl, type, pid);
-	if (fp == NULL) {
-		fprintf(stderr, "获取文件失败！\n");
+	char *url = get_problem_url();
+	char filename[BUFSIZE];
+	sprintf(filename, "%d", pid);
+
+	// 设置网址
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	
+	// 执行数据请求
+	if (perform_curl(filename) < 0) {
+		free(url);
+		if (!DEBUG) {
+			execute_cmd("rm -rf %s", filename);
+		}
 		return -1;
 	}
+
 	char *buf = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (buf == NULL) {
-		fprintf(stderr, "分配内存失败！\n");
+		write_log("alloc get_problem buf memory error.\n");
+		free(url);
 		return -1;
 	}
 
-	rewind(fp);
-	load_file(fp, buf);
-	if (gbk2utf8(buf, strlen(buf)) < 0) {
-		free(buf);
-		fprintf(stderr, "转换编码失败！\n");
-		return -1;
+	load_file(filename, buf);
+
+	// hdu shoule be convert character set
+	if (oj_type == 0) {
+		if (gbk2utf8(buf, strlen(buf)) < 0) {
+			free(buf);
+			free(url);
+			write_log("convert character set error.\n");
+			return -1;
+		}
 	}
-	int ret = parse_html(buf, problem_info, type, pid);
+
+	int ret = parse_html(buf);
 	if (ret < 0) {
 		free(buf);
-		fprintf(stderr, "解析html失败！\n");
+		free(url);
+		write_log("parse html file error.\n");
 		return -1;
 	}
 
-	if (DEBUG) {
-		printf("原题编号：%d\n", problem_info->origin_id);
-		printf("题目标题：%s\n", problem_info->title);
-		printf("题目描述：%s\n", problem_info->description);
-		printf("输入说明：%s\n", problem_info->input);
-		printf("输出说明：%s\n", problem_info->output);
-		printf("样例输入：%s\n", problem_info->sample_input);
-		printf("样例输出：%s\n", problem_info->sample_output);
-		printf("题目提示：%s\n", problem_info->hint);
-		printf("题目来源：%s\n", problem_info->source);
-		printf("时间限制：%d秒\n", problem_info->time_limit);
-		printf("内存限制：%d兆\n", problem_info->memory_limit);
-		printf("OJ类型：%d\n", problem_info->ojtype);
-		printf("是否spj：%d\n", problem_info->spj);
-		printf("通过次数：%d\n", problem_info->accepted);
-		printf("提交次数：%d\n", problem_info->submit);
-		printf("未用：%d\n", problem_info->solved);
-		printf("是否屏蔽：%d\n", problem_info->defunct);
+	write_log("origin_id = %d\n", problem_info->origin_id);
+	write_log("title = %s\n", problem_info->title);
+	write_log("description = %s\n", problem_info->description);
+	write_log("input = %s\n", problem_info->input);
+	write_log("output = %s\n", problem_info->output);
+	write_log("sample_input = %s\n", problem_info->sample_input);
+	write_log("sample_output = %s\n", problem_info->sample_output);
+	write_log("hint = %s\n", problem_info->hint);
+	write_log("source = %s\n", problem_info->source);
+	write_log("time_limit = %d秒\n", problem_info->time_limit);
+	write_log("memory_limit = %d兆\n", problem_info->memory_limit);
+	write_log("ojtype = %d\n", problem_info->ojtype);
+	write_log("spj = %d\n", problem_info->spj);
+	write_log("accepted = %d\n", problem_info->accepted);
+	write_log("submit = %d\n", problem_info->submit);
+	write_log("solved(unuse) = %d\n", problem_info->solved);
+	write_log("defunct = %d\n", problem_info->defunct);
+
+	if (!DEBUG) {
+		execute_cmd("rm -f %d", pid);
 	}
 
-	fclose(fp);
-	execute_cmd("rm -f %d", pid);
 	free(buf);
+	free(url);
 	return ret;
 }
 
-MYSQL *prepare_mysql(void)
+int isexist(void)
 {
-	MYSQL *conn = mysql_init(NULL);
-	if (conn == NULL) {
-		fprintf(stderr, "初始化数据库失败！:%s\n", mysql_error(conn));
-		exit(EXIT_FAILURE);
-	}
-	unsigned int timeout = 120;
-	int ret = mysql_options(conn, MYSQL_OPT_CONNECT_TIMEOUT,
-			(const char *)&timeout);
-	if (ret) {
-		fprintf(stderr, "设置数据库连接超时失败！:%s\n", mysql_error(conn));
-		exit(EXIT_FAILURE);
-	}
-	conn = mysql_real_connect(conn, dbhost, dbuser, dbpasswd,
-			dbname, 0, NULL, 0);
-	if (conn == NULL) {
-		fprintf(stderr, "连接数据库失败！:%s\n", mysql_error(conn));
-		exit(EXIT_FAILURE);
-	}
-	if (mysql_set_character_set(conn, "utf8")) {
-		fprintf(stderr, "设置数据库编码失败！:%s\n", mysql_error(conn));
-		exit(EXIT_FAILURE);
-	}
-	return conn;
-}
-
-void cleanup_mysql(MYSQL *conn)
-{
-	if (conn != NULL) {
-		mysql_close(conn);
-	}
-}
-
-int convert(char *buf, size_t len, const char *from, const char *to)
-{
-	iconv_t cd = iconv_open(to, from);
-	if (cd == (iconv_t)-1) {
-		perror("获取字符转换描述符失败！\n");
+	if (execute_sql("SELECT origin_id from vjudge where origin_id='%d' and ojtype='%d'",
+			problem_info->origin_id, problem_info->ojtype) < 0) {
 		return -1;
 	}
-	size_t sz = BUFSIZE * BUFSIZE;
-	char *tmp_str = (char *)malloc(sz);
-	if (tmp_str == NULL) {
-		iconv_close(cd);
-		fprintf(stderr, "分配内存失败！\n");
+	MYSQL_RES *result = mysql_store_result(conn);
+	if (result == NULL) {
+		write_log("read mysql result error:%s.\n", mysql_error(conn));
 		return -1;
 	}
-	// 传进去的一定得是别的东西，原来的地址不能被改变
-	char *in = buf;
-	char *out = tmp_str;
-	size_t inlen = len;
-	size_t outlen = sz;
-	memset(tmp_str, 0, sz);
-	if (iconv(cd, &in, &inlen, &out, &outlen) == (size_t)-1) {
-		iconv_close(cd);
-		free(tmp_str);
-		return -1;
+	int cnt = mysql_num_rows(result);
+	if (cnt > 0) {
+		MYSQL_ROW row = mysql_fetch_row(result);
+		if (row == NULL) {
+			mysql_free_result(result);
+			write_log("fetch mysql row error:%s.\n", mysql_error(conn));
+			return -1;
+		}
+		mysql_free_result(result);
+		return 1;
 	}
-	iconv_close(cd);
-	strcpy(buf, tmp_str);
-	free(tmp_str);
+	mysql_free_result(result);
 	return 0;
 }
 
-int gbk2utf8(char *buf, size_t len)
+int add_problem(void)
 {
-	return convert(buf, len, "GBK", "UTF-8");
-}
+	int ret = isexist();
+	if (ret < 0) {
+		return -1;
+	} else if (ret) {
+		return 2;
+	}
 
-int utf2gbk(char *buf, size_t len)
-{
-	return convert(buf, len, "UTF-8", "GBK");
-}
-
-int add_problem(MYSQL *conn, struct problem_info_t *problem_info)
-{
 	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
-	char *tmp_str = (char *)malloc(BUFSIZE * BUFSIZE);
-	char *end;
-	if (sql == NULL || tmp_str == NULL) {
-		fprintf(stderr, "分配内存失败！\n");
-		free(sql);
-		free(tmp_str);
+	if (sql == NULL) {
+		write_log("alloc add_problem sql memory error.\n");
 		return -1;
 	}
 
+	char *tmp_str = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (tmp_str == NULL) {
+		write_log("alloc add_problem tmp_str memory error.\n");
+		free(sql);
+		return -1;
+	}
+
+	if (execute_sql("SELECT max(problem_id) from problem") < 0) {
+		free(sql);
+		free(tmp_str);
+		return -1;
+	}
 	MYSQL_RES *result = mysql_store_result(conn);
-	sprintf(sql, "SELECT max(problem_id) from problem");
-	if (mysql_real_query(conn, sql, strlen(sql))) {
-		fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
-		free(sql);
-		free(tmp_str);
-		return -1;
-	}
-	result = mysql_store_result(conn);
 	if (result == NULL) {
-		fprintf(stderr, "读取数据失败！:%s\n", mysql_error(conn));
-		free(sql);
-		free(tmp_str);
+		write_log("read mysql result error:%s.\n", mysql_error(conn));
 		return -1;
 	}
-	my_ulonglong cnt = mysql_num_rows(result);
-	if (cnt) {
+	int cnt = mysql_num_rows(result);
+	if (cnt > 0) {
 		MYSQL_ROW row = mysql_fetch_row(result);
 		if (row == NULL) {
-			free(sql);
-			free(tmp_str);
-			fprintf(stderr, "获取数据失败！:%s\n", mysql_error(conn));
+			mysql_free_result(result);
+			write_log("fetch mysql row error:%s.\n", mysql_error(conn));
 			return -1;
 		}
 		if (row[0] == NULL) {
@@ -383,44 +325,9 @@ int add_problem(MYSQL *conn, struct problem_info_t *problem_info)
 	} else {
 		problem_info->problem_id = 1000;
 	}
-
-	sprintf(sql, "SELECT origin_id from vjudge where origin_id='%d' and ojtype='%d'",
-			problem_info->origin_id, problem_info->ojtype);
-	if (DEBUG) {
-		printf("sql = %s\n", sql);
-	}
-	if (mysql_real_query(conn, sql, strlen(sql))) {
-		fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
-		free(sql);
-		free(tmp_str);
-		return -1;
-	}
-
-	result = mysql_store_result(conn);
-	if (result == NULL) {
-		fprintf(stderr, "读取数据失败！:%s\n", mysql_error(conn));
-		free(sql);
-		free(tmp_str);
-		return -1;
-	}
-
-	cnt = mysql_num_rows(result);
 	mysql_free_result(result);
-	if (cnt) {
-		printf("%s题目%d已经存在！\n", problem_info->source,
-				problem_info->origin_id);
-		free(sql);
-		free(tmp_str);
-		return 2;
-	}
 
-	if (mysql_autocommit(conn, 0)) {
-		fprintf(stderr, "设置手动提交失败！:%s\n", mysql_error(conn));
-		free(sql);
-		free(tmp_str);
-		return -1;
-	}
-	end = sql;
+	char *end = sql;
 	strcpy(sql, "INSERT INTO problem (problem_id, title, description, "
 			"input, output, sample_input, sample_output, hint, "
 			"source, time_limit, memory_limit, spj, accepted, "
@@ -509,44 +416,27 @@ int add_problem(MYSQL *conn, struct problem_info_t *problem_info)
 	*end++ = ')';
 	*end = '\0';
 
-	if (DEBUG) {
-		printf("sql = %s\n", sql);
-	}
-	if (mysql_real_query(conn, sql, (unsigned int)(end - sql))) {
-		fprintf(stderr, "sql语句执行失败！:%s\n", mysql_error(conn));
+	if (execute_sql(sql) < 0) {
 		free(sql);
 		free(tmp_str);
 		return -1;
 	}
-	sprintf(sql, "INSERT INTO vjudge (problem_id, origin_id, ojtype) "
+
+	if (execute_sql("INSERT INTO vjudge (problem_id, origin_id, ojtype) "
 			"values('%d', '%d', '%d')", problem_info->problem_id,
-			problem_info->origin_id, problem_info->ojtype);
-	if (mysql_real_query(conn, sql, strlen(sql))) {
-		mysql_real_query(conn, sql, strlen(sql));
+			problem_info->origin_id, problem_info->ojtype) < 0) {
 		free(sql);
 		free(tmp_str);
 		return -1;
 	}
-	sprintf(sql, "INSERT INTO cha (problem_id) values('%d')",
-			problem_info->problem_id);
-	if (mysql_real_query(conn, sql, strlen(sql))) {
-		mysql_real_query(conn, sql, strlen(sql));
+	if (execute_sql("INSERT INTO cha (problem_id) values('%d')",
+			problem_info->problem_id) < 0) { 
 		free(sql);
 		free(tmp_str);
 		return -1;
 	}
-	if (mysql_commit(conn)) {
-		fprintf(stderr, "事务执行失败！:%s\n", mysql_error(conn));
-		mysql_rollback(conn);
-		free(sql);
-		free(tmp_str);
-		return -1;
-	}
-	if (mysql_autocommit(conn, 1)) {
-		fprintf(stderr, "设置自动提交失败！:%s\n", mysql_error(conn));
-	}
+
 	free(sql);
 	free(tmp_str);
-
 	return 0;
 }
