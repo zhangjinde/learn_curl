@@ -1,8 +1,10 @@
 #!/bin/bash
+sudo /etc/init.d/judged stop
 cd judged
 make
 sudo chmod +x judged
 sudo cp judged /usr/bin
+sudo /etc/init.d/judged start
 make clean
 cd ../judge_client
 make
