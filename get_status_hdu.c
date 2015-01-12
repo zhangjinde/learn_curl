@@ -10,9 +10,15 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <regex.h>
+#include <unistd.h>
 #include <iconv.h>
+#include <curl/curl.h>
 
 #define BUFSIZE 1024
+
+char cookiename[] = "cookie";
+char filename[] = "status.txt";
+CURL *curl;
 
 int convert(char *buf, size_t len, const char *from, const char *to)
 {
@@ -68,20 +74,111 @@ int load_file(const char *filename, char *buf)
 		return -1;
 	}
 	buf[0] = '\0';
-	while (fgets(tmp, BUFSIZE, fp) != NULL) {
+	while (fgets(tmp, BUFSIZE * BUFSIZE, fp) != NULL) {
 		strcat(buf, tmp);
 	}
 	free(tmp);
 	return 0;
 }
 
+const char *curl_error(CURLcode errornum)
+{
+	return curl_easy_strerror(errornum);
+}
+
+CURL *prepare_curl(void)
+{
+	printf("prepare curl handle.\n");
+	CURLcode ret = curl_global_init(CURL_GLOBAL_ALL);
+	if (ret != CURLE_OK) {
+		printf("init curl error:%s.\n", curl_error(ret));
+		return NULL;
+	}
+	CURL *curl = curl_easy_init();
+	if (curl == NULL) {
+		curl_global_cleanup();
+		printf("get easy curl handle error.\n");
+		return NULL;
+	}
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 120);
+	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 120);
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, "zzuoj, curl");
+	// 不认证ssl证书
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+	// 跟踪重定向的信息
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+	// 设置cookie信息，否则就不能保存登陆信息
+	// 设置读取cookie的文件名
+	curl_easy_setopt(curl, CURLOPT_COOKIEFILE, cookiename);
+	// 设置写入cookie的文件名
+	curl_easy_setopt(curl, CURLOPT_COOKIEJAR, cookiename);
+
+	curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+
+	return curl;
+}
+
+int perform_curl(const char *filename)
+{
+	FILE *fp = fopen(filename, "w");
+	if (fp == NULL) {
+		printf("can create file %s.\n", filename);
+	}
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
+	CURLcode ret = curl_easy_perform(curl);
+	if (ret != CURLE_OK) {
+		printf("curl perform error:%s.\n", curl_error(ret));
+		printf("try again 5 seconds later.\n");
+		sleep(5);
+		ret = curl_easy_perform(curl);
+		if (ret != CURLE_OK) {
+			fclose(fp);
+			printf("curl perform error:%s.\n", curl_error(ret));
+			return -1;
+		}
+	}
+
+	int http_code = 0;
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+	printf("http_code = %d\n", http_code);
+	if (http_code >= 400) {
+		printf("http server error.\n");
+		fclose(fp);
+		return -1;
+	}
+
+	fclose(fp);
+	return 0;
+}
+
+void clear_cookie(void)
+{
+	FILE *fp = fopen(cookiename, "w");
+	fclose(fp);
+}
+
+void cleanup_curl(void)
+{
+	// 释放资源
+	curl_easy_cleanup(curl);
+	curl_global_cleanup();
+}
+
 int main(int argc, char *argv[])
 {
-	int status, i;
-	regmatch_t pmatch[10];
-	const size_t nmatch = 10;
+	int status, i, j;
+	regmatch_t pmatch[8];
+	const size_t nmatch = 8;
 	regex_t reg;
-	const char *pattern = "<tr align=center ><td.*?>([0-9]*)</td>(<td>.*?</td>){8,8}";//<font.*?>(.*)</font></td><td>";
+	const char *pattern = "<td height=22px>([0-9]*)</td>"
+		"<td>([: 0-9-]*)</td>"
+		"<td><font color=[ a-zA-Z]*>([ a-zA-Z]*)</font></td>"
+		"<td><a[ 0-9a-zA-Z\\./\\?\\\"=]*>([0-9]*)</a></td>"
+		"<td>([0-9]*)MS</td>"
+		"<td>([0-9]*)K</td>"
+		"<td>([0-9]*)B</td>"
+		;
 	char *buf = (char *)malloc(BUFSIZE * BUFSIZE);
 	char err[BUFSIZE];
 	if (buf == NULL) {
@@ -89,8 +186,27 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
+
+	curl = prepare_curl();
+	if (curl == NULL) {
+		printf("prepare curl handle error, try again 5 seconds later.\n");
+		sleep(5);
+		curl = prepare_curl();
+		if (curl == NULL) {
+			printf("prepare curl handle error.\n");
+			return -1;
+		}
+	}
+
+	char url[BUFSIZE];
+	sprintf(url, "http://acm.hdu.edu.cn/status.php?first=&pid=1000&user=zzuvjudge"
+			"&lang=0&status=0");
+	// 设置提交地址
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+
+	perform_curl(filename);
 	memset(buf, 0, BUFSIZE * BUFSIZE);
-	load_file("status.txt", buf);
+	load_file(filename, buf);
 	gbk2utf8(buf, strlen(buf));
 	printf("%s\n%lu\n", buf, strlen(buf));
 	int ret = regcomp(&reg, pattern, REG_EXTENDED);
@@ -98,6 +214,7 @@ int main(int argc, char *argv[])
 		regerror(ret, &reg, err, BUFSIZE);
 		printf("compile regex error: %s.\n", err);
 		free(buf);
+		cleanup_curl();
 		exit(EXIT_FAILURE);
 	}
 	status = regexec(&reg, buf, nmatch, pmatch, 0);
@@ -105,11 +222,15 @@ int main(int argc, char *argv[])
 		printf("no match.\n");
 	} else if (status == 0) {
 		printf("match.\n");
-		for (i = pmatch[0].rm_so; i < pmatch[0].rm_eo; ++i) {
-			printf("%c", buf[i]);
+		for (i = 0; i < nmatch; ++i) {
+			printf("i = %d\n", i);
+			for (j = pmatch[i].rm_so; j < pmatch[i].rm_eo; ++j) {
+				printf("%c", buf[j]);
+			}
+			printf("\n");
 		}
-		printf("\n");
 	}
+	cleanup_curl();
 	free(buf);
 	regfree(&reg);
 
