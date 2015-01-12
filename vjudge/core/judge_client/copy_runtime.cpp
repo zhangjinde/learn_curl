@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include "judge_client.h"
 
 void copy_shell_runtime(void)

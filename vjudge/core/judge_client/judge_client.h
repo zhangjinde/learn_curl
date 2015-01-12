@@ -9,8 +9,33 @@
 #define _JUDGE_CLIENT_H
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <error.h>
+#include <errno.h>
+#include <unistd.h>
+#include <regex.h>
+#include <time.h>
+#include <stdarg.h>
+#include <ctype.h>
+#include <sys/wait.h>
+#include <sys/ptrace.h>
+#include <sys/types.h>
+#include <sys/user.h>
+#include <sys/syscall.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <sys/signal.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <mysql/mysql.h>
+#include <assert.h>
+#include <features.h>
+#include <iconv.h>
 #include <curl/curl.h>
+
+#include <string>
 
 #define STD_MB 1048576		//1M
 #define STD_T_LIM 2
@@ -50,6 +75,8 @@
 #define REG_ARG0 rdi
 #define REG_ARG1 rsi
 #endif
+
+using namespace std;
 
 /*
  * 题目信息结构体

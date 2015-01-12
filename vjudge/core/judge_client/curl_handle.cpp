@@ -1,16 +1,3 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <time.h>
-#include <errno.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <mysql/mysql.h>
-#include <curl/curl.h>
-
 #include "judge_client.h"
 
 const char *curl_error(CURLcode errornum)
