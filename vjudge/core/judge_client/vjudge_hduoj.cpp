@@ -105,32 +105,93 @@ int submit_hduoj()
 	return 0;
 }
 
-int get_reinfo_hduoj(void)
+int get_ceinfo_hduoj(void)
 {
+	int status, i;
+	regmatch_t pmatch[2];
+	const int nmatch = 2;
+	regex_t reg;
+	const char *pattern = "<pre>(.*)</pre>";
+	char url[BUFSIZE];
+	sprintf(url, "http://acm.hdu.edu.cn/viewerror.php?rid=%d",
+			solution->remote_rid);
+
+	// 设置提交地址
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+
+	char err[BUFSIZE];
+	int ret = regcomp(&reg, pattern, REG_EXTENDED);
+	if (ret) {
+		regerror(ret, &reg, err, BUFSIZE);
+		write_log("compile regex error: %s.\n", err);
+		return -1;
+	}
+	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (html == NULL) {
+		write_log("alloc memory error.\n");
+		regfree(&reg);
+		return -1;
+	}
+	perform_curl(cefname);
+	load_file(cefname, html);
+	gbk2utf8(html, strlen(html));
+	// modified form bnuoj
+	if (strstr(html, "Connect(0) to MySQL Server failed.") != NULL
+			|| strstr(html, "<b>One or more following ERROR(s) occurred.") != NULL
+			|| strstr(html, "<h2>The requested URL could not be retrieved</h2>") != NULL
+			|| strstr(html, "<H1 style=\"COLOR: #1A5CC8\" align=center>Sign In Your Account</H1>") != NULL
+			|| strstr(html, "PHP: Maximum execution time of") != NULL
+			|| strstr(html, "<DIV>Exercise Is Closed Now!</DIV>") != NULL) {
+		write_log("get solution %d compile error info error.\n", solution->solution_id);
+		free(html);
+		regfree(&reg);
+		return -1;
+	} else {
+		status = regexec(&reg, html, nmatch, pmatch, 0);
+		if (status == REG_NOMATCH) {
+			write_log("get solution %d compile error info error.\n", solution->solution_id);
+			regfree(&reg);
+			free(html);
+			return -1;
+		} else if (status == 0) {
+			int cnt = 0;
+			for (i = pmatch[1].rm_so; i < pmatch[1].rm_eo; ++i) {
+				solution->compileinfo[cnt++] = html[i];
+			}
+			solution->compileinfo[cnt] = '\0';
+			write_log("match_str = %s\n", solution->compileinfo);
+			save_file(cefname, solution->compileinfo);
+		}
+	}
+	write_log("get compile error info: %s.\n", solution->compileinfo);
+	free(html);
+	regfree(&reg);
 	return 0;
 }
 
-int get_ceinfo_hduoj(void)
+int get_reinfo_hduoj(void)
 {
+	save_file(refname, solution->runtimeinfo);
+	write_log("get runtime error info: %s.\n", solution->runtimeinfo);
 	return 0;
 }
 int convert_result_hduoj(char *buf)
 {
-	if (strcmp("Accepted", buf) == 0) {
+	if (strstr("Accepted", buf) == 0) {
 		return OJ_AC;
-	} else if (strcmp("Presentation Error", buf) == 0) {
+	} else if (strstr("Presentation Error", buf) == 0) {
 		return OJ_PE;
-	} else if (strcmp("Runtime Error", buf) == 0) {
+	} else if (strstr("Runtime Error", buf) == 0) {
 		return OJ_RE;
-	} else if (strcmp("Wrong Answer", buf) == 0) {
+	} else if (strstr("Wrong Answer", buf) == 0) {
 		return OJ_WA;
-	} else if (strcmp("Time Limit Exceeded", buf) == 0) {
+	} else if (strstr("Time Limit Exceeded", buf) == 0) {
 		return OJ_TL;
-	} else if (strcmp("Memory Limit Exceeded", buf) == 0) {
+	} else if (strstr("Memory Limit Exceeded", buf) == 0) {
 		return OJ_ML;
-	} else if (strcmp("Output Limit Exceeded", buf) == 0) {
+	} else if (strstr("Output Limit Exceeded", buf) == 0) {
 		return OJ_OL;
-	} else if (strcmp("Compilation Error", buf) == 0) {
+	} else if (strstr("Compilation Error", buf) == 0) {
 		return OJ_CE;
 	} else {
 		return OJ_JE;
@@ -179,6 +240,7 @@ int get_status_hduoj(void)
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (html == NULL) {
 		write_log("alloc memory error.\n");
+		regfree(&reg);
 		return OJ_JE;
 	}
 	while (1) {
@@ -200,13 +262,15 @@ int get_status_hduoj(void)
 			|| strstr(html, "<DIV>Exercise Is Closed Now!</DIV>") != NULL) {
 			write_log("get solution %d status error.\n", solution->solution_id);
 			free(html);
+			regfree(&reg);
 			return OJ_JE;
 		} else {
 			status = regexec(&reg, html, nmatch, pmatch, 0);
 			if (status == REG_NOMATCH) {
 				write_log("get solution %d status error.\n", solution->solution_id);
 				free(html);
-				return OJ_WT0;
+				regfree(&reg);
+				return OJ_JE;
 			} else if (status == 0) {
 				char buf[BUFSIZE];
 				for (i = 0; i < nmatch; ++i) {
@@ -229,17 +293,25 @@ int get_status_hduoj(void)
 				write_log("memory = %d\n", memory);
 				write_log("result = %s\n", result);
 				if (is_final_result(result)) {
-					solution->time = rid;
+					solution->remote_rid = rid;
 					solution->time = usedtime;
 					solution->memory = memory;
 					free(html);
-					return convert_result(result);
+					regfree(&reg);
+					int ret = convert_result(result);
+					if (ret == OJ_RE) {
+						strcpy(solution->runtimeinfo, result);
+					}
+					write_log("get solution %d status over"
+							": %d.\n", solution->solution_id, ret);
+					return ret;
 				}
 			}
 		}
 	}
 
 	free(html);
+	regfree(&reg);
 
 	return OJ_JE;
 }

@@ -78,6 +78,7 @@ struct solution_t {
 	int memory;			// 所用空间
 	int result;			// 结果（4：AC）
 	int ispe;			// PE
+	int remote_rid;			// virtual judge run id
 	int language;			// 语言
 	int code_length;		// 代码长度
 	double pass_rate;		// 通过百分比（OI模式下可用）
@@ -185,5 +186,6 @@ extern int get_ceinfo_hduoj(void);
 extern int is_final_result(char *buf);
 extern int convert_result(char *buf);
 extern int convert_result_hduoj(char *buf);
+extern int save_file(const char *filename, char *buf);
 
 #endif	// _JUDGE_CLIENT_H

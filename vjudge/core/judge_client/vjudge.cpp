@@ -115,7 +115,7 @@ int submit(void)
 int get_status(void)
 {
 	write_log("get solution %d status.\n", solution->solution_id);
-	int ret = OJ_WT0;
+	int ret = OJ_JE;
 	switch (solution->problem_info.ojtype) {
 		case 0: ret = get_status_hduoj(); break;
 	}
@@ -179,6 +179,9 @@ int vjudge(void)
 	if (ret == 0) {
 		solution->result = OJ_RI;
 		update_solution();
+	} else {
+		solution->result = OJ_JE;
+		return -1;
 	}
 
 	// wait for judge

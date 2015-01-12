@@ -472,6 +472,7 @@ int load_file(const char *filename, char *buf)
 	char *tmp = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (tmp == NULL) {
 		write_log("alloc memory error.\n");
+		fclose(fp);
 		return -1;
 	}
 	buf[0] = '\0';
@@ -479,5 +480,19 @@ int load_file(const char *filename, char *buf)
 		strcat(buf, tmp);
 	}
 	free(tmp);
+	fclose(fp);
+	return 0;
+}
+
+int save_file(const char *filename, char *buf)
+{
+	FILE *fp = fopen(filename, "w");
+	if (fp == NULL) {
+		write_log("cann't open file %s.\n", filename);
+		return -1;
+	}
+	int len = strlen(buf);
+	fwrite(buf, len, 1, fp);
+	fclose(fp);
 	return 0;
 }

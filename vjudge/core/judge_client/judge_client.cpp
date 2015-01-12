@@ -179,14 +179,14 @@ void clean_workdir(void)
 void mk_shm_workdir(void)
 {
 	char shm_path[BUFSIZE];
-	sprintf(shm_path, "/dev/shm/zzuoj/%s", work_dir);
+	sprintf(shm_path, "/dev/shm/zzuoj%s", work_dir);
 	execute_cmd("/bin/mkdir -p %s", shm_path);
 	execute_cmd("/bin/rm -rf %s", work_dir);
 	execute_cmd("/bin/ln -s %s %s/", shm_path, oj_home);
 	execute_cmd("/bin/chown judge %s ", shm_path);
 	execute_cmd("chmod 755 %s ", shm_path);
 	//sim need a soft link in shm_dir to work correctly
-	sprintf(shm_path, "/dev/shm/zzuoj/%s/", oj_home);
+	sprintf(shm_path, "/dev/shm/zzuoj%s/", oj_home);
 	execute_cmd("/bin/ln -s %s/data %s", oj_home, shm_path);
 }
 

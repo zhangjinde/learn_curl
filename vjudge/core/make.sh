@@ -2,6 +2,15 @@
 sudo /etc/init.d/judged stop
 cd judged
 make
+sudo rm -rf /usr/bin/judge_client
+sudo rm -rf /usr/bin/judged
+sudo rm -rf /usr/bin/sim.sh
+sudo rm -rf /usr/bin/sim_c
+sudo rm -rf /usr/bin/sim_cc
+sudo rm -rf /usr/bin/sim_rb
+sudo rm -rf /usr/bin/sim_sh
+sudo rm -rf /usr/bin/sim_java
+sudo rm -rf /usr/bin/sim_pas
 sudo chmod +x judged
 sudo cp judged /usr/bin
 sudo /etc/init.d/judged start
