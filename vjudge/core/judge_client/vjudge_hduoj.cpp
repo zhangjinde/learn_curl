@@ -177,21 +177,21 @@ int get_reinfo_hduoj(void)
 }
 int convert_result_hduoj(char *buf)
 {
-	if (strstr("Accepted", buf) != NULL) {
+	if (strstr(buf, "Accepted") != NULL) {
 		return OJ_AC;
-	} else if (strstr("Presentation Error", buf) != NULL) {
+	} else if (strstr(buf, "Presentation Error") != NULL) {
 		return OJ_PE;
-	} else if (strstr("Runtime Error", buf) != NULL) {
+	} else if (strstr(buf, "Runtime Error") != NULL) {
 		return OJ_RE;
-	} else if (strstr("Wrong Answer", buf) != NULL) {
+	} else if (strstr(buf, "Wrong Answer") != NULL) {
 		return OJ_WA;
-	} else if (strstr("Time Limit Exceeded", buf) != NULL) {
+	} else if (strstr(buf, "Time Limit Exceeded") != NULL) {
 		return OJ_TL;
-	} else if (strstr("Memory Limit Exceeded", buf) != NULL) {
+	} else if (strstr(buf, "Memory Limit Exceeded") != NULL) {
 		return OJ_ML;
-	} else if (strstr("Output Limit Exceeded", buf) != NULL) {
+	} else if (strstr(buf, "Output Limit Exceeded") != NULL) {
 		return OJ_OL;
-	} else if (strstr("Compilation Error", buf) != NULL) {
+	} else if (strstr(buf, "Compilation Error") != NULL) {
 		return OJ_CE;
 	} else {
 		return OJ_JE;

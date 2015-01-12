@@ -107,6 +107,8 @@ void init_conf()
 			read_buf(buf, "COOKIENAME", cookiename);
 			read_buf(buf, "VJUDGE_USER", vjudge_user);
 			read_buf(buf, "VJUDGE_PASSWD", vjudge_passwd);
+			read_buf(buf, "CEFNAME", cefname);
+			read_buf(buf, "REFNAME", refname);
 			read_buf(buf, "DB_NAME", db_name);
 			read_int(buf, "DB_PORT", &db_port);
 			read_int(buf, "VJ_MAX_WAIT_TIME", &vj_max_wait_time);
@@ -116,7 +118,9 @@ void init_conf()
 			read_int(buf, "SIM_ENABLE", &sim_enable);
 			read_buf(buf, "JAVA_XMS", java_xms);
 			read_buf(buf, "JAVA_XMX", java_xmx);
+			read_int(buf, "SLEEP_TIME", &sleep_time);
 			read_int(buf, "OI_MODE", &oi_mode);
+			read_int(buf, "MAX_RUNNING", &max_running);
 			read_int(buf, "SHM_RUN", &shm_run);
 			read_int(buf, "USE_MAX_TIME", &use_max_time);
 		}
