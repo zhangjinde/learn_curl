@@ -448,7 +448,7 @@ int load_file(const char *filename, char *buf)
 		write_log("cann't open file %s.\n", filename);
 		return -1;
 	}
-	char *tmp = (char *)malloc(BUFFIZE * BUFSIZE);
+	char *tmp = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (tmp == NULL) {
 		write_log("alloc memory error.\n");
 		return -1;

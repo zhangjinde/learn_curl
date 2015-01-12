@@ -177,6 +177,12 @@ extern int get_status_hduoj(void);
 extern int utf2gbk(char *buf, size_t len);
 extern int gbk2utf8(char *buf, size_t len);
 extern int convert(char *buf, size_t len, const char *from, const char *to);
-extern int parse_result_hduoj(char *buf, struct problem_info_t *problem_info, int type, int pid);
+extern int get_reinfo(void);
+extern int get_ceinfo(void);
+extern int get_reinfo_hduoj(void);
+extern int get_ceinfo_hduoj(void);
+extern int is_final_result(char *buf);
+extern int convert_result(char *buf);
+extern int convert_result_hduoj(char *buf);
 
 #endif	// _JUDGE_CLIENT_H

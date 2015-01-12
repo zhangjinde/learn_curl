@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <regex.h>
 #include <unistd.h>
 #include <mysql/mysql.h>
 
@@ -104,11 +105,45 @@ int submit_hduoj()
 	return 0;
 }
 
-int get_result_hduoj(void)
+int get_reinfo_hduoj(void)
+{
+	return 0;
+}
+
+int get_ceinfo_hduoj(void)
+{
+	return 0;
+}
+int convert_result_hduoj(char *buf)
+{
+	if (strcmp("Accepted", buf) == 0) {
+		return OJ_AC;
+	} else if (strcmp("Presentation Error", buf) == 0) {
+		return OJ_PE;
+	} else if (strcmp("Runtime Error", buf) == 0) {
+		return OJ_RE;
+	} else if (strcmp("Wrong Answer", buf) == 0) {
+		return OJ_WA;
+	} else if (strcmp("Time Limit Exceeded", buf) == 0) {
+		return OJ_TL;
+	} else if (strcmp("Memory Limit Exceeded", buf) == 0) {
+		return OJ_ML;
+	} else if (strcmp("Output Limit Exceeded", buf) == 0) {
+		return OJ_OL;
+	} else if (strcmp("Compilation Error", buf) == 0) {
+		return OJ_CE;
+	} else {
+		return OJ_WT0;
+	}
+
+	return OJ_WT0;
+}
+
+int get_status_hduoj(void)
 {
 	int status, i, j;
 	regmatch_t pmatch[5];
-	const size_t nmatch = 5;
+	const int nmatch = 5;
 	regex_t reg;
 	const char *pattern = "<td height=22px>([0-9]*)</td>"
 		"<td>[: 0-9-]*</td>"
@@ -118,9 +153,9 @@ int get_result_hduoj(void)
 		"<td>([0-9]*)K</td>"
 		;
 	char url[BUFSIZE];
-	sprintf("http://acm.hdu.edu.cn/status.php?first=&pid=%d&user=%s"
-			"&lang=0&status=0", vjudge_user,
-			solution->problem_info.origin_id);
+	sprintf(url, "http://acm.hdu.edu.cn/status.php?first=&pid=%d&user=%s"
+			"&lang=0&status=0", solution->problem_info.origin_id,
+			vjudge_user);
 
 	// 设置提交地址
 	curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -130,9 +165,10 @@ int get_result_hduoj(void)
 
 	time_t begin_time = time(NULL);
 	int rid = 0;
-	int time = 0;
+	int usedtime = 0;
 	int memory = 0;
 	char result[BUFSIZE];
+	char err[BUFSIZE];
 	int ret = regcomp(&reg, pattern, REG_EXTENDED);
 	if (ret) {
 		regerror(ret, &reg, err, BUFSIZE);
@@ -180,14 +216,15 @@ int get_result_hduoj(void)
 					buf[cnt] = '\0';
 					switch (i) {
 						case 0: rid = atoi(buf); break;
-						case 1: time = atoi(buf); break;
+						case 1: usedtime = atoi(buf); break;
 						case 2: memory = atoi(buf); break;
 						case 3: strcpy(result, buf); break;
 					}
 				}
 				if (is_final_result(result)) {
-					solution->time = time;
-					solution->memory = time;
+					solution->time = rid;
+					solution->time = usedtime;
+					solution->memory = memory;
 					free(html);
 					return convert_result(result);
 				}

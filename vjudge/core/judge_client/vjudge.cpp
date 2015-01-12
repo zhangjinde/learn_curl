@@ -67,6 +67,16 @@ int is_final_result(char *buf)
 	return 1;
 }
 
+int convert_result(char *buf)
+{
+	write_log("try to convert %d oj's result.\n", solution->problem_info.ojtype);
+	int ret = OJ_WT0;
+	switch (solution->problem_info.ojtype) {
+		case 0: ret = convert_result_hduoj(buf); break;
+	}
+	return ret;
+}
+
 int login(void)
 {
 	write_log("try to log in %d.\n", solution->problem_info.ojtype);
@@ -90,7 +100,6 @@ int submit(void)
 	int ret = -1;
 	switch (solution->problem_info.ojtype) {
 		case 0: ret = submit_hduoj(); break;
-		default: write_log("unsupported virtual judge.\n"); break;
 	}
 	if (ret < 0) {
 		write_log("solution %d submit error.\n", solution->solution_id);
@@ -106,7 +115,26 @@ int get_status(void)
 	int ret = OJ_WT0;
 	switch (solution->problem_info.ojtype) {
 		case 0: ret = get_status_hduoj(); break;
-		default: write_log("unsupported virtual judge.\n"); break;
+	}
+	return ret;
+}
+
+int get_ceinfo(void)
+{
+	write_log("get solution %d compile error info\n", solution->solution_id);
+	int ret = -1;
+	switch (solution->problem_info.ojtype) {
+		case 0: ret = get_ceinfo_hduoj(); break;
+	}
+	return ret;
+}
+
+int get_reinfo(void)
+{
+	write_log("get solution %d runtime error info.\n", solution->solution_id);
+	int ret = -1;
+	switch (solution->problem_info.ojtype) {
+		case 0: ret = get_reinfo_hduoj(); break;
 	}
 	return ret;
 }
@@ -150,6 +178,13 @@ int vjudge(void)
 	}
 
 	solution->result = get_status();
+	if (solution->result == OJ_CE) {
+		solution->isce = 1;
+		get_ceinfo();
+	} else if (solution->result == OJ_RE) {
+		solution->isre = 1;
+		get_reinfo();
+	}
 
 	cleanup_curl();
 
