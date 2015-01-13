@@ -113,7 +113,6 @@ int get_ceinfo_poj(void)
 	}
 	perform_curl(cefname);
 	load_file(cefname, html);
-	gbk2utf8(html, strlen(html));
 	// modified form bnuoj
 	if (strstr(html, "Error Occurred") != NULL
 		|| strstr(html, "The page is temporarily unavailable") != NULL) {
@@ -184,10 +183,11 @@ int get_status_poj(void)
 	const int nmatch = 5;
 	regex_t reg;
 	const char *pattern = "<tr align=center><td>([0-9]*)</td>"
-		"<td><a[^>]*>[^<]*</a></td><td><a[^>]*>[^<]*</a></td>"
+		"<td><a[^>]*>[^<]*</a></td>"
+		"<td><a[^>]*>[^<]*</a></td>"
 		"<td><font[^>]*>([ a-zA-Z]*)</font></td>"
-		"<td>([0-9]*)K</td>"
-		"<td>([0-9]*)MS</td>";
+		"<td>([0-9]*)K?</td>"
+		"<td>([0-9]*)(MS)?</td>";
 	char url[BUFSIZE];
 	sprintf(url, "http://poj.org/status?problem_id=%d&user_id=%s",
 			solution->problem_info.origin_id, vjudge_user);
