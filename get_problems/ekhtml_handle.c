@@ -7,79 +7,8 @@
 
 #include "get_problem.h"
 
-ekhtml_parser_t *prepare_ekhtml(void *cbdata)
-{
-	ekhtml_parser_t *ekparser = ekhtml_parser_new(NULL);
-	ekhtml_parser_cbdata_set(ekparser, cbdata);
-	return ekparser;
-}
-
-void cleanup_ekhtml(ekhtml_parser_t *ekparser)
-{
-	ekhtml_parser_flush(ekparser, 1);
-	ekhtml_parser_destroy(ekparser);
-}
-
-// title start
-static void hdu_starttag_h1(void *cbdata, ekhtml_string_t * tag,
-				ekhtml_attr_t * attrs)
-{
-	struct html_state_t *state = (struct html_state_t *)cbdata;
-	state->istitle = 1;
-}
-
-// title end
-static void hdu_endtag_h1(void *cbdata, ekhtml_string_t * str)
-{
-	struct html_state_t *state = (struct html_state_t *)cbdata;
-	state->istitle = 0;
-}
-
-// time limit and status start
-static void hdu_starttag_span(void *cbdata, ekhtml_string_t * tag,
-				ekhtml_attr_t * attrs)
-{
-	struct html_state_t *state = (struct html_state_t *)cbdata;
-	state->islimit = 1;
-	state->isstat = 1;
-	state->isspj = 1;
-}
-
-// time limit and status end
-static void hdu_endtag_span(void *cbdata, ekhtml_string_t * str)
-{
-	struct html_state_t *state = (struct html_state_t *)cbdata;
-	state->islimit = 0;
-	state->isstat = 0;
-	state->isspj = 0;
-}
-
-// div start
-static void hdu_endtag_div(void *cbdata, ekhtml_string_t * str)
-{
-	struct html_state_t *state = (struct html_state_t *)cbdata;
-	if (state->isdescription) {
-		--state->isdescription;
-	}
-	if (state->isinput) {
-		--state->isinput;
-	}
-	if (state->isoutput) {
-		--state->isoutput;
-	}
-	if (state->issinput) {
-		--state->issinput;
-	}
-	if (state->issoutput) {
-		--state->issoutput;
-	}
-	if (state->ishint) {
-		--state->ishint;
-	}
-}
-
 // tag start
-static void starttag(void *cbdata, ekhtml_string_t * tag,
+void starttag(void *cbdata, ekhtml_string_t * tag,
 			    ekhtml_attr_t * attrs)
 {
 	char tagname[20];
@@ -93,11 +22,6 @@ static void starttag(void *cbdata, ekhtml_string_t * tag,
 	memset(tmp_str, 0, BUFSIZE * BUFSIZE);
 	strncpy(tagname, tag->str, tag->len);
 
-	if (strcmp(tagname, "DIV") == 0) {
-		free(tmp_str);
-		return;
-	}
-
 	if (state->isdescription || state->isinput || state->isoutput
 			|| state->issinput || state->issoutput
 			|| state->ishint || state->istitle || state->islimit) {
@@ -107,7 +31,7 @@ static void starttag(void *cbdata, ekhtml_string_t * tag,
 			strncat(tmp_str, attr->name.str, attr->name.len);
 			strcat(tmp_str, "=\"");
 			// 特殊处理图像
-			if (strcmp(tagname, "IMG") == 0 && strncmp(attr->name.str, "src", 3) == 0) {
+			if (strcmp(tagname, "IMG") == 0 && strncmp(attr->name.str, "src", attr->name.len) == 0) {
 				char attrval[BUFSIZE];
 				memset(attrval, 0, sizeof(attrval));
 				strncpy(attrval, attr->val.str, attr->val.len);
@@ -134,11 +58,6 @@ static void starttag(void *cbdata, ekhtml_string_t * tag,
 	if (state->isoutput) {
 		strcat(state->problem_info->output, tmp_str);
 	}
-	if (state->issoutput) {
-		if (strcmp(tagname, "I") == 0) {
-			--state->issoutput;
-		}
-	}
 	if (state->ishint) {
 		strcat(state->problem_info->hint, tmp_str);
 	}
@@ -146,7 +65,7 @@ static void starttag(void *cbdata, ekhtml_string_t * tag,
 }
 
 // tag end
-static void endtag(void *cbdata, ekhtml_string_t * str)
+void endtag(void *cbdata, ekhtml_string_t * str)
 {
 	char tagname[20];
 	char *tmp_str = (char *)malloc(BUFSIZE * BUFSIZE);
@@ -176,7 +95,7 @@ static void endtag(void *cbdata, ekhtml_string_t * str)
 }
 
 // process tag data
-static void tagdata(void *cbdata, ekhtml_string_t * str)
+void tagdata(void *cbdata, ekhtml_string_t * str)
 {
 	char *buf = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (buf == NULL) {
@@ -211,29 +130,15 @@ static void tagdata(void *cbdata, ekhtml_string_t * str)
 	free(buf);
 }
 
-int parse_html_hdu(char *buf)
+ekhtml_parser_t *prepare_ekhtml(void *cbdata)
 {
-	struct html_state_t cbdata;
-	memset(&cbdata, 0, sizeof(struct html_state_t));
-	cbdata.problem_info = problem_info;
-	ekhtml_parser_t *ekparser = prepare_ekhtml(&cbdata);
+	ekhtml_parser_t *ekparser = ekhtml_parser_new(NULL);
+	ekhtml_parser_cbdata_set(ekparser, cbdata);
+	return ekparser;
+}
 
-	// set callback function or data
-	ekhtml_parser_datacb_set(ekparser, hdu_data);
-	ekhtml_parser_startcb_add(ekparser, NULL, hdu_starttag);
-	ekhtml_parser_startcb_add(ekparser, "H1", hdu_starttag_h1);
-	ekhtml_parser_startcb_add(ekparser, "SPAN", hdu_starttag_span);
-	ekhtml_parser_endcb_add(ekparser, NULL, hdu_endtag);
-	ekhtml_parser_endcb_add(ekparser, "H1", hdu_endtag_h1);
-	ekhtml_parser_endcb_add(ekparser, "SPAN", hdu_endtag_span);
-	ekhtml_parser_endcb_add(ekparser, "DIV", hdu_endtag_div);
-
-	ekhtml_string_t str;
-	str.str = buf;
-	str.len = strlen(buf);
-	ekhtml_parser_feed(ekparser, &str);
-	ekhtml_parser_flush(ekparser, 0);
-
-	cleanup_ekhtml(ekparser);
-	return 0;
+void cleanup_ekhtml(ekhtml_parser_t *ekparser)
+{
+	ekhtml_parser_flush(ekparser, 1);
+	ekhtml_parser_destroy(ekparser);
 }

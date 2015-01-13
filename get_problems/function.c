@@ -428,7 +428,8 @@ int add_problem(void)
 	*end++ = ')';
 	*end = '\0';
 
-	if (execute_sql(sql) < 0) {
+	if (mysql_real_query(conn, sql, strlen(sql))) {
+		write_log("execute sql error:%s.\n", mysql_error(conn));
 		free(sql);
 		free(tmp_str);
 		return -1;

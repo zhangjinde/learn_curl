@@ -36,6 +36,8 @@ char oj_url[OJMAX][BUFSIZE] = {
 };
 char oj_imgurl[OJMAX][BUFSIZE] = {
 	"http://acm.hdu.edu.cn/data/images",
+	"",
+	""
 };
 
 

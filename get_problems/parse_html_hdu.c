@@ -73,101 +73,37 @@ static void hdu_starttag(void *cbdata, ekhtml_string_t * tag,
 			    ekhtml_attr_t * attrs)
 {
 	char tagname[20];
-	char *tmp_str = (char *)malloc(BUFSIZE * BUFSIZE);
-	if (tmp_str == NULL) {
-		write_log("alloc hdu_starttag tmp_str buf memory error.\n");
-		return;
-	}
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	memset(tagname, 0, sizeof(tagname));
-	memset(tmp_str, 0, BUFSIZE * BUFSIZE);
 	strncpy(tagname, tag->str, tag->len);
 
 	if (strcmp(tagname, "DIV") == 0) {
-		free(tmp_str);
 		return;
 	}
 
-	if (state->isdescription || state->isinput || state->isoutput
-			|| state->issinput || state->issoutput
-			|| state->ishint || state->istitle || state->islimit) {
-		ekhtml_attr_t *attr;
-		sprintf(tmp_str, "<%s ", tagname);
-		for (attr = attrs; attr; attr = attr->next) {
-			strncat(tmp_str, attr->name.str, attr->name.len);
-			strcat(tmp_str, "=\"");
-			// 特殊处理图像
-			if (strcmp(tagname, "IMG") == 0 && strncmp(attr->name.str, "src", 3) == 0) {
-				char attrval[BUFSIZE];
-				memset(attrval, 0, sizeof(attrval));
-				strncpy(attrval, attr->val.str, attr->val.len);
-				strcat(tmp_str, "http://acm.hdu.edu.cn/data/images");
-				strcat(tmp_str, &attrval[strrchr(attrval, '/') - attrval]);
-			} else {
-				if (!attr->isBoolean) {
-					strncat(tmp_str, attr->val.str, attr->val.len);
-				} else {
-					strncat(tmp_str, attr->name.str, attr->name.len);
-				}
-			}
-			strcat(tmp_str, "\" ");
-		}
-		strcat(tmp_str, ">");
-	}
+	starttag(cbdata, tag, attrs);
 
-	if (state->isdescription) {
-		strcat(state->problem_info->description, tmp_str);
-	}
-	if (state->isinput) {
-		strcat(state->problem_info->input, tmp_str);
-	}
-	if (state->isoutput) {
-		strcat(state->problem_info->output, tmp_str);
-	}
+
 	if (state->issoutput) {
 		if (strcmp(tagname, "I") == 0) {
 			--state->issoutput;
 		}
 	}
-	if (state->ishint) {
-		strcat(state->problem_info->hint, tmp_str);
-	}
-	free(tmp_str);
 }
 
 // tag end
 static void hdu_endtag(void *cbdata, ekhtml_string_t * str)
 {
 	char tagname[20];
-	char *tmp_str = (char *)malloc(BUFSIZE * BUFSIZE);
-	if (tmp_str == NULL) {
-		fprintf(stderr, "分配内存失败！\n");
-		return;
-	}
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	memset(tagname, 0, sizeof(tagname));
-	memset(tmp_str, 0, BUFSIZE * BUFSIZE);
 	strncpy(tagname, str->str, str->len);
 
-	if (state->isdescription) {
-		sprintf(tmp_str, "</%s>", tagname);
-		strcat(state->problem_info->description, tmp_str);
+	if (state->ishint && strcmp(tagname, "I") == 0) {
+		return;
 	}
-	if (state->isinput) {
-		sprintf(tmp_str, "</%s>", tagname);
-		strcat(state->problem_info->input, tmp_str);
-	}
-	if (state->isoutput) {
-		sprintf(tmp_str, "</%s>", tagname);
-		strcat(state->problem_info->output, tmp_str);
-	}
-	if (state->ishint) {
-		if (strcmp(tagname, "I") != 0) {
-			sprintf(tmp_str, "</%s>", tagname);
-			strcat(state->problem_info->hint, tmp_str);
-		}
-	}
-	free(tmp_str);
+
+	endtag(cbdata, str);
 }
 
 // process tag data
@@ -175,16 +111,15 @@ static void hdu_data(void *cbdata, ekhtml_string_t * str)
 {
 	char *buf = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (buf == NULL) {
-		fprintf(stderr, "分配内存失败！\n");
+		write_log("alloc hdu_data buf memory error.\n");
 		return;
 	}
 	memset(buf, 0, BUFSIZE * BUFSIZE);
 	strncpy(buf, str->str, str->len);
 	struct html_state_t *state = (struct html_state_t *)cbdata;
-	// 获取标题
-	if (state->istitle) {
-		strncpy(state->problem_info->title, str->str, str->len);
-	}
+
+	tagdata(cbdata, str);
+
 	if (state->islimit) {		// 获取限制
 		if (strstr(buf, "Time Limit") != NULL) {
 			int time_limit = 0;
@@ -216,24 +151,6 @@ static void hdu_data(void *cbdata, ekhtml_string_t * str)
 			state->problem_info->spj = 1;
 		}
 	}
-	if (state->isdescription) {
-		strcat(state->problem_info->description, buf);
-	}
-	if (state->isinput) {
-		strcat(state->problem_info->input, buf);
-	}
-	if (state->isoutput) {
-		strcat(state->problem_info->output, buf);
-	}
-	if (state->issinput) {
-		strcat(state->problem_info->sample_input, buf);
-	}
-	if (state->issoutput) {
-		strcat(state->problem_info->sample_output, buf);
-	}
-	if (state->ishint) {
-		strcat(state->problem_info->hint, buf);
-	}
 
 	if (strcmp("Problem Description", buf) == 0) {
 		state->isdescription = 2;
@@ -253,6 +170,7 @@ static void hdu_data(void *cbdata, ekhtml_string_t * str)
 	if (strcmp("Hint", buf) == 0) {
 		state->ishint = 2;
 	}
+
 	free(buf);
 }
 
