@@ -100,9 +100,6 @@ int write_log(const char *fmt, ...)
 		fprintf(stderr, "open log file error:%s.\n", strerror(errno));
 		return 0;
 	}
-	if (DEBUG) {
-		freopen("/dev/stdout", "w", fp);
-	}
 	va_start(ap, fmt);
 	vsprintf(buffer, fmt, ap);
 	timestr[len - 1] = '\0';

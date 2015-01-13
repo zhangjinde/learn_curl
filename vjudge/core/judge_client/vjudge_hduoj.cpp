@@ -2,8 +2,9 @@
 
 int login_hduoj(void)
 {
+	char url[] = "http://acm.hdu.edu.cn/userloginex.php?action=login";
 	// 设置提交地址
-	curl_easy_setopt(curl, CURLOPT_URL, "http://acm.hdu.edu.cn/userloginex.php?action=login");
+	curl_easy_setopt(curl, CURLOPT_URL, url);
 	// 设置参数
 	char post_str[BUFSIZE];
 	char filename[BUFSIZE];
@@ -15,6 +16,10 @@ int login_hduoj(void)
 	sprintf(filename, "%dlogin.txt", solution->solution_id);
 	sprintf(post_str, "username=%s&userpass=%s", vjudge_user, vjudge_passwd);
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_str);
+	if (DEBUG) {
+		write_log("perform url is %s.\n", url);
+		write_log("post data is %s.\n", post_str);
+	}
 	perform_curl(filename);
 	load_file(filename, html);
 
@@ -40,6 +45,7 @@ int submit_hduoj(void)
 		return -1;
 	}
 
+	char url[] = "http://acm.hdu.edu.cn/submit.php?action=submit";
 	memset(post_str, 0, BUFSIZE * BUFSIZE);
 	sprintf(post_str, "check=0&problemid=%d&language=%d&usercode=",
 			solution->problem_info.origin_id,
@@ -55,8 +61,13 @@ int submit_hduoj(void)
 	}
 	strcat(post_str, str);
 
+	if (DEBUG) {
+		write_log("perform url is %s.\n", url);
+		write_log("post data is %s.\n", post_str);
+	}
+
 	// 设置提交地址
-	curl_easy_setopt(curl, CURLOPT_URL, "http://acm.hdu.edu.cn/submit.php?action=submit");
+	curl_easy_setopt(curl, CURLOPT_URL, url);
 	// 设置参数
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_str);
 
@@ -105,6 +116,9 @@ int get_ceinfo_hduoj(void)
 	sprintf(url, "http://acm.hdu.edu.cn/viewerror.php?rid=%d",
 			solution->remote_rid);
 
+	if (DEBUG) {
+		write_log("perform url is %s.\n", url);
+	}
 	// 设置提交地址
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 
@@ -223,6 +237,9 @@ int get_status_hduoj(void)
 	sprintf(url, "http://acm.hdu.edu.cn/status.php?first=&pid=%d&user=%s"
 			"&lang=0&status=0", solution->problem_info.origin_id,
 			vjudge_user);
+	if (DEBUG) {
+		write_log("perform url is %s.\n", url);
+	}
 
 	// 设置提交地址
 	curl_easy_setopt(curl, CURLOPT_URL, url);

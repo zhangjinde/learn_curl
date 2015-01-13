@@ -2,19 +2,24 @@
 
 int login_poj(void)
 {
-	// 设置提交地址
-	curl_easy_setopt(curl, CURLOPT_URL, "http://poj.org/login");
-	// 设置参数
 	char post_str[BUFSIZE];
 	char filename[BUFSIZE];
+	char url[] = "http://poj.org/login";
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (html == NULL) {
 		write_log("alloc login_poj html buf memory error.\n");
 		return -1;
 	}
+	// 设置提交地址
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	// 设置参数
 	sprintf(filename, "%dlogin.txt", solution->solution_id);
 	sprintf(post_str, "user_id1=%s&password1=%s", vjudge_user, vjudge_passwd);
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_str);
+	if (DEBUG) {
+		write_log("perform url is %s.\n", url);
+		write_log("post data is %s.\n", post_str);
+	}
 	perform_curl(filename);
 	load_file(filename, html);
 
@@ -30,6 +35,7 @@ int login_poj(void)
 
 int submit_poj(void)
 {
+	char url[] = "http://poj.org/submit";
 	char *post_str = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (post_str == NULL) {
 		write_log("alloc submit_poj post_str buf memory error.\n");
@@ -50,12 +56,16 @@ int submit_poj(void)
 	strcat(post_str, str);
 
 	// 设置提交地址
-	curl_easy_setopt(curl, CURLOPT_URL, "http://poj.org/submit");
+	curl_easy_setopt(curl, CURLOPT_URL, url);
 	// 设置参数
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_str);
 
 	char filename[BUFSIZE];
 	sprintf(filename, "%dsubmit.txt", solution->solution_id);
+	if (DEBUG) {
+		write_log("perform url is %s.\n", url);
+		write_log("post data is %s.\n", post_str);
+	}
 	perform_curl(filename);
 
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
@@ -189,8 +199,13 @@ int get_status_poj(void)
 		"<td>([0-9]*)K?</td>"
 		"<td>([0-9]*)(MS)?</td>";
 	char url[BUFSIZE];
-	sprintf(url, "http://poj.org/status?problem_id=%d&user_id=%s",
-			solution->problem_info.origin_id, vjudge_user);
+	sprintf(url, "http://poj.org/status?problem_id=%d&user_id=%s&language=%d",
+			solution->problem_info.origin_id, vjudge_user,
+			lang_table[solution->problem_info.ojtype][solution->language]);
+
+	if (DEBUG) {
+		write_log("perform url is %s.\n", url);
+	}
 
 	// 设置提交地址
 	curl_easy_setopt(curl, CURLOPT_URL, url);
