@@ -25,9 +25,19 @@ struct problem_info_t *problem_info;
 
 /*
  * oj_type 0 for hduoj.
+ * oj_type 1 for poj.
+ * oj_type 1 for zoj.
  */
-char oj_str[OJMAX][BUFSIZE] = {"hduoj"};
-char oj_url[OJMAX][BUFSIZE] = {"http://acm.hdu.edu.cn/showproblem.php?pid="};
+char oj_str[OJMAX][BUFSIZE] = {"hduoj", "poj", "zoj"};
+char oj_url[OJMAX][BUFSIZE] = {
+	"http://acm.hdu.edu.cn/showproblem.php?pid=",
+	"http://poj.org/problem?id=",
+	"http://acm.zju.edu.cn/onlinejudge/showProblem.do?problemCode="
+};
+char oj_imgurl[OJMAX][BUFSIZE] = {
+	"http://acm.hdu.edu.cn/data/images",
+};
+
 
 // read the configue file
 void init_conf()

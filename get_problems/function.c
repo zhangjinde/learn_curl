@@ -84,6 +84,7 @@ void trim(char *c)
 		end--;
 	*(end + 1) = '\0';
 	strcpy(c, start);
+	free(buf);
 }
 
 void to_lowercase(char *c)
@@ -156,10 +157,17 @@ int parse_html(char *buf)
 	problem_info->ojtype = oj_type;
 	strcpy(problem_info->source, oj_str[oj_type]);
 
+	write_log("try to parse %s html.\n", oj_name);
 	int ret = -1;
 	switch (oj_type) {
 		case 0:
 			ret = parse_html_hdu(buf);
+			break;
+		case 1:
+			ret = parse_html_poj(buf);
+			break;
+		case 2:
+			ret = parse_html_zoj(buf);
 			break;
 	}
 	return ret;
@@ -215,6 +223,8 @@ int get_problem(void)
 
 	if (strstr(buf, "No such problem") != NULL
 			|| strstr(buf, "Invalid Parameter") != NULL) {
+		free(buf);
+		free(url);
 		return 1;
 	}
 	int ret = parse_html(buf);
@@ -305,6 +315,8 @@ int add_problem(void)
 	MYSQL_RES *result = mysql_store_result(conn);
 	if (result == NULL) {
 		write_log("read mysql result error:%s.\n", mysql_error(conn));
+		free(sql);
+		free(tmp_str);
 		return -1;
 	}
 	int cnt = mysql_num_rows(result);
@@ -312,6 +324,8 @@ int add_problem(void)
 		MYSQL_ROW row = mysql_fetch_row(result);
 		if (row == NULL) {
 			mysql_free_result(result);
+			free(sql);
+			free(tmp_str);
 			write_log("fetch mysql row error:%s.\n", mysql_error(conn));
 			return -1;
 		}

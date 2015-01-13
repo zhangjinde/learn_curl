@@ -8,17 +8,7 @@
 /*
  * get hduoj problem
  */
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <string.h>
-#include <regex.h>
-#include <unistd.h>
-#include <curl/curl.h>
-#include <mysql/mysql.h>
-
 #include "get_problem.h"
-#include "ekhtml.h"
 
 // title start
 static void hdu_starttag_h1(void *cbdata, ekhtml_string_t * tag,
@@ -85,7 +75,7 @@ static void hdu_starttag(void *cbdata, ekhtml_string_t * tag,
 	char tagname[20];
 	char *tmp_str = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (tmp_str == NULL) {
-		fprintf(stderr, "分配内存失败！\n");
+		write_log("alloc hdu_starttag tmp_str buf memory error.\n");
 		return;
 	}
 	struct html_state_t *state = (struct html_state_t *)cbdata;
