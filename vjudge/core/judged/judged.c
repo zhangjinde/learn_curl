@@ -232,7 +232,7 @@ int executesql(const char *sql)
 	write_log("execute sql：%s.\n", sql);
 	if (mysql_real_query(conn, sql, strlen(sql))) {
 		write_log("execute sql error:%s.\n", mysql_error(conn));
-		sleep(db_timeout);
+		sleep(sleep_time);
 		conn = NULL;
 		return 1;
 	} else {
@@ -266,7 +266,7 @@ int get_jobs(int *jobs)
 	write_log("get jobs.\n");
 	if (mysql_real_query(conn, query, strlen(query))) {
 		write_log("get jobs error:%s\n", mysql_error(conn));
-		sleep(db_timeout);
+		sleep(sleep_time);
 		return 0;
 	}
 	res = mysql_store_result(conn);

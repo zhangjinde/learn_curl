@@ -122,6 +122,7 @@ struct solution_t {
 extern int DEBUG;
 extern int db_port;
 extern int shm_run;
+extern int runner_id;
 extern int max_running;
 extern int db_timeout;
 extern int sleep_time;

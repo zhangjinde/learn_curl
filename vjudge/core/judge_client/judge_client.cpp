@@ -29,6 +29,7 @@
 int DEBUG = 1;
 int db_port;
 int shm_run = 0;
+int runner_id = 0;
 int max_running;
 int db_timeout;
 int sleep_time;
@@ -100,6 +101,9 @@ void init_conf()
 			read_int(buf, "SHM_RUN", &shm_run);
 			read_int(buf, "USE_MAX_TIME", &use_max_time);
 		}
+		int len = strlen(vjudge_user);
+		vjudge_user[len] = runner_id + '0';
+		vjudge_user[len + 1] = '\0';
 		fclose(fp);
 	} else {
 		write_log("init mysql config error:%s.\n", strerror(errno));
@@ -192,7 +196,6 @@ void print_call_array()
 int main(int argc, char **argv)
 {
 	int solution_id = 1000;
-	int runner_id = 0;
 
 	//获取参数,得到solution_id,runner_id,如果指定了oj_home就设置oj_home
 	init_parameters(argc, argv, &solution_id, &runner_id);
