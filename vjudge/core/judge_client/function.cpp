@@ -41,8 +41,8 @@ int write_log(const char *fmt, ...)
 	struct tm *date = localtime(&t);
 	sprintf(buffer, "%s", asctime(date));
 	string timestr(buffer, strlen(buffer) - 1);
-	sprintf(buffer, "%s/log/client%04d%02d%02d.log", oj_home, date->tm_year + 1900,
-			date->tm_mon + 1, date->tm_mday);
+	sprintf(buffer, "%s/log/client%04d%02d%02d_%d.log", oj_home, date->tm_year + 1900,
+			date->tm_mon + 1, date->tm_mday, runner_id);
 	FILE *fp = fopen(buffer, "a+");
 	if (fp == NULL) {
 		fprintf(stderr, "open log file error:%s.\n", strerror(errno));

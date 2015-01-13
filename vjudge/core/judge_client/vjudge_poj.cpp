@@ -13,7 +13,7 @@ int login_poj(void)
 		return -1;
 	}
 	sprintf(filename, "%dlogin.txt", solution->solution_id);
-	sprintf(post_str, "username=%s&userpass=%s", vjudge_user, vjudge_passwd);
+	sprintf(post_str, "user_id1=%s&password1=%s", vjudge_user, vjudge_passwd);
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_str);
 	perform_curl(filename);
 	load_file(filename, html);

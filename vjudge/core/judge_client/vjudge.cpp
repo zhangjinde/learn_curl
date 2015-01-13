@@ -144,8 +144,8 @@ int vjudge(void)
 {
 	curl = prepare_curl();
 	if (curl == NULL) {
-		write_log("prepare curl handle error, try again 5 seconds later.\n");
-		sleep(5);
+		write_log("prepare curl handle error, try again %d seconds later.\n", sleep_time);
+		sleep(sleep_time);
 		curl = prepare_curl();
 		if (curl == NULL) {
 			write_log("prepare curl handle error.\n");
@@ -183,7 +183,7 @@ int vjudge(void)
 	}
 
 	// wait for judge
-	sleep(1);
+	sleep(sleep_time);
 	solution->result = get_status();
 	if (solution->result == OJ_CE) {
 		solution->isce = 1;
