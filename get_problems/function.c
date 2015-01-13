@@ -191,9 +191,6 @@ int get_problem(void)
 	// 执行数据请求
 	if (perform_curl(filename) < 0) {
 		free(url);
-		if (!DEBUG) {
-			execute_cmd("rm -rf %s", filename);
-		}
 		return -1;
 	}
 
@@ -216,6 +213,10 @@ int get_problem(void)
 		}
 	}
 
+	if (strstr(buf, "No such problem") != NULL
+			|| strstr(buf, "Invalid Parameter") != NULL) {
+		return 1;
+	}
 	int ret = parse_html(buf);
 	if (ret < 0) {
 		free(buf);
@@ -242,10 +243,6 @@ int get_problem(void)
 	write_log("solved(unuse) = %d\n", problem_info->solved);
 	write_log("defunct = %d\n", problem_info->defunct);
 
-	if (!DEBUG) {
-		execute_cmd("rm -f %d", pid);
-	}
-
 	free(buf);
 	free(url);
 	return ret;
@@ -253,6 +250,7 @@ int get_problem(void)
 
 int isexist(void)
 {
+	write_log("test %s problem %d is or not exist.\n", oj_name, pid);
 	if (execute_sql("SELECT origin_id from vjudge where origin_id='%d' and ojtype='%d'",
 			problem_info->origin_id, problem_info->ojtype) < 0) {
 		return -1;

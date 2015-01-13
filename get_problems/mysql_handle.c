@@ -53,6 +53,8 @@ void ping(void)
 	}
 }
 
+// sql some times will be error
+// fmt contains '%s', but not arg
 int execute_sql(const char *fmt, ...)
 {
 	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);

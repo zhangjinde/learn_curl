@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 		int ret = get_problem();
 		if (ret < 0) {
 			write_log("get %s problem %d error.\n", oj_name, pid);
-		} else {
+		} else if (ret == 0) {
 			write_log("get %s problem %d success.\n", oj_name, pid);
 
 			ret = add_problem();
@@ -130,6 +130,11 @@ int main(int argc, char *argv[])
 					write_log("%s problem %d already exists.\n", oj_name, pid);
 				}
 			}
+		} else {
+			write_log("%s no problem %d.\n", oj_name, pid);
+		}
+		if (!DEBUG) {
+			execute_cmd("rm -f %d", pid);
 		}
 		if (pid != to) {
 			write_log("get next problem after %d seconds.\n", sleep_time);
