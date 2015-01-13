@@ -34,6 +34,18 @@ static void poj_endtag_p(void *cbdata, ekhtml_string_t * str)
 	}
 }
 
+// pre tag end
+static void poj_endtag_pre(void *cbdata, ekhtml_string_t * str)
+{
+	struct html_state_t *state = (struct html_state_t *)cbdata;
+	if (state->issinput) {
+		--state->issinput;
+	}
+	if (state->issoutput) {
+		--state->issoutput;
+	}
+}
+
 // div start
 static void poj_endtag_div(void *cbdata, ekhtml_string_t * str)
 {
@@ -132,7 +144,8 @@ static void poj_data(void *cbdata, ekhtml_string_t * str)
 	// memory limit
 	if (state->islimit == 2) {
 		sscanf(buf, "%dK", &memory_limit);
-		state->problem_info->memory_limit = memory_limit / 1024;
+		state->problem_info->memory_limit = memory_limit / 1024
+			+ ((memory_limit % 1024 == 0) ? 0 : 1);
 		state->islimit = 0;
 	}
 	// total submissions
@@ -199,6 +212,7 @@ int parse_html_poj(char *buf)
 	ekhtml_parser_endcb_add(ekparser, NULL, poj_endtag);
 	ekhtml_parser_endcb_add(ekparser, "P", poj_endtag_p);
 	ekhtml_parser_endcb_add(ekparser, "DIV", poj_endtag_div);
+	ekhtml_parser_endcb_add(ekparser, "PRE", poj_endtag_pre);
 
 	ekhtml_string_t str;
 	str.str = buf;

@@ -130,7 +130,7 @@ static void hdu_data(void *cbdata, ekhtml_string_t * str)
 					" %d/%d K (Java/Others)",
 					&tmp[0], &time_limit, &tmp[1], &memory_limit);
 			time_limit = time_limit / 1000 + ((time_limit % 1000 == 0) ? 0 : 1);
-			memory_limit /= 1024;
+			memory_limit = memory_limit / 1024 + ((memory_limit % 1024 == 0) ? 0 : 1);
 			state->problem_info->time_limit = time_limit;
 			state->problem_info->memory_limit = memory_limit;
 		}

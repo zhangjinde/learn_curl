@@ -222,7 +222,8 @@ int get_problem(void)
 	}
 
 	if (strstr(buf, "No such problem") != NULL
-			|| strstr(buf, "Invalid Parameter") != NULL) {
+			|| strstr(buf, "Invalid Parameter") != NULL
+			|| strstr(buf, "Can not find problem") != NULL) {
 		free(buf);
 		free(url);
 		return 1;

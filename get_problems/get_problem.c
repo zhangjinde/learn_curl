@@ -26,7 +26,7 @@ struct problem_info_t *problem_info;
 /*
  * oj_type 0 for hduoj.
  * oj_type 1 for poj.
- * oj_type 1 for zoj.
+ * oj_type 2 for zoj.
  */
 char oj_str[OJMAX][BUFSIZE] = {"hduoj", "poj", "zoj"};
 char oj_url[OJMAX][BUFSIZE] = {
@@ -36,8 +36,8 @@ char oj_url[OJMAX][BUFSIZE] = {
 };
 char oj_imgurl[OJMAX][BUFSIZE] = {
 	"http://acm.hdu.edu.cn/data/images",
-	"",
-	""
+	"http://poj.org/images",
+	"http://acm.zju.edu.cn/onlinejudge"
 };
 
 
@@ -72,15 +72,21 @@ void init_conf()
  */
 int main(int argc, char *argv[])
 {
+	// read config file
+	init_conf();
+
 	if (argc < 4 || argc > 5) {
 		fprintf(stderr, "Usage: %s oj_name from_problem_id to_problem_id [debug]\n", argv[0]);
+		fprintf(stderr, "Support oj is: ");
+		int i = 0;
+		for (i = 0; i < oj_cnt; ++i) {
+			fprintf(stderr, "%s%c", oj_str[i],
+					(i == oj_cnt - 1) ? '\n' : ' ');
+		}
 		exit(EXIT_SUCCESS);
 	}
 
 	DEBUG = (argc == 5);
-
-	// read config file
-	init_conf();
 
 	int i = 0;
 	int from = atoi(argv[2]);
