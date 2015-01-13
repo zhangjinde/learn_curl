@@ -49,16 +49,16 @@ void starttag(void *cbdata, ekhtml_string_t * tag,
 		strcat(tmp_str, ">");
 	}
 
-	if (state->isdescription) {
+	if (state->isdescription == 1) {
 		strcat(state->problem_info->description, tmp_str);
 	}
-	if (state->isinput) {
+	if (state->isinput == 1) {
 		strcat(state->problem_info->input, tmp_str);
 	}
-	if (state->isoutput) {
+	if (state->isoutput == 1) {
 		strcat(state->problem_info->output, tmp_str);
 	}
-	if (state->ishint) {
+	if (state->ishint == 1) {
 		strcat(state->problem_info->hint, tmp_str);
 	}
 	free(tmp_str);
@@ -79,16 +79,16 @@ void endtag(void *cbdata, ekhtml_string_t * str)
 	strncpy(tagname, str->str, str->len);
 
 	sprintf(tmp_str, "</%s>", tagname);
-	if (state->isdescription) {
+	if (state->isdescription == 1) {
 		strcat(state->problem_info->description, tmp_str);
 	}
-	if (state->isinput) {
+	if (state->isinput == 1) {
 		strcat(state->problem_info->input, tmp_str);
 	}
-	if (state->isoutput) {
+	if (state->isoutput == 1) {
 		strcat(state->problem_info->output, tmp_str);
 	}
-	if (state->ishint) {
+	if (state->ishint == 1) {
 		strcat(state->problem_info->hint, tmp_str);
 	}
 	free(tmp_str);
@@ -105,25 +105,25 @@ void tagdata(void *cbdata, ekhtml_string_t * str)
 	memset(buf, 0, BUFSIZE * BUFSIZE);
 	strncpy(buf, str->str, str->len);
 	struct html_state_t *state = (struct html_state_t *)cbdata;
-	if (state->istitle) {
+	if (state->istitle == 1) {
 		strncpy(state->problem_info->title, str->str, str->len);
 	}
-	if (state->isdescription) {
+	if (state->isdescription == 1) {
 		strcat(state->problem_info->description, buf);
 	}
-	if (state->isinput) {
+	if (state->isinput == 1) {
 		strcat(state->problem_info->input, buf);
 	}
-	if (state->isoutput) {
+	if (state->isoutput == 1) {
 		strcat(state->problem_info->output, buf);
 	}
-	if (state->issinput) {
+	if (state->issinput == 1) {
 		strcat(state->problem_info->sample_input, buf);
 	}
-	if (state->issoutput) {
+	if (state->issoutput == 1) {
 		strcat(state->problem_info->sample_output, buf);
 	}
-	if (state->ishint) {
+	if (state->ishint == 1) {
 		strcat(state->problem_info->hint, buf);
 	}
 

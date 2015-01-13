@@ -106,15 +106,6 @@ static void poj_starttag(void *cbdata, ekhtml_string_t * tag,
 // tag end
 static void poj_endtag(void *cbdata, ekhtml_string_t * str)
 {
-	char tagname[20];
-	struct html_state_t *state = (struct html_state_t *)cbdata;
-	memset(tagname, 0, sizeof(tagname));
-	strncpy(tagname, str->str, str->len);
-
-	if (state->ishint && strcmp(tagname, "I") == 0) {
-		return;
-	}
-
 	endtag(cbdata, str);
 }
 
