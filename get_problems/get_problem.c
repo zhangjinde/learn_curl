@@ -35,9 +35,9 @@ char oj_url[OJMAX][BUFSIZE] = {
 	"http://acm.zju.edu.cn/onlinejudge/showProblem.do?problemCode="
 };
 char oj_imgurl[OJMAX][BUFSIZE] = {
-	"http://acm.hdu.edu.cn/data/images",
-	"http://poj.org/images",
-	"http://acm.zju.edu.cn/onlinejudge"
+	"http://acm.hdu.edu.cn/",
+	"http://poj.org/",
+	"http://acm.zju.edu.cn/onlinejudge/"
 };
 
 

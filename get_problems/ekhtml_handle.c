@@ -36,7 +36,11 @@ void starttag(void *cbdata, ekhtml_string_t * tag,
 				memset(attrval, 0, sizeof(attrval));
 				strncpy(attrval, attr->val.str, attr->val.len);
 				strcat(tmp_str, oj_imgurl[oj_type]);
-				strcat(tmp_str, &attrval[strrchr(attrval, '/') - attrval]);
+				int pos = 0;
+				while (!(attrval[pos] >= 'a' && attrval[pos] <= 'z')) {
+					++pos;
+				}
+				strcat(tmp_str, &attrval[pos]);
 			} else {
 				if (!attr->isBoolean) {
 					strncat(tmp_str, attr->val.str, attr->val.len);
