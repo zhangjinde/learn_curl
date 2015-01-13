@@ -203,7 +203,10 @@ extern int login(void);
 extern int get_status(void);
 extern int submit_hduoj(void);
 extern int login_hduoj(void);
+extern int submit_poj(void);
+extern int login_poj(void);
 extern int get_status_hduoj(void);
+extern int get_status_poj(void);
 extern int utf2gbk(char *buf, size_t len);
 extern int gbk2utf8(char *buf, size_t len);
 extern int convert(char *buf, size_t len, const char *from, const char *to);
@@ -214,6 +217,9 @@ extern int get_ceinfo_hduoj(void);
 extern int is_final_result(char *buf);
 extern int convert_result(char *buf);
 extern int convert_result_hduoj(char *buf);
+extern int convert_result_poj(char *buf);
 extern int save_file(const char *filename, char *buf);
+extern int get_reinfo_poj(void);
+extern int get_ceinfo_poj(void);
 
 #endif	// _JUDGE_CLIENT_H

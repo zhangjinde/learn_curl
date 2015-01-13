@@ -1,15 +1,15 @@
 #include "judge_client.h"
 
-int login_hduoj(void)
+int login_poj(void)
 {
 	// 设置提交地址
-	curl_easy_setopt(curl, CURLOPT_URL, "http://acm.hdu.edu.cn/userloginex.php?action=login");
+	curl_easy_setopt(curl, CURLOPT_URL, "http://poj.org/login");
 	// 设置参数
 	char post_str[BUFSIZE];
 	char filename[BUFSIZE];
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (html == NULL) {
-		write_log("alloc login_hduoj html buf memory error.\n");
+		write_log("alloc login_poj html buf memory error.\n");
 		return -1;
 	}
 	sprintf(filename, "%dlogin.txt", solution->solution_id);
@@ -19,12 +19,8 @@ int login_hduoj(void)
 	load_file(filename, html);
 
 	// modified form bnuoj
-	if (strstr(html, "No such user or wrong password.") != NULL
-		|| strstr(html, "<b>One or more following ERROR(s) occurred.") != NULL
-		|| strstr(html, "<h2>The requested URL could not be retrieved</h2>") != NULL
-		|| strstr(html, "<H1 style=\"COLOR: #1A5CC8\" align=center>Sign In Your Account</H1>") != NULL
-		|| strstr(html, "PHP: Maximum execution time of") != NULL) {
-		write_log("login_hduoj remote server error.\n");
+	if (strstr(html, "alert(\"Login failed!)") != NULL) {
+		write_log("login_poj remote server error.\n");
 		free(html);
 		return -1;
 	}
@@ -32,20 +28,18 @@ int login_hduoj(void)
 	return 0;
 }
 
-int submit_hduoj(void)
+int submit_poj(void)
 {
 	char *post_str = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (post_str == NULL) {
-		write_log("alloc submit_hduoj post_str buf memory error.\n");
+		write_log("alloc submit_poj post_str buf memory error.\n");
 		return -1;
 	}
 
 	memset(post_str, 0, BUFSIZE * BUFSIZE);
-	sprintf(post_str, "check=0&problemid=%d&language=%d&usercode=",
+	sprintf(post_str, "problem_id=%d&language=%d&source=",
 			solution->problem_info.origin_id,
 			lang_table[solution->problem_info.ojtype][solution->language]);
-	// 对其进行url编码
-	utf2gbk(solution->src, solution->code_length);
 	char *str = url_encode(solution->src);
 	if (str == NULL) {
 		write_log("encode url error.\n");
@@ -56,7 +50,7 @@ int submit_hduoj(void)
 	strcat(post_str, str);
 
 	// 设置提交地址
-	curl_easy_setopt(curl, CURLOPT_URL, "http://acm.hdu.edu.cn/submit.php?action=submit");
+	curl_easy_setopt(curl, CURLOPT_URL, "http://poj.org/submit");
 	// 设置参数
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_str);
 
@@ -66,7 +60,7 @@ int submit_hduoj(void)
 
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (html == NULL) {
-		write_log("alloc submit_hduoj html buf memory error.\n");
+		write_log("alloc submit_poj html buf memory error.\n");
 		free(str);
 		free(post_str);
 		return -1;
@@ -74,13 +68,9 @@ int submit_hduoj(void)
 	load_file(filename, html);
 
 	// modified form bnuoj
-	if (strstr(html, "Connect(0) to MySQL Server failed.") != NULL
-		|| strstr(html, "<b>One or more following ERROR(s) occurred.") != NULL
-		|| strstr(html, "<h2>The requested URL could not be retrieved</h2>") != NULL
-		|| strstr(html, "<H1 style=\"COLOR: #1A5CC8\" align=center>Sign In Your Account</H1>") != NULL
-		|| strstr(html, "PHP: Maximum execution time of") != NULL
-		|| strstr(html, "<DIV>Exercise Is Closed Now!</DIV>") != NULL) {
-		write_log("submit_hduoj remote server error.\n");
+	if (strstr(html, "Error Occurred") != NULL
+		|| strstr(html, "The page is temporarily unavailable") != NULL) {
+		write_log("submit_poj remote server error.\n");
 		free(str);
 		free(html);
 		free(post_str);
@@ -94,7 +84,7 @@ int submit_hduoj(void)
 	return 0;
 }
 
-int get_ceinfo_hduoj(void)
+int get_ceinfo_poj(void)
 {
 	int status, i;
 	regmatch_t pmatch[2];
@@ -102,7 +92,7 @@ int get_ceinfo_hduoj(void)
 	regex_t reg;
 	const char *pattern = "<pre>(.*)</pre>";
 	char url[BUFSIZE];
-	sprintf(url, "http://acm.hdu.edu.cn/viewerror.php?rid=%d",
+	sprintf(url, "http://poj.org/showcompileinfo?solution_id=%d",
 			solution->remote_rid);
 
 	// 设置提交地址
@@ -117,7 +107,7 @@ int get_ceinfo_hduoj(void)
 	}
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (html == NULL) {
-		write_log("alloc get_ceinfo_hduoj html buf memory error.\n");
+		write_log("alloc get_ceinfo_poj html buf memory error.\n");
 		regfree(&reg);
 		return -1;
 	}
@@ -125,13 +115,9 @@ int get_ceinfo_hduoj(void)
 	load_file(cefname, html);
 	gbk2utf8(html, strlen(html));
 	// modified form bnuoj
-	if (strstr(html, "Connect(0) to MySQL Server failed.") != NULL
-			|| strstr(html, "<b>One or more following ERROR(s) occurred.") != NULL
-			|| strstr(html, "<h2>The requested URL could not be retrieved</h2>") != NULL
-			|| strstr(html, "<H1 style=\"COLOR: #1A5CC8\" align=center>Sign In Your Account</H1>") != NULL
-			|| strstr(html, "PHP: Maximum execution time of") != NULL
-			|| strstr(html, "<DIV>Exercise Is Closed Now!</DIV>") != NULL) {
-		write_log("get_ceinfo_hduoj remote server error.\n");
+	if (strstr(html, "Error Occurred") != NULL
+		|| strstr(html, "The page is temporarily unavailable") != NULL) {
+		write_log("get_ceinfo_poj remote server error.\n");
 		write_log("get solution %d compile error info error.\n", solution->solution_id);
 		free(html);
 		regfree(&reg);
@@ -139,7 +125,7 @@ int get_ceinfo_hduoj(void)
 	} else {
 		status = regexec(&reg, html, nmatch, pmatch, 0);
 		if (status == REG_NOMATCH) {
-			write_log("get_ceinfo_hduoj regex no match.\n", solution->solution_id);
+			write_log("get_ceinfo_poj regex no match.\n", solution->solution_id);
 			write_log("get solution %d compile error info error.\n", solution->solution_id);
 			regfree(&reg);
 			free(html);
@@ -160,28 +146,13 @@ int get_ceinfo_hduoj(void)
 	return 0;
 }
 
-int get_reinfo_hduoj(void)
+int get_reinfo_poj(void)
 {
-	char buf[BUFSIZE];
-	char *start = solution->runtimeinfo;
-	int len = 0;
-	while (*start != '<') {
-		buf[len++] = *start++;
-	}
-	while (*start != '>') {
-		start++;
-	}
-	start++;
-	while (*start != '\0') {
-		buf[len++] = *start++;
-	}
-	buf[len] = '\0';
-	strcpy(solution->runtimeinfo, buf);
 	save_file(refname, solution->runtimeinfo);
 	write_log("get runtime error info: %s.\n", solution->runtimeinfo);
 	return 0;
 }
-int convert_result_hduoj(char *buf)
+int convert_result_poj(char *buf)
 {
 	if (strstr(buf, "Accepted") != NULL) {
 		return OJ_AC;
@@ -197,7 +168,7 @@ int convert_result_hduoj(char *buf)
 		return OJ_ML;
 	} else if (strstr(buf, "Output Limit Exceeded") != NULL) {
 		return OJ_OL;
-	} else if (strstr(buf, "Compilation Error") != NULL) {
+	} else if (strstr(buf, "Compile Error") != NULL) {
 		return OJ_CE;
 	} else {
 		return OJ_JE;
@@ -206,23 +177,20 @@ int convert_result_hduoj(char *buf)
 	return OJ_JE;
 }
 
-int get_status_hduoj(void)
+int get_status_poj(void)
 {
 	int status, i, j;
 	regmatch_t pmatch[5];
 	const int nmatch = 5;
 	regex_t reg;
-	const char *pattern = "<td height=22px>([0-9]*)</td>"
-		"<td>[: 0-9-]*</td>"
-		"<td><font color=[ a-zA-Z]*>([^/]*)</font></td>"
-		"<td><a[ 0-9a-zA-Z\\./\\?\\\"=]*>[0-9]*</a></td>"
-		"<td>([0-9]*)MS</td>"
+	const char *pattern = "<tr align=center><td>([0-9]*)</td>"
+		"<td><a[^>]*>[^<]*</a></td><td><a[^>]*>[^<]*</a></td>"
+		"<td><font[^>]*>([ a-zA-Z]*)</font></td>"
 		"<td>([0-9]*)K</td>"
-		;
+		"<td>([0-9]*)MS</td>";
 	char url[BUFSIZE];
-	sprintf(url, "http://acm.hdu.edu.cn/status.php?first=&pid=%d&user=%s"
-			"&lang=0&status=0", solution->problem_info.origin_id,
-			vjudge_user);
+	sprintf(url, "http://poj.org/status?problem_id=%d&user_id=%s",
+			solution->problem_info.origin_id, vjudge_user);
 
 	// 设置提交地址
 	curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -245,11 +213,12 @@ int get_status_hduoj(void)
 	}
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (html == NULL) {
-		write_log("alloc get_status_hduoj html buf memory error.\n");
+		write_log("alloc get_status_poj html buf memory error.\n");
 		regfree(&reg);
 		return OJ_JE;
 	}
 	while (1) {
+		usleep(2000000);	// wait 2s for PKU, since it forces refresh rate
 		if (time(NULL) - begin_time > vj_max_wait_time) {
 			write_log("judge time out.\n");
 			free(html);
@@ -258,15 +227,10 @@ int get_status_hduoj(void)
 		perform_curl(filename);
 
 		load_file(filename, html);
-		gbk2utf8(html, strlen(html));
 		// modified form bnuoj
-		if (strstr(html, "Connect(0) to MySQL Server failed.") != NULL
-			|| strstr(html, "<b>One or more following ERROR(s) occurred.") != NULL
-			|| strstr(html, "<h2>The requested URL could not be retrieved</h2>") != NULL
-			|| strstr(html, "<H1 style=\"COLOR: #1A5CC8\" align=center>Sign In Your Account</H1>") != NULL
-			|| strstr(html, "PHP: Maximum execution time of") != NULL
-			|| strstr(html, "<DIV>Exercise Is Closed Now!</DIV>") != NULL) {
-			write_log("get_status_hduoj remote server error.\n");
+		if (strstr(html, "Error Occurred") != NULL
+			|| strstr(html, "The page is temporarily unavailable") != NULL) {
+			write_log("get_status_poj remote server error.\n");
 			write_log("get solution %d status error.\n", solution->solution_id);
 			free(html);
 			regfree(&reg);
@@ -291,8 +255,8 @@ int get_status_hduoj(void)
 						case 0: strcpy(match_str, buf); break;
 						case 1: rid = atoi(buf); break;
 						case 2: strcpy(result, buf); break;
-						case 3: usedtime = atoi(buf); break;
-						case 4: memory = atoi(buf); break;
+						case 3: memory = atoi(buf); break;
+						case 4: usedtime = atoi(buf); break;
 					}
 				}
 				write_log("match_str = %s\n", match_str);

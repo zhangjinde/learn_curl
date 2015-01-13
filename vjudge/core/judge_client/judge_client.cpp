@@ -59,7 +59,7 @@ char LANG_NAME[BUFSIZE];
 int call_array_size = 512;
 char lang_ext[15][8] = {"c", "cc", "pas", "java", "rb", "sh", "py",
 	"php", "pl", "cs", "m", "bas", "scm", "c", "cc"};
-char lang_table[20][20] = {{1, 0, 4, 5}};
+char lang_table[20][20] = {{1, 0, 4, 5}, {1, 0, 3, 2}};
 MYSQL *conn;
 CURL *curl;
 struct solution_t *solution;
