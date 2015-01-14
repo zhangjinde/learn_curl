@@ -103,6 +103,9 @@ int get_tta(char tta[])
 {
 	char err[BUFSIZE];
 	char cookies[BUFSIZE];
+
+	memset(cookies, 0, sizeof(tta));
+
 	load_file(cookiename, cookies);
 
 	int status, i, j;
@@ -168,6 +171,7 @@ int login_cf(void)
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	// 设置参数
 	sprintf(filename, "%dlogin.txt", solution->solution_id);
+	memset(tta, 0, sizeof(tta));
 	if (get_tta(tta) < 0) {
 		free(html);
 		write_log("login_cf get tta error.\n");
@@ -244,6 +248,7 @@ int submit_cf(void)
 	curl_formadd(&formpost, &lastptr,
 		     CURLFORM_COPYNAME, "sourceCodeConfirmed",
 		     CURLFORM_COPYCONTENTS, "true", CURLFORM_END);
+	memset(buf, 0, sizeof(buf));
 	if (get_tta(buf) < 0) {
 		write_log("submit_cf get tta error.\n");
 		curl_formfree(formpost);
