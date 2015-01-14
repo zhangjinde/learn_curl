@@ -67,7 +67,7 @@ int get_csrf(const char *url, char *csrf)
 
 	free(html);
 	regfree(&reg);
-	return -1;
+	return 0;
 }
 
 // modified from bnuoj
@@ -122,7 +122,7 @@ int get_tta(char tta[])
 		write_log("no match regex: %s.\n", pattern);
 		write_log("get tta error.\n");
 		regfree(&reg);
-		return -1;
+		//return -1;
 	} else if (status == 0) {
 		char buf[BUFSIZE];
 		for (i = 0; i < nmatch; ++i) {
@@ -185,7 +185,8 @@ int login_cf(void)
 	load_file(filename, html);
 
 	if (strstr(html, "Codeforces is temporary unavailable") != NULL
-			|| strstr(html, "Invalid handle or password") != NULL) {
+			|| strstr(html, "Invalid handle or password") != NULL
+			|| strstr(html, "Fill in the form to login into Codeforces.") != NULL) {
 		write_log("login_cf remote server error.\n");
 		free(html);
 		return -1;

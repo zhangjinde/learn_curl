@@ -216,10 +216,6 @@ int main(int argc, char **argv)
 
 	chdir(work_dir);
 
-	if (!DEBUG) {
-		clean_workdir();
-	}
-
 	conn = prepare_mysql();
 	if (conn == NULL) {
 		write_log("prepare mysql handle error.\n");

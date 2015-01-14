@@ -175,6 +175,11 @@ int vjudge(void)
 		clear_cookie();
 		islogin = 0;
 		login();
+		if (!islogin) {
+			write_log("not login.");
+			solution->result = OJ_JE;
+			return -1;
+		}
 		ret = submit();
 		if (ret < 0) {
 			write_log("submit solution %d failed. assume sleep for a while, sleep %d seconds.\n",
