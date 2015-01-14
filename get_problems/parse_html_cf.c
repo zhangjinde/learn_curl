@@ -171,6 +171,7 @@ int get_cf_problem_id(void)
 		if (!DEBUG) {
 			execute_cmd("rm -rf %s", filename);
 		}
+		json_object_put(obj);
 		return -1;
 	} else {
 		problems = json_get_obj(obj, "result.problems");

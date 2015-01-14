@@ -321,14 +321,14 @@ int get_status_hduoj(void)
 					solution->remote_rid = rid;
 					solution->time = usedtime;
 					solution->memory = memory;
-					free(html);
-					regfree(&reg);
 					int ret = convert_result(result);
 					if (ret == OJ_RE) {
 						strcpy(solution->runtimeinfo, result);
 					}
 					write_log("get solution %d status over"
 							": %d.\n", solution->solution_id, ret);
+					free(html);
+					regfree(&reg);
 					return ret;
 				}
 			}

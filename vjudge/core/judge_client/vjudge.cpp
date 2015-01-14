@@ -53,6 +53,9 @@ int is_final_result(char *buf)
 	if (strstr(result, "being judged") != NULL) {
 		ret = 0;
 	}
+	if (strstr(result, "testing") != NULL) {
+		ret = 0;
+	}
 
 	if (ret) {
 		write_log("test result %s is final result.\n", result);

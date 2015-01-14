@@ -109,22 +109,37 @@ static void zoj_data(void *cbdata, ekhtml_string_t * str)
 	int memory_limit = 0;
 	// time limit
 	if (state->islimit == 1) {		// 获取限制
-		sscanf(buf, "%dSeconds", &time_limit);
-		time_limit = time_limit / 1000 + ((time_limit % 1000 == 0) ? 0 : 1);
+		char *start = buf;
+		while ((*start != '\0') && (*start < '0' || *start > '9')) {
+			++start;
+		}
+		while (*start >= '0' && *start <= '9') {
+			time_limit = time_limit * 10 + *start - '0';
+			++start;
+		}
 		state->problem_info->time_limit = time_limit;
+		state->islimit = 0;
 	}
 	// memory limit
 	if (state->islimit == 2) {
-		sscanf(buf, "%dKB", &memory_limit);
+		char *start = buf;
+		while ((*start != '\0') && (*start < '0' || *start > '9')) {
+			++start;
+		}
+		while (*start >= '0' && *start <= '9') {
+			memory_limit = memory_limit * 10 + *start - '0';
+			++start;
+		}
 		memory_limit = memory_limit / 1024 + ((memory_limit % 1024 == 0) ? 0 : 1);
 		state->problem_info->memory_limit = memory_limit;
+		state->islimit = 0;
 	}
 
 	if (state->isspj) {
 		if (strstr(buf, "Time Limit:") != NULL) {
 			state->islimit = 1;
 		}
-		if (strstr(buf, "Time Limit:") != NULL) {
+		if (strstr(buf, "Memory Limit:") != NULL) {
 			state->islimit = 2;
 		}
 	}

@@ -49,7 +49,6 @@ int submit_poj(void)
 	char *str = url_encode(solution->src);
 	if (str == NULL) {
 		write_log("encode url error.\n");
-		free(str);
 		free(post_str);
 		return -1;
 	}
@@ -71,8 +70,8 @@ int submit_poj(void)
 	char *html = (char *)malloc(BUFSIZE * BUFSIZE);
 	if (html == NULL) {
 		write_log("alloc submit_poj html buf memory error.\n");
-		free(str);
 		free(post_str);
+		free(str);
 		return -1;
 	}
 	load_file(filename, html);
@@ -283,14 +282,14 @@ int get_status_poj(void)
 					solution->remote_rid = rid;
 					solution->time = usedtime;
 					solution->memory = memory;
-					free(html);
-					regfree(&reg);
 					int ret = convert_result(result);
 					if (ret == OJ_RE) {
 						strcpy(solution->runtimeinfo, result);
 					}
 					write_log("get solution %d status over"
 							": %d.\n", solution->solution_id, ret);
+					free(html);
+					regfree(&reg);
 					return ret;
 				}
 			}
