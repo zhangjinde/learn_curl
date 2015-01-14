@@ -37,6 +37,8 @@
 
 #include <string>
 
+#include "json.h"
+
 #define STD_MB 1048576		//1M
 #define STD_T_LIM 2
 #define STD_F_LIM (STD_MB<<5)	//32M
@@ -203,10 +205,7 @@ extern int login(void);
 extern int get_status(void);
 extern int submit_hduoj(void);
 extern int login_hduoj(void);
-extern int submit_poj(void);
-extern int login_poj(void);
 extern int get_status_hduoj(void);
-extern int get_status_poj(void);
 extern int utf2gbk(char *buf, size_t len);
 extern int gbk2utf8(char *buf, size_t len);
 extern int convert(char *buf, size_t len, const char *from, const char *to);
@@ -217,9 +216,24 @@ extern int get_ceinfo_hduoj(void);
 extern int is_final_result(char *buf);
 extern int convert_result(char *buf);
 extern int convert_result_hduoj(char *buf);
-extern int convert_result_poj(char *buf);
 extern int save_file(const char *filename, char *buf);
+extern int convert_result_poj(char *buf);
 extern int get_reinfo_poj(void);
 extern int get_ceinfo_poj(void);
+extern int submit_poj(void);
+extern int login_poj(void);
+extern int get_status_poj(void);
+extern int convert_result_cf(char *buf);
+extern int get_reinfo_cf(void);
+extern int get_ceinfo_cf(void);
+extern int submit_cf(void);
+extern int login_cf(void);
+extern int get_status_cf(void);
+extern json_object *json_get_obj(json_object *obj, const char *path);
+extern const char *json_get_str(json_object *obj, const char *path);
+extern int json_get_int(json_object *obj, const char *path);
+extern int get_csrf(const char *url, char *csrf);
+extern void calculate_tta(char tta[]);
+extern int get_tta(char tta[]);
 
 #endif	// _JUDGE_CLIENT_H

@@ -144,7 +144,6 @@ static void cf_data(void *cbdata, ekhtml_string_t * str)
 	free(buf);
 }
 
-// memory should free
 int get_cf_problem_id(void)
 {
 	char url[] = "http://codeforces.com/api/problemset.problems";

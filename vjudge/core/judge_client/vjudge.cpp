@@ -69,6 +69,7 @@ int convert_result(char *buf)
 	switch (solution->problem_info.ojtype) {
 		case 0: ret = convert_result_hduoj(buf); break;
 		case 1: ret = convert_result_poj(buf); break;
+		case 2: ret = convert_result_cf(buf); break;
 	}
 	return ret;
 }
@@ -80,6 +81,7 @@ int login(void)
 	switch (solution->problem_info.ojtype) {
 		case 0: ret = login_hduoj(); break;
 		case 1: ret = login_poj(); break;
+		case 2: ret = login_cf(); break;
 		default: write_log("unsupported virtual judge.\n"); break;
 	}
 	if (ret < 0) {
@@ -98,6 +100,7 @@ int submit(void)
 	switch (solution->problem_info.ojtype) {
 		case 0: ret = submit_hduoj(); break;
 		case 1: ret = submit_poj(); break;
+		case 2: ret = submit_cf(); break;
 	}
 	if (ret < 0) {
 		write_log("solution %d submit error.\n", solution->solution_id);
@@ -114,6 +117,7 @@ int get_status(void)
 	switch (solution->problem_info.ojtype) {
 		case 0: ret = get_status_hduoj(); break;
 		case 1: ret = get_status_poj(); break;
+		case 2: ret = get_status_cf(); break;
 	}
 	return ret;
 }
@@ -125,6 +129,7 @@ int get_ceinfo(void)
 	switch (solution->problem_info.ojtype) {
 		case 0: ret = get_ceinfo_hduoj(); break;
 		case 1: ret = get_ceinfo_poj(); break;
+		case 2: ret = get_ceinfo_cf(); break;
 	}
 	return ret;
 }
@@ -136,6 +141,7 @@ int get_reinfo(void)
 	switch (solution->problem_info.ojtype) {
 		case 0: ret = get_reinfo_hduoj(); break;
 		case 1: ret = get_reinfo_poj(); break;
+		case 2: ret = get_reinfo_poj(); break;
 	}
 	return ret;
 }
