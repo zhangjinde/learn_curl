@@ -100,7 +100,6 @@ int main(int argc, char *argv[])
 	strcpy(oj_name, argv[1]);
 	oj_type = -1;
 	for (i = 0; i < oj_cnt; ++i) {
-		printf("%s\n", oj_url[i]);
 		if (strcmp(oj_name, oj_str[i]) == 0) {
 			oj_type = i;
 			break;
