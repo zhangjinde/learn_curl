@@ -150,7 +150,11 @@ int save_file(const char *filename, char *buf)
 int parse_html(char *buf)
 {
 	// 已知的题目描述
-	problem_info->origin_id = pid;
+	if (oj_type == 2) {
+		problem_info->origin_id = cf_pid[pid];
+	} else {
+		problem_info->origin_id = pid;
+	}
 	problem_info->ojtype = oj_type;
 	strcpy(problem_info->source, oj_str[oj_type]);
 

@@ -211,6 +211,9 @@ int submit_cf(void)
 	char csrf[BUFSIZE];
 	char buf[BUFSIZE];
 
+	cleanup_curl();
+	curl = prepare_curl();
+
 	if (get_csrf(url, csrf) < 0) {
 		write_log("submit_cf get csrf error.\n");
 		return -1;
@@ -225,6 +228,9 @@ int submit_cf(void)
 	}
 	solution->src[len] = '\0';
 
+	cleanup_curl();
+	curl = prepare_curl();
+
 	// copy from bnuoj
 	// prepare form for post
 	struct curl_httppost *formpost = NULL;
@@ -233,13 +239,18 @@ int submit_cf(void)
 		     CURLFORM_COPYNAME, "action",
 		     CURLFORM_COPYCONTENTS, "submitSolutionFormSubmitted",
 		     CURLFORM_END);
-	sprintf(buf, "%d", solution->problem_info.origin_id / 10);
+	//sprintf(buf, "%d", solution->problem_info.origin_id / 10);
+	//curl_formadd(&formpost, &lastptr,
+		     //CURLFORM_COPYNAME, "contestId",
+		     //CURLFORM_COPYCONTENTS, buf, CURLFORM_END);
+	//sprintf(buf, "%d", solution->problem_info.origin_id % 10 + 'A');
+	//curl_formadd(&formpost, &lastptr,
+		     //CURLFORM_COPYNAME, "submittedProblemIndex",
+		     //CURLFORM_COPYCONTENTS, buf, CURLFORM_END);
+	sprintf(buf, "%d%c", solution->problem_info.origin_id / 10,
+			solution->problem_info.origin_id % 10 + 'A');
 	curl_formadd(&formpost, &lastptr,
-		     CURLFORM_COPYNAME, "contestId",
-		     CURLFORM_COPYCONTENTS, buf, CURLFORM_END);
-	sprintf(buf, "%d", solution->problem_info.origin_id % 10 + 'A');
-	curl_formadd(&formpost, &lastptr,
-		     CURLFORM_COPYNAME, "submittedProblemIndex",
+		     CURLFORM_COPYNAME, "submittedProblemCode",
 		     CURLFORM_COPYCONTENTS, buf, CURLFORM_END);
 	sprintf(buf, "%d", lang_table[solution->problem_info.ojtype][solution->language]);
 	curl_formadd(&formpost, &lastptr,
@@ -261,6 +272,9 @@ int submit_cf(void)
 	curl_formadd(&formpost, &lastptr,
 		     CURLFORM_COPYNAME, "_tta", CURLFORM_COPYCONTENTS,
 		     buf, CURLFORM_END);
+
+	cleanup_curl();
+	curl = prepare_curl();
 
 	sprintf(url, "http://codeforces.com/problemset/submit?csrf_token=%s", csrf);
 	curl_easy_setopt(curl, CURLOPT_URL, url);
