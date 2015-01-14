@@ -185,6 +185,9 @@ int vjudge(void)
 	// wait for judge
 	sleep(sleep_time);
 	solution->result = get_status();
+	if (solution->result == OJ_TL) {
+		solution->time = solution->problem_info.time_limit * 1000;
+	}
 	if (solution->result == OJ_CE) {
 		solution->isce = 1;
 		get_ceinfo();
