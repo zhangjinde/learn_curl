@@ -175,7 +175,7 @@ int get_problem_info(struct problem_info_t *problem_info)
 		problem_info->submit = atoi(row[4]);
 	} else {
 		mysql_free_result(result);
-		write_log("no problem %d.", problem_info->problem_id);
+		write_log("no problem %d.\n", problem_info->problem_id);
 		return -1;
 	}
 	mysql_free_result(result);
