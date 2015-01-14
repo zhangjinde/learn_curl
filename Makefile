@@ -10,6 +10,8 @@ COBJS = $(CSRCS:%.c=%.o)
 CPPSRCS = $(wildcard *.cpp)
 CPPOBJS = $(CPPSRCS:%.cpp=%.o)
 CURL = -L/usr/lib/x86_64-linux-gnu -lcurl
+JSONCFLAGS = -I/usr/local/include/json
+JSONLDFLAGS = -L/usr/local/lib -ljson
 EKHTML = /usr/local/lib/libekhtml.a
 MYSQLCFLAGS = -I/usr/local/mysql/include/mysql -I/usr/include/mysql
 MYSQLLDFLAGS = -L/usr/local/mysql/lib/mysql -L/usr/lib/mysql  -lmysqlclient
@@ -24,6 +26,8 @@ ALL = $(CALL) $(CPPALL)
 all: $(DIRSALL) $(ALL)
 ekhtml_tester ekhtml_parse_hdu: LDFLAGS = $(CURL) $(EKHTML)
 function_test: LDFLAGS = $(CURL) $(EKHTML) $(MYSQLLDFLAGS)
+json_test: CFLAGS = $(JSONCFLAGS)
+json_test: LDFLAGS = $(JSONLDFLAGS)
 $(CALL): %: %.o
 	$(CC) $(CFLAGS) -o $@ $@.o $(LDFLAGS)
 $(CPPALL): %: %.o

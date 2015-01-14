@@ -16,9 +16,10 @@ int main(int argc, char **argv)
 	printf("status = %s\n", json_object_get_string(status));
 	result = json_object_object_get(problemset, "result");
 	problems = json_object_object_get(result, "problems");
+	int i = 0;
 	int len = json_object_array_length(problems);
 	printf("len = %d.\n", len);
-	for (int i = 0; i < len; ++i) {
+	for (i = 0; i < len; ++i) {
 		problem = json_object_array_get_idx(problems, i);
 		index = json_object_object_get(problem, "index");
 		contestid = json_object_object_get(problem, "contestId");
