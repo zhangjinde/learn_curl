@@ -176,7 +176,7 @@ int vjudge(void)
 		islogin = 0;
 		login();
 		if (!islogin) {
-			write_log("not login.");
+			write_log("not login.\n");
 			solution->result = OJ_JE;
 			return -1;
 		}
