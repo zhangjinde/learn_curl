@@ -87,7 +87,7 @@ extern char db_name[BUFSIZE];
 extern char oj_str[OJMAX][BUFSIZE];
 extern char oj_url[OJMAX][BUFSIZE];
 extern char oj_name[BUFSIZE];
-char oj_imgurl[OJMAX][BUFSIZE];
+extern char oj_imgurl[OJMAX][BUFSIZE];
 extern CURL *curl;
 extern MYSQL *conn;
 extern struct problem_info_t *problem_info;
