@@ -10,7 +10,6 @@
  */
 #include "get_problem.h"
 
-// title start
 static void hdu_starttag_h1(void *cbdata, ekhtml_string_t * tag,
 				ekhtml_attr_t * attrs)
 {
@@ -18,14 +17,12 @@ static void hdu_starttag_h1(void *cbdata, ekhtml_string_t * tag,
 	state->istitle = 1;
 }
 
-// title end
 static void hdu_endtag_h1(void *cbdata, ekhtml_string_t * str)
 {
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	state->istitle = 0;
 }
 
-// time limit and status start
 static void hdu_starttag_span(void *cbdata, ekhtml_string_t * tag,
 				ekhtml_attr_t * attrs)
 {
@@ -35,7 +32,6 @@ static void hdu_starttag_span(void *cbdata, ekhtml_string_t * tag,
 	state->isspj = 1;
 }
 
-// time limit and status end
 static void hdu_endtag_span(void *cbdata, ekhtml_string_t * str)
 {
 	struct html_state_t *state = (struct html_state_t *)cbdata;
@@ -44,7 +40,6 @@ static void hdu_endtag_span(void *cbdata, ekhtml_string_t * str)
 	state->isspj = 0;
 }
 
-// div start
 static void hdu_endtag_div(void *cbdata, ekhtml_string_t * str)
 {
 	struct html_state_t *state = (struct html_state_t *)cbdata;
@@ -68,7 +63,6 @@ static void hdu_endtag_div(void *cbdata, ekhtml_string_t * str)
 	}
 }
 
-// tag start
 static void hdu_starttag(void *cbdata, ekhtml_string_t * tag,
 			    ekhtml_attr_t * attrs)
 {
@@ -91,7 +85,6 @@ static void hdu_starttag(void *cbdata, ekhtml_string_t * tag,
 	}
 }
 
-// tag end
 static void hdu_endtag(void *cbdata, ekhtml_string_t * str)
 {
 	char tagname[20];
@@ -106,7 +99,6 @@ static void hdu_endtag(void *cbdata, ekhtml_string_t * str)
 	endtag(cbdata, str);
 }
 
-// process tag data
 static void hdu_data(void *cbdata, ekhtml_string_t * str)
 {
 	char *buf = (char *)malloc(BUFSIZE * BUFSIZE);

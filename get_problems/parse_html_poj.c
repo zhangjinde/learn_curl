@@ -10,7 +10,6 @@
  */
 #include "get_problem.h"
 
-// p tag end
 static void poj_endtag_p(void *cbdata, ekhtml_string_t * str)
 {
 	struct html_state_t *state = (struct html_state_t *)cbdata;
@@ -34,7 +33,6 @@ static void poj_endtag_p(void *cbdata, ekhtml_string_t * str)
 	}
 }
 
-// pre tag end
 static void poj_endtag_pre(void *cbdata, ekhtml_string_t * str)
 {
 	struct html_state_t *state = (struct html_state_t *)cbdata;
@@ -46,7 +44,6 @@ static void poj_endtag_pre(void *cbdata, ekhtml_string_t * str)
 	}
 }
 
-// div start
 static void poj_endtag_div(void *cbdata, ekhtml_string_t * str)
 {
 	struct html_state_t *state = (struct html_state_t *)cbdata;
@@ -76,7 +73,6 @@ static void poj_endtag_div(void *cbdata, ekhtml_string_t * str)
 	}
 }
 
-// tag start
 static void poj_starttag(void *cbdata, ekhtml_string_t * tag,
 			    ekhtml_attr_t * attrs)
 {
@@ -103,7 +99,6 @@ static void poj_starttag(void *cbdata, ekhtml_string_t * tag,
 	starttag(cbdata, tag, attrs);
 }
 
-// tag end
 static void poj_endtag(void *cbdata, ekhtml_string_t * str)
 {
 	endtag(cbdata, str);

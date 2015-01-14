@@ -26,17 +26,20 @@ struct problem_info_t *problem_info;
 /*
  * oj_type 0 for hduoj.
  * oj_type 1 for poj.
- * oj_type 2 for zoj.
+ * oj_type 2 for codeforces.
+ * oj_type 3 for zoj.
  */
-char oj_str[OJMAX][BUFSIZE] = {"hduoj", "poj", "zoj"};
+char oj_str[OJMAX][BUFSIZE] = {"hduoj", "poj", "cf", "zoj"};
 char oj_url[OJMAX][BUFSIZE] = {
 	"http://acm.hdu.edu.cn/showproblem.php?pid=",
 	"http://poj.org/problem?id=",
+	"http://codeforces.com/problemset/problem/",
 	"http://acm.zju.edu.cn/onlinejudge/showProblem.do?problemCode="
 };
 char oj_imgurl[OJMAX][BUFSIZE] = {
 	"http://acm.hdu.edu.cn/",
 	"http://poj.org/",
+	"",
 	"http://acm.zju.edu.cn/onlinejudge/"
 };
 
@@ -142,10 +145,10 @@ int main(int argc, char *argv[])
 			if (ret < 0) {
 				write_log("add %s problem %d to mysql database error.\n", oj_name, pid);
 			} else {
-				if (ret != 2) {
+				if (!ret) {
 					write_log("add %s problem %d to mysql database success.\n", oj_name, pid);
 				} else {
-					write_log("%s problem %d already exists.\n", oj_name, pid);
+					write_log("%s problem %d already exists, update local problem %d.\n", oj_name, pid, ret);
 				}
 			}
 		} else {

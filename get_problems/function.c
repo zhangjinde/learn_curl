@@ -167,6 +167,9 @@ int parse_html(char *buf)
 			ret = parse_html_poj(buf);
 			break;
 		case 2:
+			ret = parse_html_cf(buf);
+			break;
+		case 3:
 			ret = parse_html_zoj(buf);
 			break;
 	}
@@ -181,7 +184,12 @@ char *get_problem_url(void)
 		write_log("alloc url buf memory error.\n");
 		return NULL;
 	}
-	sprintf(url, "%s%d", oj_url[oj_type], pid);
+	if (oj_type == 2) {		// codeforces
+		sprintf(url, "%s%d/%c", oj_url[oj_type], pid / 10,
+				pid % 10 + 'A');
+	} else {
+		sprintf(url, "%s%d", oj_url[oj_type], pid);
+	}
 	return url;
 }
 
@@ -196,6 +204,7 @@ int get_problem(void)
 	// 设置网址
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	
+	write_log("url = %s.\n", url);
 	// 执行数据请求
 	if (perform_curl(filename) < 0) {
 		free(url);
@@ -262,7 +271,7 @@ int get_problem(void)
 int isexist(void)
 {
 	write_log("test %s problem %d is or not exist.\n", oj_name, pid);
-	if (execute_sql("SELECT origin_id from vjudge where origin_id='%d' and ojtype='%d'",
+	if (execute_sql("SELECT problem_id,origin_id from vjudge where origin_id='%d' and ojtype='%d'",
 			problem_info->origin_id, problem_info->ojtype) < 0) {
 		return -1;
 	}
@@ -271,6 +280,7 @@ int isexist(void)
 		write_log("read mysql result error:%s.\n", mysql_error(conn));
 		return -1;
 	}
+	int old_pid = -1;
 	int cnt = mysql_num_rows(result);
 	if (cnt > 0) {
 		MYSQL_ROW row = mysql_fetch_row(result);
@@ -279,20 +289,21 @@ int isexist(void)
 			write_log("fetch mysql row error:%s.\n", mysql_error(conn));
 			return -1;
 		}
-		mysql_free_result(result);
-		return 1;
+		if (row[0] != NULL) {
+			old_pid = atoi(row[0]);
+		}
+	} else {
+		old_pid = 0;
 	}
 	mysql_free_result(result);
-	return 0;
+	return old_pid;
 }
 
 int add_problem(void)
 {
-	int ret = isexist();
-	if (ret < 0) {
+	int old_pid = isexist();
+	if (old_pid < 0) {
 		return -1;
-	} else if (ret) {
-		return 2;
 	}
 
 	char *sql = (char *)malloc(BUFSIZE * BUFSIZE);
@@ -308,37 +319,41 @@ int add_problem(void)
 		return -1;
 	}
 
-	if (execute_sql("SELECT max(problem_id) from problem") < 0) {
-		free(sql);
-		free(tmp_str);
-		return -1;
-	}
-	MYSQL_RES *result = mysql_store_result(conn);
-	if (result == NULL) {
-		write_log("read mysql result error:%s.\n", mysql_error(conn));
-		free(sql);
-		free(tmp_str);
-		return -1;
-	}
-	int cnt = mysql_num_rows(result);
-	if (cnt > 0) {
-		MYSQL_ROW row = mysql_fetch_row(result);
-		if (row == NULL) {
-			mysql_free_result(result);
+	if (old_pid) {
+		problem_info->problem_id = old_pid;
+	} else {
+		if (execute_sql("SELECT max(problem_id) from problem") < 0) {
 			free(sql);
 			free(tmp_str);
-			write_log("fetch mysql row error:%s.\n", mysql_error(conn));
 			return -1;
 		}
-		if (row[0] == NULL) {
-			problem_info->problem_id = 1000;
-		} else {
-			problem_info->problem_id = atoi(row[0]) + 1;
+		MYSQL_RES *result = mysql_store_result(conn);
+		if (result == NULL) {
+			write_log("read mysql result error:%s.\n", mysql_error(conn));
+			free(sql);
+			free(tmp_str);
+			return -1;
 		}
-	} else {
-		problem_info->problem_id = 1000;
+		int cnt = mysql_num_rows(result);
+		if (cnt > 0) {
+			MYSQL_ROW row = mysql_fetch_row(result);
+			if (row == NULL) {
+				mysql_free_result(result);
+				free(sql);
+				free(tmp_str);
+				write_log("fetch mysql row error:%s.\n", mysql_error(conn));
+				return -1;
+			}
+			if (row[0] == NULL) {
+				problem_info->problem_id = 1000;
+			} else {
+				problem_info->problem_id = atoi(row[0]) + 1;
+			}
+		} else {
+			problem_info->problem_id = 1000;
+		}
+		mysql_free_result(result);
 	}
-	mysql_free_result(result);
 
 	char *end = sql;
 	strcpy(sql, "INSERT INTO problem (problem_id, title, description, "
@@ -346,10 +361,7 @@ int add_problem(void)
 			"source, time_limit, memory_limit, spj, accepted, "
 			"submit, solved, defunct, in_date) values(");
 	end += strlen(sql);
-	*end++ = '\'';
-	end += sprintf(end, "%d", problem_info->problem_id);
-	*end++ = '\'';
-	*end++ = ',';
+	end += sprintf(end, "'%d',", problem_info->problem_id);
 	sprintf(tmp_str, "%s", problem_info->title);
 	*end++ = '\'';
 	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
@@ -384,49 +396,52 @@ int add_problem(void)
 	*end++ = '\'';
 	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
 	*end++ = '\'';
-	*end++ = ',';
-	sprintf(tmp_str, "%s", problem_info->source);
-	*end++ = '\'';
+	end += sprintf(end, ",'%s'", problem_info->source);
+	end += sprintf(end, ",'%d'", problem_info->time_limit);
+	end += sprintf(end, ",'%d'", problem_info->memory_limit);
+	end += sprintf(end, ",'%d'", problem_info->spj);
+	end += sprintf(end, ",'%d'", problem_info->accepted);
+	end += sprintf(end, ",'%d'", problem_info->submit);
+	end += sprintf(end, ",'%d'", problem_info->solved);
+	end += sprintf(end, ",'%c'", problem_info->defunct ? 'Y' : 'N');
+	end += sprintf(end, ",now())");
+	end += sprintf(end, "%s", " on duplicate key update title='");
+	sprintf(tmp_str, "%s", problem_info->title);
 	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
 	*end++ = '\'';
-	*end++ = ',';
-	sprintf(tmp_str, "%d", problem_info->time_limit);
-	*end++ = '\'';
+	end += sprintf(end, "%s", ",description='");
+	sprintf(tmp_str, "%s", problem_info->description);
 	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
 	*end++ = '\'';
-	*end++ = ',';
-	sprintf(tmp_str, "%d", problem_info->memory_limit);
-	*end++ = '\'';
+	end += sprintf(end, "%s", ",input='");
+	sprintf(tmp_str, "%s", problem_info->input);
 	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
 	*end++ = '\'';
-	*end++ = ',';
-	sprintf(tmp_str, "%d", problem_info->spj);
-	*end++ = '\'';
+	end += sprintf(end, "%s", ",output='");
+	sprintf(tmp_str, "%s", problem_info->output);
 	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
 	*end++ = '\'';
-	*end++ = ',';
-	sprintf(tmp_str, "%d", problem_info->accepted);
-	*end++ = '\'';
+	end += sprintf(end, "%s", ",sample_input='");
+	sprintf(tmp_str, "%s", problem_info->sample_input);
 	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
 	*end++ = '\'';
-	*end++ = ',';
-	sprintf(tmp_str, "%d", problem_info->submit);
-	*end++ = '\'';
+	end += sprintf(end, "%s", ",sample_output='");
+	sprintf(tmp_str, "%s", problem_info->sample_output);
 	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
 	*end++ = '\'';
-	*end++ = ',';
-	sprintf(tmp_str, "%d", problem_info->solved);
-	*end++ = '\'';
+	end += sprintf(end, "%s", ",hint='");
+	sprintf(tmp_str, "%s", problem_info->hint);
 	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
 	*end++ = '\'';
-	*end++ = ',';
-	*end++ = '\'';
-	*end++ = problem_info->defunct ? 'Y' : 'N';
-	*end++ = '\'';
-	*end++ = ',';
-	sprintf(tmp_str, "now()");
-	end += mysql_real_escape_string(conn, end, tmp_str, strlen(tmp_str));
-	*end++ = ')';
+	end += sprintf(end, ",source='%s'", problem_info->source);
+	end += sprintf(end, ",time_limit='%d'", problem_info->time_limit);
+	end += sprintf(end, ",memory_limit='%d'", problem_info->memory_limit);
+	end += sprintf(end, ",spj='%d'", problem_info->spj);
+	end += sprintf(end, ",accepted='%d'", problem_info->accepted);
+	end += sprintf(end, ",submit='%d'", problem_info->submit);
+	end += sprintf(end, ",solved='%d'", problem_info->solved);
+	end += sprintf(end, ",defunct='%c'", problem_info->defunct ? 'Y' : 'N');
+	end += sprintf(end, ",in_date=now()");
 	*end = '\0';
 
 	if (mysql_real_query(conn, sql, strlen(sql))) {
@@ -436,21 +451,23 @@ int add_problem(void)
 		return -1;
 	}
 
-	if (execute_sql("INSERT INTO vjudge (problem_id, origin_id, ojtype) "
-			"values('%d', '%d', '%d')", problem_info->problem_id,
-			problem_info->origin_id, problem_info->ojtype) < 0) {
-		free(sql);
-		free(tmp_str);
-		return -1;
-	}
-	if (execute_sql("INSERT INTO cha (problem_id) values('%d')",
-			problem_info->problem_id) < 0) { 
-		free(sql);
-		free(tmp_str);
-		return -1;
+	if (!old_pid) {
+		if (execute_sql("INSERT INTO vjudge (problem_id, origin_id, ojtype) "
+				"values('%d', '%d', '%d')", problem_info->problem_id,
+				problem_info->origin_id, problem_info->ojtype) < 0) {
+			free(sql);
+			free(tmp_str);
+			return -1;
+		}
+		if (execute_sql("INSERT INTO cha (problem_id) values('%d')",
+				problem_info->problem_id) < 0) { 
+			free(sql);
+			free(tmp_str);
+			return -1;
+		}
 	}
 
 	free(sql);
 	free(tmp_str);
-	return 0;
+	return old_pid;
 }

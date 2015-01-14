@@ -82,7 +82,12 @@ void endtag(void *cbdata, ekhtml_string_t * str)
 	memset(tmp_str, 0, BUFSIZE * BUFSIZE);
 	strncpy(tagname, str->str, str->len);
 
-	sprintf(tmp_str, "</%s>", tagname);
+	// codeforces
+	if (oj_type == 2 && strcmp(tagname, "P") == 0) {
+		strcpy(tmp_str, "<BR>");
+	} else {
+		sprintf(tmp_str, "</%s>", tagname);
+	}
 	if (state->isdescription == 1) {
 		strcat(state->problem_info->description, tmp_str);
 	}
@@ -98,7 +103,6 @@ void endtag(void *cbdata, ekhtml_string_t * str)
 	free(tmp_str);
 }
 
-// process tag data
 void tagdata(void *cbdata, ekhtml_string_t * str)
 {
 	char *buf = (char *)malloc(BUFSIZE * BUFSIZE);
@@ -123,9 +127,15 @@ void tagdata(void *cbdata, ekhtml_string_t * str)
 	}
 	if (state->issinput == 1) {
 		strcat(state->problem_info->sample_input, buf);
+		if (oj_type == 2) {		// codeforces
+			strcat(state->problem_info->sample_input, "\n");
+		}
 	}
 	if (state->issoutput == 1) {
 		strcat(state->problem_info->sample_output, buf);
+		if (oj_type == 2) {		// codeforces
+			strcat(state->problem_info->sample_output, "\n");
+		}
 	}
 	if (state->ishint == 1) {
 		strcat(state->problem_info->hint, buf);
