@@ -112,7 +112,7 @@ int get_tta(char tta[])
 	regmatch_t pmatch[2];
 	const int nmatch = 2;
 	regex_t reg;
-	const char *pattern = "39ce7\\t(.*)";
+	const char *pattern = "39ce7\\s([a-zA-Z0-9_]*)";
 	char match_str[BUFSIZE];
 	int ret = regcomp(&reg, pattern, REG_EXTENDED);
 	if (ret) {
@@ -125,7 +125,7 @@ int get_tta(char tta[])
 		write_log("no match regex: %s.\n", pattern);
 		write_log("get tta error.\n");
 		regfree(&reg);
-		//return -1;
+		return -1;
 	} else if (status == 0) {
 		char buf[BUFSIZE];
 		for (i = 0; i < nmatch; ++i) {
@@ -166,6 +166,10 @@ int login_cf(void)
 		return -1;
 	}
 
+	// important
+	cleanup_curl();
+	curl = prepare_curl();
+
 	// 设置提交地址
 	curl_easy_setopt(curl, CURLOPT_REFERER, url);
 	curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -177,8 +181,8 @@ int login_cf(void)
 		write_log("login_cf get tta error.\n");
 		return -1;
 	}
-	sprintf(post_str, "action=center&handle=%s&password=%s&csrf_token=%s"
-			"&_tta=%s", vjudge_user, vjudge_passwd, csrf, tta);
+	sprintf(post_str, "csrf_token=%s&action=enter&handle=%s&password=%s"
+			"&_tta=%s", csrf, vjudge_user, vjudge_passwd, tta);
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_str);
 	if (DEBUG) {
 		write_log("perform url is %s.\n", url);
@@ -431,6 +435,12 @@ int get_status_cf(void)
 			return OJ_JE;
 		} else {
 			submission = json_get_obj(obj, "result[0]");
+		}
+
+		if (submission == NULL) {
+			write_log("get status error, maybe not submit.\n");
+			json_object_put(obj);
+			return OJ_JE;
 		}
 
 		rid = json_get_int(submission, "id");

@@ -31,9 +31,6 @@ CURL *prepare_curl(void)
 	curl_easy_setopt(curl, CURLOPT_COOKIEFILE, cookiename);
 	// 设置写入cookie的文件名
 	curl_easy_setopt(curl, CURLOPT_COOKIEJAR, cookiename);
-	if (DEBUG) {
-		curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-	}
 
 	return curl;
 }

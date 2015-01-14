@@ -234,6 +234,11 @@ int get_problem(void)
 		free(url);
 		return 1;
 	}
+	if (oj_type == 2 && strstr(buf, "<div class=\"header\">") == NULL) {
+		free(buf);
+		free(url);
+		return 1;
+	}
 	int ret = parse_html(buf);
 	if (ret < 0) {
 		free(buf);
