@@ -33,9 +33,6 @@ CURL *prepare_curl(void)
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
 	// 跟踪重定向的信息
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
-	if (DEBUG) {
-		curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-	}
 
 	return curl;
 }

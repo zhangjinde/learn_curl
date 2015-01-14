@@ -14,6 +14,8 @@ int oj_type;
 int db_port;
 int sleep_time;
 int db_timeout;
+int cf_pid[BUFSIZE * BUFSIZE];
+int cf_pid_len;
 char db_user[BUFSIZE];
 char db_passwd[BUFSIZE];
 char db_host[BUFSIZE];
@@ -71,7 +73,7 @@ void init_conf()
 }
 
 /*
- * Usage: ./get_problem oj_name from_problem_id to_problem_id [work_dir] [debug]
+ * Usage: ./get_problem oj_name from_problem_id(or index) to_problem_id(or index) [debug]
  */
 int main(int argc, char *argv[])
 {
@@ -79,7 +81,8 @@ int main(int argc, char *argv[])
 	init_conf();
 
 	if (argc < 4 || argc > 5) {
-		fprintf(stderr, "Usage: %s oj_name from_problem_id to_problem_id [debug]\n", argv[0]);
+		fprintf(stderr, "Usage: %s oj_name from_problem_id(or index) "
+				"to_problem_id(or indx) [debug]\n", argv[0]);
 		fprintf(stderr, "Support oj is: ");
 		int i = 0;
 		for (i = 0; i < oj_cnt; ++i) {
@@ -133,6 +136,17 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	if (oj_type == 2) {		// codeforces
+		if (get_cf_problem_id() < 0) {
+			write_log("get codeforces problem id error.\n");
+			exit(EXIT_FAILURE);
+		}
+		if (to > cf_pid_len - 1) {
+			to = cf_pid_len - 1;
+			write_log("index is so large. set it to max index %d.\n", cf_pid_len - 1);
+		}
+	}
+
 	for (pid = from; pid <= to; ++pid) {
 		memset(problem_info, 0, sizeof(struct problem_info_t));
 		int ret = get_problem();
@@ -162,7 +176,6 @@ int main(int argc, char *argv[])
 		}
 		sleep(sleep_time);
 	}
-
 
 	free(problem_info);
 	cleanup_curl();

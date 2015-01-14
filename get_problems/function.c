@@ -27,9 +27,6 @@ int write_log(const char *fmt, ...)
 		free(buffer);
 		return 0;
 	}
-	if (DEBUG) {
-		freopen("/dev/stdout", "w", fp);
-	}
 	va_start(ap, fmt);
 	vsprintf(buffer, fmt, ap);
 	int len = strlen(timestr);
@@ -185,8 +182,8 @@ char *get_problem_url(void)
 		return NULL;
 	}
 	if (oj_type == 2) {		// codeforces
-		sprintf(url, "%s%d/%c", oj_url[oj_type], pid / 10,
-				pid % 10 + 'A');
+		sprintf(url, "%s%d/%c", oj_url[oj_type], cf_pid[pid] / 10,
+				cf_pid[pid] % 10 + 'A');
 	} else {
 		sprintf(url, "%s%d", oj_url[oj_type], pid);
 	}

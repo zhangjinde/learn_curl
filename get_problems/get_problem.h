@@ -23,6 +23,7 @@
 #include <error.h>
 #include <ctype.h>
 
+#include "json.h"
 #include "ekhtml.h"
 
 #define BUFSIZE 512
@@ -75,6 +76,8 @@ extern int pid;
 extern int oj_cnt;
 extern int oj_type;
 extern int db_port;
+extern int cf_pid_len;
+extern int cf_pid[BUFSIZE * BUFSIZE];
 extern int sleep_time;
 extern int db_timeout;
 extern char db_user[BUFSIZE];
@@ -125,5 +128,9 @@ extern int parse_html_cf(char *buf);
 extern void starttag(void *cbdata, ekhtml_string_t * tag, ekhtml_attr_t * attrs);
 extern void endtag(void *cbdata, ekhtml_string_t * str);
 extern void tagdata(void *cbdata, ekhtml_string_t * str);
+extern int json_get_int(json_object *obj, const char *path);
+extern const char *json_get_str(json_object *obj, const char *path);
+extern json_object *json_get_obj(json_object *obj, const char *path);
+extern int get_cf_problem_id(void);
 
 #endif	// _MAIN_H

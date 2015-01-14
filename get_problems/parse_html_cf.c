@@ -144,6 +144,58 @@ static void cf_data(void *cbdata, ekhtml_string_t * str)
 	free(buf);
 }
 
+// memory should free
+int get_cf_problem_id(void)
+{
+	char url[] = "http://codeforces.com/api/problemset.problems";
+	char filename[] = "cf_json";
+	char buf[BUFSIZE];
+
+	// 设置网址
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+
+	write_log("try to get codeforces problem id.\n");
+	write_log("url = %s.\n", url);
+
+	// 执行数据请求
+	if (perform_curl(filename) < 0) {
+		return -1;
+	}
+
+	json_object *obj = json_object_from_file(filename);
+	if (obj == NULL) {
+		write_log("load json object from file %s error.\n", filename);
+		return -1;
+	}
+	json_object *problems;
+	if (strcmp(json_get_str(obj, "status"), "OK") != 0) {
+		if (!DEBUG) {
+			execute_cmd("rm -rf %s", filename);
+		}
+		return -1;
+	} else {
+		problems = json_get_obj(obj, "result.problems");
+	}
+	int i = 0;
+	int len = json_object_array_length(problems);
+	int pid = 0;
+	for (i = 0; i < len; ++i) {
+		sprintf(buf, "[%d].contestId", i);
+		pid = json_get_int(problems, buf);
+		sprintf(buf, "[%d].index", i);
+		pid = pid * 10 + json_get_str(problems, buf)[0] - 'A';
+		cf_pid[i] = pid;
+	}
+	cf_pid[len] = -1;
+	cf_pid_len = len;
+
+	if (!DEBUG) {
+		execute_cmd("rm -rf %s", filename);
+	}
+	json_object_put(obj);
+	return 0;
+}
+
 int parse_html_cf(char *buf)
 {
 	struct html_state_t cbdata;
