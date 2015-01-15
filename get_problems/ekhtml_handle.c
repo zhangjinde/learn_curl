@@ -17,6 +17,11 @@ void starttag(void *cbdata, ekhtml_string_t * tag,
 		write_log("alloc starttag tmp_str buf memory error.\n");
 		return;
 	}
+	char *attrval = (char *)malloc(BUFSIZE * BUFSIZE);
+	if (attrval == NULL) {
+		write_log("alloc starttag attrval buf memory error.\n");
+		return;
+	}
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	memset(tagname, 0, sizeof(tagname));
 	memset(tmp_str, 0, BUFSIZE * BUFSIZE);
@@ -32,8 +37,7 @@ void starttag(void *cbdata, ekhtml_string_t * tag,
 			strcat(tmp_str, "=\"");
 			// 特殊处理图像
 			if (strcmp(tagname, "IMG") == 0 && strncmp(attr->name.str, "src", attr->name.len) == 0) {
-				char attrval[BUFSIZE];
-				memset(attrval, 0, sizeof(attrval));
+				memset(attrval, 0, BUFSIZE * BUFSIZE);
 				strncpy(attrval, attr->val.str, attr->val.len);
 				strcat(tmp_str, oj_imgurl[oj_type]);
 				int pos = 0;

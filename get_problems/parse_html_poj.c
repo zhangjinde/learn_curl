@@ -23,6 +23,7 @@ static void poj_endtag_pre(void *cbdata, ekhtml_string_t * str)
 
 static void poj_endtag_div(void *cbdata, ekhtml_string_t * str)
 {
+	write_log("end div.\n");
 	struct html_state_t *state = (struct html_state_t *)cbdata;
 	if (state->istitle) {
 		--state->istitle;
@@ -169,6 +170,7 @@ int parse_html_poj(char *buf)
 	cbdata.problem_info = problem_info;
 	ekhtml_parser_t *ekparser = prepare_ekhtml(&cbdata);
 
+	write_log("1.\n");
 	// set callback function or data
 	ekhtml_parser_datacb_set(ekparser, poj_data);
 	ekhtml_parser_startcb_add(ekparser, NULL, poj_starttag);
@@ -176,12 +178,14 @@ int parse_html_poj(char *buf)
 	ekhtml_parser_endcb_add(ekparser, "DIV", poj_endtag_div);
 	ekhtml_parser_endcb_add(ekparser, "PRE", poj_endtag_pre);
 
+	write_log("1.\n");
 	ekhtml_string_t str;
 	str.str = buf;
 	str.len = strlen(buf);
 	ekhtml_parser_feed(ekparser, &str);
 	ekhtml_parser_flush(ekparser, 0);
 
+	write_log("1.\n");
 	cleanup_ekhtml(ekparser);
 	return 0;
 }
