@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	conn = prepare_mysql();
-	if (curl == NULL) {
+	if (conn == NULL) {
 		write_log("prepare mysql handle error.\n");
 		cleanup_curl();
 		exit(EXIT_FAILURE);
