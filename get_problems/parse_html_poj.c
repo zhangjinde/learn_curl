@@ -10,29 +10,6 @@
  */
 #include "get_problem.h"
 
-static void poj_endtag_p(void *cbdata, ekhtml_string_t * str)
-{
-	struct html_state_t *state = (struct html_state_t *)cbdata;
-	if (state->isdescription) {
-		--state->isdescription;
-	}
-	if (state->isinput) {
-		--state->isinput;
-	}
-	if (state->isoutput) {
-		--state->isoutput;
-	}
-	if (state->issinput) {
-		--state->issinput;
-	}
-	if (state->issoutput) {
-		--state->issoutput;
-	}
-	if (state->ishint) {
-		--state->ishint;
-	}
-}
-
 static void poj_endtag_pre(void *cbdata, ekhtml_string_t * str)
 {
 	struct html_state_t *state = (struct html_state_t *)cbdata;
@@ -196,7 +173,6 @@ int parse_html_poj(char *buf)
 	ekhtml_parser_datacb_set(ekparser, poj_data);
 	ekhtml_parser_startcb_add(ekparser, NULL, poj_starttag);
 	ekhtml_parser_endcb_add(ekparser, NULL, poj_endtag);
-	//ekhtml_parser_endcb_add(ekparser, "P", poj_endtag_p);
 	ekhtml_parser_endcb_add(ekparser, "DIV", poj_endtag_div);
 	ekhtml_parser_endcb_add(ekparser, "PRE", poj_endtag_pre);
 
