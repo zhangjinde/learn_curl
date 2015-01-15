@@ -44,12 +44,17 @@ void cleanup_mysql(void)
 	}
 }
 
-void ping(void)
+int ping(void)
 {
 	if (mysql_ping(conn)) {
 		cleanup_mysql();
 		write_log("reconnect mysql server.\n");
 		conn = prepare_mysql();
+	}
+	if (conn == NULL) {
+		return -1;
+	} else {
+		return 0;
 	}
 }
 
@@ -69,7 +74,11 @@ int execute_sql(const char *fmt, ...)
 	va_end(ap);
 
 	write_log("execute sql：%s.\n", sql);
-	ping();
+	if (ping() < 0) {
+		write_log("ping error.\n");
+		free(sql);
+		return -1;
+	}
 	if (mysql_real_query(conn, sql, strlen(sql))) {
 		write_log("execute sql error:%s.\n", mysql_error(conn));
 		free(sql);

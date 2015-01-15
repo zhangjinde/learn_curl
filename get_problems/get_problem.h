@@ -119,7 +119,7 @@ extern char *get_problem_url(void);
 extern int get_problem(void);
 extern int isexist(void);
 extern int add_problem(void);
-extern void ping(void);
+extern int ping(void);
 extern int execute_sql(const char *fmt, ...);
 extern int parse_html_poj(char *buf);
 extern int parse_html_zoj(char *buf);
