@@ -164,22 +164,22 @@ static void poj_data(void *cbdata, ekhtml_string_t * str)
 	}
 
 	if (strcmp("Description", buf) == 0) {
-		state->isdescription = 2;
+		state->isdescription = 1;
 	}
 	if (strcmp("Input", buf) == 0) {
-		state->isinput = 2;
+		state->isinput = 1;
 	}
 	if (strcmp("Output", buf) == 0) {
-		state->isoutput = 2;
+		state->isoutput = 1;
 	}
 	if (strcmp("Sample Input", buf) == 0) {
-		state->issinput = 2;
+		state->issinput = 1;
 	}
 	if (strcmp("Sample Output", buf) == 0) {
-		state->issoutput = 2;
+		state->issoutput = 1;
 	}
 	if (strcmp("Hint", buf) == 0) {
-		state->ishint = 2;
+		state->ishint = 1;
 	}
 
 	free(buf);
@@ -196,7 +196,7 @@ int parse_html_poj(char *buf)
 	ekhtml_parser_datacb_set(ekparser, poj_data);
 	ekhtml_parser_startcb_add(ekparser, NULL, poj_starttag);
 	ekhtml_parser_endcb_add(ekparser, NULL, poj_endtag);
-	ekhtml_parser_endcb_add(ekparser, "P", poj_endtag_p);
+	//ekhtml_parser_endcb_add(ekparser, "P", poj_endtag_p);
 	ekhtml_parser_endcb_add(ekparser, "DIV", poj_endtag_div);
 	ekhtml_parser_endcb_add(ekparser, "PRE", poj_endtag_pre);
 
