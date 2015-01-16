@@ -69,6 +69,7 @@ void starttag(void *cbdata, ekhtml_string_t * tag,
 	if (state->ishint == 1) {
 		strcat(state->problem_info->hint, tmp_str);
 	}
+	free(attrval);
 	free(tmp_str);
 }
 
